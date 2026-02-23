@@ -285,26 +285,19 @@ def main():
                 st.success("自動転送用のQRコードを生成しました！")
                 st.image(str(qr_path), caption=f"QRの中身: {dynamic_url}", width=200)
                 
-                # --- 自動埋め込みURL変換マジック ---
-                # コピーした長いURLを、サインイン不要の最強URLに自動変換する
-                final_url = long_url
-                if "onedrive.live.com/?" in long_url:
-                    final_url = long_url.replace("onedrive.live.com/?", "onedrive.live.com/embed?")
-                elif "1drv.ms" in long_url:
-                    st.warning("⚠️ 共有ボタンからの短いURL(1drv.ms)です。サインイン不要にするため、PDFを開いた画面の一番上のアドレスバーにある長いURLを貼り直すことをお勧めします。")
-                
-                # 台帳更新（変換済みの最強URLを記録）
+                # 台帳更新（入力されたURLをそのまま記録します）
                 df = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
-                new_data = {"ID": did, "Name": name, "Power": power, "URL": final_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                 df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 df.to_csv(DB_CSV, index=False)
-                st.info("台帳(devices.csv)にサインイン不要のリンクを記録しました。")
+                st.info("台帳(devices.csv)に最終目的地（OneDrive）を記録しました。")
             else:
                 st.error("「管理番号」と「URL」の両方を入力してください。")
 
 if __name__ == "__main__":
 
     main()
+
 
 
 
