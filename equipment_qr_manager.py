@@ -16,14 +16,14 @@ import urllib.request
 
 # --- 日本語フォントの設定（クラウド対応） ---
 try:
-    # クラウド環境用にフリーの日本語フォントを自動ダウンロード
-    cloud_font_path = "NotoSansJP-Regular.ttf"
+    # 現場で圧倒的に読みやすい「BIZ UDゴシック」を自動ダウンロード
+    cloud_font_path = "BIZUDGothic-Regular.ttf"
     if not os.path.exists(cloud_font_path):
-        font_url = "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP-Regular.ttf"
+        font_url = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
         urllib.request.urlretrieve(font_url, cloud_font_path)
     
-    pdfmetrics.registerFont(TTFont("NotoSans", cloud_font_path))
-    FONT_NAME = "NotoSans"
+    pdfmetrics.registerFont(TTFont("BIZUDGothic", cloud_font_path))
+    FONT_NAME = "BIZUDGothic"
 except:
     try:
         # ローカル環境（パソコン）のフォールバック
@@ -284,4 +284,5 @@ def main():
                 st.error("「管理番号」と「URL」の両方を入力してください。")
 
 if __name__ == "__main__":
+
     main()
