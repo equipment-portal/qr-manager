@@ -197,27 +197,18 @@ def main():
                 target_url = match.iloc[-1]["URL"]
                 
                 # メッセージをすべて削除し、ボタンのみをシンプルに表示
-                link_html = f"""
-                <div style="text-align: center; margin-top: 80px;">
-                    <a href="{target_url}" target="_blank" style="
-                        display: inline-block;
-                        padding: 20px 40px;
-                        background-color: #0078D4;
-                        color: white;
-                        font-size: 22px;
-                        font-weight: bold;
-                        text-decoration: none;
-                        border-radius: 8px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-                    ">
-                        📂 ここをタップしてPDFを開く
-                    </a>
-                    <p style="margin-top: 20px; color: #555; font-size: 14px;">
-                        ※セキュリティ保護のため、自動ジャンプは停止されています。
+                # ワンタップ（0クリック）の自動ジャンプ処理を復活
+                redirect_html = f"""
+                <meta http-equiv="refresh" content="0; url={target_url}">
+                <script>window.location.href = "{target_url}";</script>
+                <div style="text-align: center; margin-top: 50px;">
+                    <p style="font-size: 18px; font-weight: bold; color: #333;">🔄 PDFを開いています...</p>
+                    <p style="margin-top: 20px; font-size: 12px; color: #888;">
+                        <a href="{target_url}" style="color: #888;">※画面が切り替わらない場合はここをタップ</a>
                     </p>
                 </div>
                 """
-                st.markdown(link_html, unsafe_allow_html=True)
+                st.markdown(redirect_html, unsafe_allow_html=True)
             else:
                 st.error(f"エラー: 管理番号 '{target_id}' は見つかりませんでした。")
         else:
@@ -297,6 +288,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
