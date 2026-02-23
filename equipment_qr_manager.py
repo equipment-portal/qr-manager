@@ -187,23 +187,18 @@ def main():
     is_redirect_mode = "id" in query_params
 
     if is_redirect_mode:
-        st.set_page_config(page_title="資料を開いています...", layout="centered")
+        st.set_page_config(page_title="PDFを開く", layout="centered")
         target_id = query_params["id"]
-        st.title("🔄 該当する資料を開いています...")
         
         if DB_CSV.exists():
             df = pd.read_csv(DB_CSV)
-            # 台帳の中から、アクセスされた管理番号と同じ行を探す
             match = df[df["ID"] == target_id]
             if not match.empty:
-                # 複数回登録されていた場合は最新のもの（一番下）を取得
                 target_url = match.iloc[-1]["URL"]
-                st.info(f"管理番号: {target_id} のファイルへ転送します。")
                 
-                # OneDriveのセキュリティ（埋め込み拒否）を回避するため、
-                # 確実に別タブで開く大きな専用ボタンを表示します。
+                # メッセージをすべて削除し、ボタンのみをシンプルに表示
                 link_html = f"""
-                <div style="text-align: center; margin-top: 40px;">
+                <div style="text-align: center; margin-top: 80px;">
                     <a href="{target_url}" target="_blank" style="
                         display: inline-block;
                         padding: 20px 40px;
@@ -218,8 +213,7 @@ def main():
                         📂 ここをタップしてPDFを開く
                     </a>
                     <p style="margin-top: 20px; color: #555; font-size: 14px;">
-                        ※セキュリティ保護のため、自動ジャンプは停止されています。<br>
-                        上のボタンをタップするとOneDriveの資料が開きます。
+                        ※セキュリティ保護のため、自動ジャンプは停止されています。
                     </p>
                 </div>
                 """
@@ -303,5 +297,6 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
