@@ -233,7 +233,7 @@ def main():
                 # 自動的に取得できるベースURLがない場合は、Streamlitの仕様でハードコードの案内を出してもOKですが
                 # 今回は相対パス的にも処理できるようにダミーURLからの変換を使用します。
                 # ユーザーが実際にアクセスしているURLを使います。
-                clean_base_url = "https://qr-manager-ek25bude2xuugsffohk3fn.streamlit.app"
+                clean_base_url = "https://qr-manager-ek25bude2xuugsffohk3fn.streamlit.app/"
                 dynamic_url = f"{clean_base_url}/?id={did}"
                 
                 img_qr = qrcode.make(dynamic_url)
@@ -252,3 +252,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
