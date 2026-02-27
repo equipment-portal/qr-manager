@@ -179,9 +179,10 @@ def main():
         
         with col1:
             st.header("1. 基本情報入力")
-            did = st.text_input("管理番号 (例: H-2699)")
+            did = st.text_input("管理番号 (例: 2699)")
             name = st.text_input("設備名称 (例: 5t金型反転機)")
-            power = st.text_input("使用電源 (例: 200V)")
+            # ドロップダウンリストに変更します
+            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください")
             
         with col2:
             st.header("2. 画像アップロード")
@@ -252,6 +253,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
