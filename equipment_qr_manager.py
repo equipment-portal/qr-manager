@@ -75,6 +75,67 @@ def create_pdf(data, output_path):
     # 絵文字を廃止し、確実に表示される四角マークに変更
     c.drawString(45, p_y + 7, f"■ 使用電源: AC {data['power']}")
 
+    import io
+from PIL import Image, ImageDraw, ImageFont
+
+# --- 印刷用ラベル生成関数 ---
+def create_label_image(data):
+    """
+    縦2.5cm×横4cmの実寸大ラベル画像を生成
+    解像度300dpiで設計
+    """
+    # 300dpiでの実寸大ピクセル計算
+    # 2.5cm = 0.984インチ * 300 = 295ピクセル
+    # 4cm = 1.575インチ * 300 = 472ピクセル
+    w_px, h_px = 472, 295
+    label_img = Image.new('RGB', (w_px, h_px), 'white')
+    draw = ImageDraw.Draw(label_img)
+    
+    # フォントの設定（現場用ラベルには太めのUDゴシック推奨）
+    font_path = "BIZUDGothic-Regular.ttf"
+    font_lg = ImageFont.truetype(font_path, 20)  # タイトル
+    font_sm = ImageFont.truetype(font_path, 12)  # 詳細
+    font_xs = ImageFont.truetype(font_path, 8)   # 極小
+    
+    # 1. 工場のマークをカラフルに復元（画像として配置）
+    try:
+        # カラフルな工場マーク画像をダウンロード
+        factory_icon_url = "https://raw.githubusercontent.com/googlefonts/morisawa-biz-ud-gothic/main/docs/biz_font_specimen/sample_ud_gothic.png"
+        urllib.request.urlretrieve(factory_icon_url, "factory_icon.png")
+        icon_img = Image.open("factory_icon.png")
+        icon_img = icon_img.resize((30, 30))
+        label_img.paste(icon_img, (10, 10))
+    except:
+        # フォールバック（文字）
+        draw.text((10, 10), "🏭", fill="black", font=font_lg)
+    
+    # 2. タイトル
+    draw.text((45, 10), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
+    
+    # 3. QRコードを配置
+    if 'img_qr' in data:
+        # PilImage（qrcode.makeの結果）をPIL画像に変換
+        qr_pil_img = data['img_qr'].convert('RGB')
+        # 小さくリサイズ（約1.2cm四方 = 約140ピクセル）
+        qr_pil_img = qr_pil_img.resize((140, 140))
+        label_img.paste(qr_pil_img, (10, 50))
+    
+    # 4. 詳細テキスト
+    x_text = 160
+    y_text = 50
+    line_height = 20
+    draw.text((x_text, y_text), f"機器名称: {data['name']}", fill="black", font=font_sm)
+    draw.text((x_text, y_text + line_height), f"使用電源: AC {data['power']}", fill="black", font=font_sm)
+    
+    # 5. 区切り線
+    y_line = y_text + line_height * 2 + 5
+    draw.line((x_text, y_line, w_px - 10, y_line), fill="gray", width=1)
+    
+    # 6. 極短の案内文
+    draw.text((x_text, y_line + 10), "📱詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
+    
+    return label_img
+
     # ==========================================
     # --- 新しい画像レイアウト（5枚配置） ---
     # ==========================================
@@ -162,7 +223,7 @@ def main():
     else:
         # 管理者用画面（通常アクセス時）
         st.set_page_config(page_title="設備QR＆PDF管理システム", layout="wide")
-        st.title("🛠 設備QR＆PDF管理システム")
+        st.title("🖥 設備QR＆PDF管理システム")
         
         # 実行中のアプリのURLを取得
         try:
@@ -253,6 +314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
