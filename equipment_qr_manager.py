@@ -77,6 +77,48 @@ def create_pdf(data, output_path):
     # 絵文字を廃止し、確実に表示される四角マークに変更
     c.drawString(45, p_y + 7, f"■ 使用電源: AC {data['power']}")
 
+    # ==========================================
+    # --- 新しい画像レイアウト（5枚配置） ---
+    # ==========================================
+    
+    # 画像を描画するための共通ヘルパー関数（枠線やNone表示も自動対応）
+    def draw_image_box(c, img_file, title, x, y, w, h):
+        c.setFillColorRGB(0, 0, 0)
+        c.setFont(FONT_NAME, 12)
+        c.drawString(x, y + h + 5, title) # タイトルを画像の上に配置
+        
+        if img_file is not None:
+            try:
+                img = ImageReader(img_file)
+                # アスペクト比を維持して中央に描画
+                c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
+            except Exception as e:
+                c.rect(x, y, w, h) # エラー時は枠だけ
+        else:
+            # 画像がない場合は点線の枠と「None」を表示
+            c.setDash(3, 3)
+            c.rect(x, y, w, h)
+            c.setDash()
+            c.setFont(FONT_NAME, 10)
+            c.drawCentredString(x + w/2, y + h/2, f"None ({title}なし)")
+
+    # 1. 機器外観（上段・左）大きく配置
+    draw_image_box(c, data.get('img_exterior'), "機器外観", 40, 360, 250, 300)
+
+    # 2. コンセント位置（上段・右の上半分）縮小して配置
+    draw_image_box(c, data.get('img_outlet'), "コンセント位置", 305, 520, 250, 140)
+
+    # 3. 資産管理ラベル（上段・右の下半分）縮小して配置
+    draw_image_box(c, data.get('img_label'), "資産管理ラベル", 305, 360, 250, 140)
+
+    # 4. LOTO手順書 1ページ目（下段・左）
+    draw_image_box(c, data.get('img_loto1'), "LOTO手順書（1ページ目）", 40, 40, 250, 280)
+
+    # 5. LOTO手順書 2ページ目（下段・右）
+    draw_image_box(c, data.get('img_loto2'), "LOTO手順書（2ページ目）", 305, 40, 250, 280)
+
+    c.save()
+
 # --- 印刷用ラベル生成関数 ---
 def create_label_image(data):
     """
@@ -134,48 +176,6 @@ def create_label_image(data):
     draw.text((x_text, y_line + 10), "📱詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
     
     return label_img
-
-    # ==========================================
-    # --- 新しい画像レイアウト（5枚配置） ---
-    # ==========================================
-    
-    # 画像を描画するための共通ヘルパー関数（枠線やNone表示も自動対応）
-    def draw_image_box(c, img_file, title, x, y, w, h):
-        c.setFillColorRGB(0, 0, 0)
-        c.setFont(FONT_NAME, 12)
-        c.drawString(x, y + h + 5, title) # タイトルを画像の上に配置
-        
-        if img_file is not None:
-            try:
-                img = ImageReader(img_file)
-                # アスペクト比を維持して中央に描画
-                c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
-            except Exception as e:
-                c.rect(x, y, w, h) # エラー時は枠だけ
-        else:
-            # 画像がない場合は点線の枠と「None」を表示
-            c.setDash(3, 3)
-            c.rect(x, y, w, h)
-            c.setDash()
-            c.setFont(FONT_NAME, 10)
-            c.drawCentredString(x + w/2, y + h/2, f"None ({title}なし)")
-
-    # 1. 機器外観（上段・左）大きく配置
-    draw_image_box(c, data.get('img_exterior'), "機器外観", 40, 360, 250, 300)
-
-    # 2. コンセント位置（上段・右の上半分）縮小して配置
-    draw_image_box(c, data.get('img_outlet'), "コンセント位置", 305, 520, 250, 140)
-
-    # 3. 資産管理ラベル（上段・右の下半分）縮小して配置
-    draw_image_box(c, data.get('img_label'), "資産管理ラベル", 305, 360, 250, 140)
-
-    # 4. LOTO手順書 1ページ目（下段・左）
-    draw_image_box(c, data.get('img_loto1'), "LOTO手順書（1ページ目）", 40, 40, 250, 280)
-
-    # 5. LOTO手順書 2ページ目（下段・右）
-    draw_image_box(c, data.get('img_loto2'), "LOTO手順書（2ページ目）", 305, 40, 250, 280)
-
-    c.save()
 
 # --- メインアプリ ---
 def main():
@@ -305,14 +305,41 @@ def main():
                 # 台帳更新（入力されたURLをそのまま記録します）
                 df = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
                 new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 df.to_csv(DB_CSV, index=False)
                 st.info("台帳(devices.csv)に最終目的地を記録しました。")
+                
+                # --- 追加：印刷用ラベルの生成とダウンロード ---
+                st.markdown("---")
+                st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
+                
+                # label_data にQRコード画像も含めて渡す
+                label_data = {
+                    "name": name,
+                    "power": power,
+                    "img_qr": img_qr
+                }
+                label_img = create_label_image(label_data)
+                
+                # PIL画像をメモリ上でPNGに変換
+                buf = io.BytesIO()
+                label_img.save(buf, format="PNG")
+                byte_im = buf.getvalue()
+                
+                st.image(label_img, caption="2.5cm × 4cm 印刷用ラベル", width=300)
+                
+                st.download_button(
+                    label="📥 ラベル画像(PNG)をダウンロード",
+                    data=byte_im,
+                    file_name=f"{safe_id}_label.png",
+                    mime="image/png"
+                )
+                
             else:
                 st.error("「管理番号」と「URL」の両方を入力してください。")
 
 if __name__ == "__main__":
     main()
+
 
 
 
