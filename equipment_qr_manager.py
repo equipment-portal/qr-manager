@@ -5,6 +5,8 @@ import os
 import urllib.request
 from pathlib import Path
 from datetime import datetime
+import io
+from PIL import Image, ImageDraw, ImageFont
 
 # PDF生成用ライブラリ
 from reportlab.pdfgen import canvas
@@ -74,9 +76,6 @@ def create_pdf(data, output_path):
     c.setFont(FONT_NAME, 14)
     # 絵文字を廃止し、確実に表示される四角マークに変更
     c.drawString(45, p_y + 7, f"■ 使用電源: AC {data['power']}")
-
-    import io
-from PIL import Image, ImageDraw, ImageFont
 
 # --- 印刷用ラベル生成関数 ---
 def create_label_image(data):
@@ -314,6 +313,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
