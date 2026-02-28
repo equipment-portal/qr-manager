@@ -125,20 +125,20 @@ def create_pdf(data, output_path):
             c.setFont(FONT_NAME, 10)
             c.drawCentredString(x + w/2, y + h/2, f"None ({title}なし)")
 
-    # 1. 機器外観（上段・左）大きく配置
-    draw_image_box(c, data.get('img_exterior'), "機器外観", 40, 360, 250, 300)
+    # 1. 機器外観（上段・左）最も大きく、縦長に配置
+    draw_image_box(c, data.get('img_exterior'), "機器外観", 40, 330, 260, 350)
 
-    # 2. コンセント位置（上段・右の上半分）縮小して配置
-    draw_image_box(c, data.get('img_outlet'), "コンセント位置", 305, 520, 250, 140)
+    # 2. コンセント位置（上段・右の上半分）最も小さく、縦長に配置
+    draw_image_box(c, data.get('img_outlet'), "コンセント位置", 365, 515, 140, 165)
 
-    # 3. 資産管理ラベル（上段・右の下半分）縮小して配置
-    draw_image_box(c, data.get('img_label'), "資産管理ラベル", 305, 360, 250, 140)
+    # 3. 資産管理ラベル（上段・右の下半分）最も小さく、縦長に配置
+    draw_image_box(c, data.get('img_label'), "資産管理ラベル", 365, 330, 140, 165)
 
-    # 4. LOTO手順書 1ページ目（下段・左）
-    draw_image_box(c, data.get('img_loto1'), "LOTO手順書（1ページ目）", 40, 40, 250, 280)
+    # 4. LOTO手順書 1ページ目（下段・左）2番目に大きく、縦長に配置
+    draw_image_box(c, data.get('img_loto1'), "LOTO手順書（1ページ目）", 40, 40, 240, 265)
 
-    # 5. LOTO手順書 2ページ目（下段・右）
-    draw_image_box(c, data.get('img_loto2'), "LOTO手順書（2ページ目）", 305, 40, 250, 280)
+    # 5. LOTO手順書 2ページ目（下段・右）2番目に大きく、縦長に配置
+    draw_image_box(c, data.get('img_loto2'), "LOTO手順書（2ページ目）", 315, 40, 240, 265)
 
     c.save()
 
@@ -385,4 +385,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
