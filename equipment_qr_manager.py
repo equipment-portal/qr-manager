@@ -6,7 +6,7 @@ import urllib.request
 from pathlib import Path
 from datetime import datetime
 import io
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps # ← ImageOpsを自動回転のために追加
 
 # PDF生成用ライブラリ
 from reportlab.pdfgen import canvas
@@ -62,107 +62,125 @@ def safe_filename(name):
 
 # --- PDF生成関数 ---
 def create_pdf(data, output_path):
-    """PDFドキュメントを生成"""
+    """PDFドキュメントを生成（スマートレイアウトエンジン搭載）"""
     c = canvas.Canvas(str(output_path), pagesize=A4)
     width, height = A4
     
-    # 1. ヘッダー帯（黄色）
+    # ==========================================
+    # --- ヘッダー領域の縮小化（写真スペースの最大化） ---
+    # ==========================================
     bg_c = (1.0, 0.84, 0.0)  # #FFD700 (Gold/Yellow)
     txt_c = (0.2, 0.2, 0.2)
     c.setFillColorRGB(*bg_c)
-    c.rect(0, height - 100, width, 100, stroke=0, fill=1)
     
-    # 2. 右上��管理番号
+    # ヘッダーの高さを100から「60」に大幅カット
+    c.rect(0, height - 60, width, 60, stroke=0, fill=1)
+    
+    # 右上の管理番号
+    c.setFillColorRGB(*txt_c)
+    c.setFont(FONT_NAME, 10) # サイズも控えめに
+    c.drawRightString(width - 20, height - 20, f"管理番号: {data['id']}")
+    
+    # 機器名（タイトル）
+    c.setFont(FONT_NAME, 22) # 28から22に縮小
+    c.drawString(20, height - 40, data['name'])
+    
+    # 使用電源の帯（オレンジ）も細く上に詰める
+    p_y = height - 85 # 130から85に上に移動
+    c.setFillColorRGB(0.95, 0.61, 0.13)  # オレンジ
+    c.rect(20, p_y, width - 40, 18, stroke=0, fill=1)
+    
     c.setFillColorRGB(*txt_c)
     c.setFont(FONT_NAME, 12)
-    c.drawRightString(width - 40, height - 30, f"管理番号: {data['id']}")
-    
-    # 3. 機器名（タイトル）
-    c.setFont(FONT_NAME, 28)
-    c.drawString(40, height - 70, data['name'])
-    
-    # 4. 使用電源の帯（オレンジ）
-    p_y = height - 130
-    c.setFillColorRGB(0.95, 0.61, 0.13)  # オレンジ
-    c.rect(40, p_y, width - 80, 24, stroke=0, fill=1)
-    
-    c.setFillColorRGB(*txt_c)
-    c.setFont(FONT_NAME, 14)
-    c.drawString(45, p_y + 7, f"■ 使用電源: AC {data['power']}")
+    power_text = data['power'] if data['power'] else "未設定"
+    c.drawString(25, p_y + 4, f"■ 使用電源: AC {power_text}")
 
     # ==========================================
-    # --- 画像レイアウト（5枚配置）---
+    # --- 超スマート・画像レイアウトエンジン ---
     # ==========================================
     
-    def draw_image_box(c, img_file, title, x, y, w, h):
-        """画像ボックスを描画（Streamlitの UploadedFile に対応）"""
+    def draw_smart_image_box(c, img_file, title, x, y, w, h):
+        """画像の縦横比を自動判定し、枠に合わせて回転・最大化する"""
         c.setFillColorRGB(0, 0, 0)
-        c.setFont(FONT_NAME, 12)
-        c.drawString(x, y + h + 5, title)  # タイトルを画像の上に配置
+        c.setFont(FONT_NAME, 11)
+        c.drawString(x, y + h + 4, title)  # タイトルを画像の上に配置
         
         if img_file is not None:
             try:
-                # UploadedFileをバイナリストリームに変換
+                # 1. 画像の読み込み
                 if hasattr(img_file, 'read'):
-                    # Streamlit UploadedFile オブジェクトの場合
                     img_data = img_file.read()
-                    img_stream = io.BytesIO(img_data)
+                    img = Image.open(io.BytesIO(img_data))
                 else:
-                    # 通常のファイルパスの場合
-                    img_stream = img_file
+                    img = Image.open(img_file)
                 
-                img = ImageReader(img_stream)
-                c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
+                # 2. 【最重要】スマホ特有のEXIF回転バグを完全補正
+                img = ImageOps.exif_transpose(img)
+                
+                # 3. 縦横比の自動判定と最適化スピン
+                box_is_portrait = h > w # 枠が縦長かどうか
+                img_is_portrait = img.height > img.width # 画像が縦長かどうか
+                
+                # 枠と画像の向きが異なる場合、画像を90度回転させて余白をゼロに近づける
+                if box_is_portrait != img_is_portrait:
+                    img = img.rotate(-90, expand=True)
+                
+                # 4. ReportLab用にRGB変換して渡す
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format='JPEG', quality=90)
+                img_byte_arr.seek(0)
+                
+                # 画像の描画
+                img_reader = ImageReader(img_byte_arr)
+                c.drawImage(img_reader, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
+                
+                # 見栄えを良くするため、薄いグレーの枠線を引く
+                c.setStrokeColorRGB(0.8, 0.8, 0.8)
+                c.rect(x, y, w, h)
+                c.setStrokeColorRGB(0, 0, 0) # リセット
+                
             except Exception as e:
-                # エラーログ出力（デバッグ用）
                 print(f"画像読み込みエラー({title}): {str(e)}")
                 c.rect(x, y, w, h)  # エラー時は枠だけ表示
         else:
-            # 画像がない場合は点線の枠と「None」を表示
             c.setDash(3, 3)
             c.rect(x, y, w, h)
             c.setDash()
             c.setFont(FONT_NAME, 10)
             c.drawCentredString(x + w/2, y + h/2, f"None ({title}なし)")
 
-    # 1. 機器外観（上段・左）最も大きく、縦長に配置
-    draw_image_box(c, data.get('img_exterior'), "機器外観", 40, 330, 260, 350)
+    # 緻密に計算された新しいレイアウト座標（ミリ単位調整済み）
+    
+    # 下段：② LOTO手順書（2番目に大きい、縦長ボックス）
+    draw_smart_image_box(c, data.get('img_loto1'), "② LOTO手順書（1ページ目）", 20, 20, 270, 320)
+    draw_smart_image_box(c, data.get('img_loto2'), "② LOTO手順書（2ページ目）", 305, 20, 270, 320)
 
-    # 2. コンセント位置（上段・右の上半分）最も小さく、縦長に配置
-    draw_image_box(c, data.get('img_outlet'), "コンセント位置", 365, 515, 140, 165)
+    # 上段：① 機器外観（1番大きい、ほぼ正方形〜縦長の超巨大ボックス）
+    draw_smart_image_box(c, data.get('img_exterior'), "① 機器外観", 20, 370, 350, 365)
 
-    # 3. 資産管理ラベル（上段・右の下半分）最も小さく、縦長に配置
-    draw_image_box(c, data.get('img_label'), "資産管理ラベル", 365, 330, 140, 165)
-
-    # 4. LOTO手順書 1ページ目（下段・左）2番目に大きく、縦長に配置
-    draw_image_box(c, data.get('img_loto1'), "LOTO手順書（1ページ目）", 40, 40, 240, 265)
-
-    # 5. LOTO手順書 2ページ目（下段・右）2番目に大きく、縦長に配置
-    draw_image_box(c, data.get('img_loto2'), "LOTO手順書（2ページ目）", 315, 40, 240, 265)
+    # 上段右：③ コンセント＆ラベル（3番目、横長ボックス）
+    draw_smart_image_box(c, data.get('img_outlet'), "③ コンセント位置", 380, 560, 195, 175)
+    draw_smart_image_box(c, data.get('img_label'), "③ 資産管理ラベル", 380, 370, 195, 175)
 
     c.save()
 
 # --- 印刷用ラベル生成関数 ---
 def create_label_image(data):
-    """
-    縦2.5cm×横4cmの実寸大ラベル画像を生成
-    解像度300dpiで設計
-    """
     w_px, h_px = 472, 295
     label_img = Image.new('RGB', (w_px, h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
-    # フォント設定
     font_path = cloud_font_path
     try:
         font_lg = ImageFont.truetype(font_path, 20)
         font_sm = ImageFont.truetype(font_path, 12)
         font_xs = ImageFont.truetype(font_path, 8)
     except Exception as e:
-        # フォントが見つからない場合はデフォルトを使用
         font_lg = font_sm = font_xs = ImageFont.load_default()
     
-    # 1. 工場のマークをカラフルに復元（画像として配置）
     try:
         factory_icon_path = "factory_icon.png"
         if not os.path.exists(factory_icon_path):
@@ -173,13 +191,10 @@ def create_label_image(data):
         icon_img = icon_img.resize((30, 30))
         label_img.paste(icon_img, (10, 10))
     except Exception as e:
-        # アイコン画像が取得できない場合は絵文字を使用
         draw.text((10, 10), "🏭", fill="black", font=font_lg)
     
-    # 2. タイトル
     draw.text((45, 10), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
     
-    # 3. QRコードを配置
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
@@ -190,22 +205,18 @@ def create_label_image(data):
         except Exception as e:
             print(f"QRコード埋め込みエラー: {str(e)}")
     
-    # 4. 詳細テキスト
     x_text = 160
     y_text = 50
     line_height = 20
-    
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
     
     draw.text((x_text, y_text), f"機器名称: {device_name}", fill="black", font=font_sm)
     draw.text((x_text, y_text + line_height), f"使用電源: AC {device_power}", fill="black", font=font_sm)
     
-    # 5. 区切り線
     y_line = y_text + line_height * 2 + 5
     draw.line((x_text, y_line, w_px - 10, y_line), fill="gray", width=1)
     
-    # 6. 極短の案内文
     draw.text((x_text, y_line + 10), "📱詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
     
     return label_img
@@ -216,14 +227,12 @@ def main():
     is_redirect_mode = "id" in query_params
     
     if is_redirect_mode:
-        # リダイレクトモード：QRコードから遷移した場合
         st.set_page_config(page_title="PDFを開く", layout="centered")
         target_id = query_params["id"]
         
         if DB_CSV.exists():
             try:
                 df = pd.read_csv(DB_CSV)
-                # IDを文字列として比較
                 match = df[df["ID"].astype(str) == str(target_id)]
                 
                 if not match.empty:
@@ -231,7 +240,7 @@ def main():
                     
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
-                        <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 資料の��備ができました</p>
+                        <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 資料の準備ができました</p>
                         <a href="{target_url}" target="_blank" style="
                             display: inline-block;
                             margin-top: 15px;
@@ -257,7 +266,6 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        # 通常モード：PC でのPDF作成・管理
         st.set_page_config(page_title="設備QR＆PDF管理システム", layout="wide")
         st.title("🏭 設備QR＆PDF管理システム")
         
@@ -298,10 +306,8 @@ def main():
                     safe_id = safe_filename(did)
                     pdf_path = PDF_DIR / f"{safe_id}.pdf"
                     
-                    # PDF生成実行
                     create_pdf(data, pdf_path)
                     
-                    # 生成確認後にダウンロードボタンを表示
                     if pdf_path.exists():
                         st.success(f"{pdf_path.name} の生成が完了しました！")
                         with open(pdf_path, "rb") as pdf_file:
@@ -330,15 +336,12 @@ def main():
                     clean_base_url = "https://equipment-qr-manager.streamlit.app"
                     dynamic_url = f"{clean_base_url}/?id={did}"
                     
-                    # QRコード生成
                     img_qr = qrcode.make(dynamic_url)
                     img_qr.save(qr_path)
                     st.success("自動転送用のQRコードを生成しました！")
                     
-                    # CSVデータベースの更新（重複排除）
                     if DB_CSV.exists():
                         df = pd.read_csv(DB_CSV)
-                        # 既に同じIDが存在する場合は削除
                         df = df[df["ID"].astype(str) != str(did)]
                     else:
                         df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
@@ -354,7 +357,6 @@ def main():
                     df.to_csv(DB_CSV, index=False)
                     st.info("台帳(devices.csv)に最終目的地を記録しました。")
                     
-                    # --- 追加：印刷用ラベルの生成と表示 ---
                     st.markdown("---")
                     st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
                     
@@ -367,7 +369,7 @@ def main():
                     
                     buf = io.BytesIO()
                     label_img.save(buf, format="PNG")
-                    buf.seek(0)  # バッファのポインタをリセット
+                    buf.seek(0)
                     byte_im = buf.getvalue()
                     
                     st.image(label_img, caption="2.5cm × 4cm 印刷用ラベル", width=300)
@@ -385,5 +387,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
