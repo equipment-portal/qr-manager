@@ -276,14 +276,10 @@ def main():
         
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
-        
-        # --- 変更：value=True にして、デフォルトでチェックを入れる ---
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
-        
         st.sidebar.caption("例: チェックなし → 2699.pdf")
         st.sidebar.caption("例: チェックあり → 2699_5t金型反転機.pdf")
         
-        # メイン画面
         st.title("🏭 設備QR＆PDF管理システム")
         st.info("※ この画面はPCでのPDF作成・台帳登録用です。")
         
@@ -301,7 +297,6 @@ def main():
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"])
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"])
             
-            # --- 関連機器かどうかのチェックボックス ---
             is_related_loto = st.checkbox("LOTO手順書は関連機器のもの")
             
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"])
@@ -320,4 +315,101 @@ def main():
                         "img_outlet": img_outlet,
                         "img_label": img_label,
                         "img_loto1": img_loto1,
-                        "img_loto2":
+                        "img_loto2": img_loto2,
+                        "is_related_loto": is_related_loto
+                    }
+                    
+                    safe_id = safe_filename(did)
+                    pdf_path = PDF_DIR / f"{safe_id}.pdf"
+                    
+                    create_pdf(data, pdf_path)
+                    
+                    if include_equip_name:
+                        dl_file_name = f"{safe_id}_{safe_filename(name)}.pdf"
+                    else:
+                        dl_file_name = f"{safe_id}.pdf"
+                    
+                    if pdf_path.exists():
+                        st.success(f"{dl_file_name} の生成が完了しました！")
+                        with open(pdf_path, "rb") as pdf_file:
+                            st.download_button(
+                                label="📥 PDFをダウンロード",
+                                data=pdf_file,
+                                file_name=dl_file_name,
+                                mime="application/pdf"
+                            )
+                    else:
+                        st.error("エラー：PDFの保存に失敗しました。")
+                except Exception as e:
+                    st.error(f"PDF生成エラー: {str(e)}")
+            else:
+                st.error("管理番号、設備名称、使用電源は全て必須です。")
+
+        st.markdown("---")
+        st.header("4. 自動転送QRコード生成")
+        long_url = st.text_input("パソコンでPDFを開いた時の【上部アドレスバーの長いURL】（GitHub等のURL）を貼り付け")
+        if st.button("QRコードを生成して台帳更新", type="secondary"):
+            if long_url and did and name and power:
+                try:
+                    safe_id = safe_filename(did)
+                    qr_path = QR_DIR / f"{safe_id}_qr.png"
+                    
+                    clean_base_url = "https://equipment-qr-manager.streamlit.app"
+                    dynamic_url = f"{clean_base_url}/?id={did}"
+                    
+                    img_qr = qrcode.make(dynamic_url)
+                    img_qr.save(qr_path)
+                    st.success("自動転送用のQRコードを生成しました！")
+                    
+                    if DB_CSV.exists():
+                        df = pd.read_csv(DB_CSV)
+                        df = df[df["ID"].astype(str) != str(did)]
+                    else:
+                        df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
+                    
+                    new_data = {
+                        "ID": did,
+                        "Name": name,
+                        "Power": power,
+                        "URL": long_url,
+                        "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                    df.to_csv(DB_CSV, index=False)
+                    st.info("台帳(devices.csv)に最終目的地を記録しました。")
+                    
+                    st.markdown("---")
+                    st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
+                    
+                    label_data = {
+                        "name": name,
+                        "power": power,
+                        "img_qr": img_qr
+                    }
+                    label_img = create_label_image(label_data)
+                    
+                    buf = io.BytesIO()
+                    label_img.save(buf, format="PNG")
+                    buf.seek(0)
+                    byte_im = buf.getvalue()
+                    
+                    st.image(label_img, caption="2.5cm × 4cm 印刷用ラベル", width=300)
+                    
+                    if include_equip_name:
+                        label_dl_name = f"{safe_id}_{safe_filename(name)}_label.png"
+                    else:
+                        label_dl_name = f"{safe_id}_label.png"
+                    
+                    st.download_button(
+                        label="📥 ラベル画像(PNG)をダウンロード",
+                        data=byte_im,
+                        file_name=label_dl_name,
+                        mime="image/png"
+                    )
+                except Exception as e:
+                    st.error(f"QRコード・ラベル生成エラー: {str(e)}")
+            else:
+                st.error("「管理番号」「設備名称」「使用電源」「URL」の全てを入力してください。")
+
+if __name__ == "__main__":
+    main()
