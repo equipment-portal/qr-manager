@@ -325,7 +325,7 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
         
-        st.title("🏭 設備QR＆PDF管理システム")
+        st.title("📄 設備QR＆PDF管理システム")
         st.info("※ この画面はPCでのPDF作成・台帳登録用です。")
         
         col1, col2 = st.columns(2)
@@ -354,7 +354,7 @@ def main():
         st.header("3. PDFプレビュー確認")
         st.info("💡 発行（クラウド保存）する前に、まずはここでPDFの出来栄えや画像の向きをチェックしてください。")
         
-        if st.button("👀 PDFを生成してプレビューを表示", type="secondary"):
+        if st.button("🔍 PDFを生成してプレビューを表示", type="secondary"):
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
                     try:
@@ -398,15 +398,15 @@ def main():
                 st.error("管理番号、設備名称、使用電源は全て必須です。")
 
         # ==========================================
-        # --- 4. クラウド保存 ＆ QRコード生成（本番発行） ---
+        # --- 4. データ保存 ＆ 印刷用ラベル発行 ---
         # ==========================================
         st.markdown("---")
-        st.header("4. 本番発行 (保存 ＆ QRコード生成)")
+        st.header("4. データ保存 ＆ 印刷用ラベル発行")
         
         # ====== 手動モード ======
         if save_mode == "1. 手動ダウンロードのみ (現在の方式)":
             long_url = st.text_input("パソコンでPDFを開いた時の【上部アドレスバーの長いURL】（GitHub等のURL）を貼り付け")
-            if st.button("🚀 手動設定でQRコードを発行する", type="primary"):
+            if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
                 if long_url and did and name and power:
                     try:
                         safe_id = safe_filename(did)
@@ -445,11 +445,11 @@ def main():
         # ====== GitHub全自動モード ======
         elif save_mode == "2. GitHubへ自動アップロード":
             st.info("💡 プレビューで問題がなければ、ボタン1つで【GitHub保存 ＋ QR発行】を全自動で行います。")
-            if st.button("🚀 【全自動】PDFをGitHubへ保存して、QRコードを発行する", type="primary"):
+            if st.button("🖨️ 【全自動】PDFをGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
                     st.error("左の「⚙️ システム詳細設定」から、GitHubのリポジトリ名とアクセス・トークンを入力してください。")
                 elif did and name and power:
-                    with st.spinner("🚀 GitHubのクラウドへ自動アップロード中...（約5〜10秒かかります）"):
+                    with st.spinner("☁️ GitHubのクラウドへ自動アップロード中...（約5〜10秒かかります）"):
                         try:
                             # 1. PDFの再作成（最新の入力内容を確実に反映するため）
                             data = {
@@ -544,6 +544,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
