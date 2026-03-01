@@ -111,7 +111,7 @@ def create_pdf(data, output_path):
                 else:
                     img = Image.open(img_file)
                 
-                # 2. 【最重要】スマホ特有のEXIF回転バグのみ補正（勝手な90度回転は廃止！）
+                # 2. 【最重要】スマホ特有のEXIF回転バグのみ補正
                 img = ImageOps.exif_transpose(img)
                 
                 # 3. ReportLab用にRGB変換
@@ -122,7 +122,7 @@ def create_pdf(data, output_path):
                 img.save(img_byte_arr, format='JPEG', quality=90)
                 img_byte_arr.seek(0)
                 
-                # 4. 画像の描画（preserveAspectRatio=True により、枠内で自然な比率を維持）
+                # 4. 画像の描画
                 img_reader = ImageReader(img_byte_arr)
                 c.drawImage(img_reader, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
                 
@@ -284,7 +284,7 @@ def main():
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"])
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"])
             
-            # --- 追加：関連機器かどうかのチェックボックス ---
+            # --- 関連機器かどうかのチェックボックス ---
             is_related_loto = st.checkbox("LOTO手順書は関連機器のもの")
             
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"])
@@ -296,7 +296,6 @@ def main():
             if did and name and power:
                 try:
                     data = {
-                        data = {
                         "id": did,
                         "name": name,
                         "power": power,
@@ -392,5 +391,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
