@@ -11,6 +11,11 @@ import json
 import streamlit.components.v1 as components  # ← PDFを別タブで開くために追加
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
+# --- 追加：Excel操作用ライブラリ ---
+import openpyxl
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.utils import get_column_letter
+
 # PDF生成用ライブラリ
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -22,6 +27,8 @@ from reportlab.lib.utils import ImageReader
 DB_CSV = Path("devices.csv")
 QR_DIR = Path("qr_codes")
 PDF_DIR = Path("pdfs")
+EXCEL_LABEL_PATH = Path("print_labels.xlsx")  # ← 追加: Excel台帳の保存先
+COUNT_FILE = Path("label_count.txt")          # ← 追加: Excelに貼った枚数を記憶するファイル
 QR_DIR.mkdir(exist_ok=True)
 PDF_DIR.mkdir(exist_ok=True)
 
@@ -194,36 +201,37 @@ def create_pdf(data, output_path):
 # --- 印刷用ラベル生成関数 ---
 def create_label_image(data):
     """
-    印刷用に高画質化（解像度4倍）し、黄色の枠線を付与したラベル画像を生成
+    印刷用に高画質化（解像度4倍）し、余白をカットして黄色の枠線を付与したラベル画像を生成
     """
     scale = 4  # 画質を4倍に引き上げ（印刷品質）
-    w_px, h_px = 472 * scale, 295 * scale
+    # --- 修正：余白をカットしてサイズを最適化（旧: 472x295 -> 新: 380x205） ---
+    w_px, h_px = 380 * scale, 205 * scale
     
     # 背景を白で作成
     label_img = Image.new('RGB', (w_px, h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
-    # 画像のフチに黄色の枠線（PDFのヘッダー色）を描画
+    # 画像のフチに黄色の枠線を描画
     border_color = (255, 215, 0)
     border_width = 12 * scale
     draw.rectangle([0, 0, w_px - 1, h_px - 1], outline=border_color, width=border_width)
     
-    # フォント設定（サイズも4倍に）
+    # フォント設定
     font_path = cloud_font_path
     try:
         font_lg = ImageFont.truetype(font_path, 20 * scale)
         font_sm = ImageFont.truetype(font_path, 12 * scale)
-        font_xs = ImageFont.truetype(font_path, 9 * scale) # 潰れ防止のため微増
+        font_xs = ImageFont.truetype(font_path, 9 * scale)
     except Exception as e:
         font_lg = font_sm = font_xs = ImageFont.load_default()
     
-    # 1. アイコン（文字化けする🏭の代わりに、安全なリスト記号「≡」を使用）
+    # 1. アイコン
     draw.text((20 * scale, 12 * scale), "≡", fill="black", font=font_lg)
     
     # 2. タイトル
     draw.text((50 * scale, 12 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
     
-    # 3. QRコードを配置（サイズも4倍に）
+    # 3. QRコードを配置
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
@@ -244,14 +252,63 @@ def create_label_image(data):
     draw.text((x_text, y_text), f"機器名称: {device_name}", fill="black", font=font_sm)
     draw.text((x_text, y_text + line_height), f"使用電源: AC {device_power}", fill="black", font=font_sm)
     
-    # 5. 区切り線
+    # 5. 区切り線（幅を枠線に合わせて短縮）
     y_line = y_text + line_height * 2 + 10 * scale
     draw.line((x_text, y_line, w_px - 20 * scale, y_line), fill="gray", width=1 * scale)
     
-    # 6. 極短の案内文（文字化けする📱の代わりに、スキャンを連想させる「[QR]」を使用）
+    # 6. 極短の案内文
     draw.text((x_text, y_line + 10 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
     
     return label_img
+    
+# --- Excelラベル台帳への自動追記関数 ---
+def append_label_to_excel(label_img):
+    """生成されたラベルをExcelファイルに順に並べて保存する（下へ5個 → 右の列へ）"""
+    # Excelファイルがない場合は新規作成
+    if not EXCEL_LABEL_PATH.exists():
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "印刷用ラベルシート"
+        with open(COUNT_FILE, "w") as f:
+            f.write("0")
+        wb.save(EXCEL_LABEL_PATH)
+
+    # 現在の枚数を読み込み
+    try:
+        with open(COUNT_FILE, "r") as f:
+            count = int(f.read())
+    except:
+        count = 0
+
+    # 配置の計算（ご指示の通り：A2, A7... と下へ5つ進み、次にD2へ移動）
+    rows_per_col = 5
+    col_idx = count // rows_per_col  # 列の移動回数 (0, 1, 2...)
+    row_idx = count % rows_per_col   # 行の移動回数 (0, 1, 2, 3, 4)
+
+    cell_col = 1 + (col_idx * 3)  # 列: 1(A), 4(D), 7(G)...
+    cell_row = 2 + (row_idx * 5)  # 行: 2, 7, 12, 17, 22...
+    cell_ref = f"{get_column_letter(cell_col)}{cell_row}"
+
+    # Excelを開いて画像を挿入
+    wb = openpyxl.load_workbook(EXCEL_LABEL_PATH)
+    ws = wb.active
+
+    # 高画質の画像をExcel用に縮小（大きすぎると枠からはみ出るため）
+    img_byte_arr = io.BytesIO()
+    print_w, print_h = 380, 205  # Excel上での基準サイズ
+    resized_img = label_img.resize((print_w, print_h), Image.Resampling.LANCZOS)
+    resized_img.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+
+    xl_img = XLImage(img_byte_arr)
+    xl_img.anchor = cell_ref
+    ws.add_image(xl_img)
+
+    wb.save(EXCEL_LABEL_PATH)
+
+    # 枚数をカウントアップして保存
+    with open(COUNT_FILE, "w") as f:
+        f.write(str(count + 1))
 
 # --- メインアプリ ---
 def main():
@@ -334,6 +391,25 @@ def main():
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
+
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🖨️ 印刷用Excel台帳")
+        st.sidebar.info("発行したラベルが順番に蓄積されます。")
+        if EXCEL_LABEL_PATH.exists():
+            with open(EXCEL_LABEL_PATH, "rb") as f:
+                st.sidebar.download_button(
+                    label="📥 蓄積されたExcel台帳をダウンロード",
+                    data=f,
+                    file_name="print_labels.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            if st.sidebar.button("🗑️ 台帳をリセット (白紙に戻す)"):
+                if EXCEL_LABEL_PATH.exists():
+                    EXCEL_LABEL_PATH.unlink()
+                if COUNT_FILE.exists():
+                    COUNT_FILE.unlink()
+                st.sidebar.success("Excel台帳を白紙にリセットしました！")
+                st.rerun()
         
         st.title("📄 設備QR＆PDF管理システム")
         st.info("※ この画面はPCでのPDF作成・台帳登録用です。")
@@ -441,7 +517,8 @@ def main():
                         st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
                         label_data = {"name": name, "power": power, "img_qr": img_qr}
                         label_img = create_label_image(label_data)
-                        buf = io.BytesIO()
+                            append_label_to_excel(label_img)  # ← 追加：生成されたラベルをExcelに自動で貼り付ける
+                            buf = io.BytesIO()
                         label_img.save(buf, format="PNG")
                         st.image(label_img, caption="2.5cm × 4cm 印刷用ラベル", width=300)
                         
@@ -554,6 +631,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
