@@ -427,72 +427,6 @@ def main():
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
-
-        # ==========================================
-        # --- 🖨️ 超便利！印刷用Excel台帳UI ---
-        # ==========================================
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("🖨️ 印刷用Excel台帳")
-        
-        history = []
-        if LABEL_HISTORY_FILE.exists():
-            try:
-                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f:
-                    history = json.load(f)
-            except:
-                pass
-                
-        current_count = len(history)
-        
-        if current_count == 0:
-            st.sidebar.info("🈳 現在、台帳は白紙です。")
-        else:
-            st.sidebar.success(f"✅ 現在 **{current_count}枚** のラベルが配置されています！")
-            
-            # 視覚的な配置マップ（番号付き）
-            rows_per_col = 5
-            display_cols = max(3, (current_count // rows_per_col) + 1)
-            
-            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:18px; line-height:1.5; text-align:center;'>"
-            for r in range(rows_per_col):
-                row_str = ""
-                for c in range(display_cols):
-                    idx = c * rows_per_col + r
-                    if idx < current_count:
-                        # 丸数字に変換（①〜⑳まで対応）
-                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
-                        row_str += f"<span style='display:inline-block; width:30px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
-                    else:
-                        row_str += "<span style='display:inline-block; width:30px; color:#ccc;'>⬜</span>"
-                grid_html += f"{row_str}<br>"
-            grid_html += "</div>"
-            
-            st.sidebar.markdown("**【現在の配置マップ】**")
-            st.sidebar.markdown(grid_html, unsafe_allow_html=True)
-            
-            # 配置済みリストと削除ボタン
-            st.sidebar.markdown("**【配置済みラベル一覧】**")
-            for i, item in enumerate(history):
-                col1, col2 = st.sidebar.columns([4, 1])
-                num_char = chr(9311 + i + 1) if i < 20 else f"({i+1})"
-                col1.write(f"**{num_char}** {item['name']}")
-                # ゴミ箱（削除）ボタン
-                if col2.button("❌", key=f"del_btn_{i}", help="このラベルを削除して間を詰める"):
-                    delete_label_from_history(i)
-                    st.rerun()
-
-        if EXCEL_LABEL_PATH.exists():
-            with open(EXCEL_LABEL_PATH, "rb") as f:
-                st.sidebar.download_button(
-                    label="📥 蓄積されたExcel台帳をダウンロード",
-                    data=f,
-                    file_name="print_labels.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-            if st.sidebar.button("🗑️ 台帳をリセット (白紙に戻す)"):
-                clear_history()
-                st.sidebar.success("Excel台帳を白紙にリセットしました！")
-                st.rerun()
         
         st.title("📄 設備QR＆PDF管理システム")
         st.info("※ この画面はPCでのPDF作成・台帳登録用です。")
@@ -702,6 +636,72 @@ def main():
                             st.error(f"GitHub連携エラー: {str(e)}\n※トークンが間違っているか、権限(repo)が不足している可能性があります。")
                 else:
                     st.error("管理番号、設備名称、使用電源は全て必須です。")
+
+        # ==========================================
+        # --- 🖨️ 超便利！印刷用Excel台帳UI（※最後尾に移動） ---
+        # ==========================================
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🖨️ 印刷用Excel台帳")
+        
+        history = []
+        if LABEL_HISTORY_FILE.exists():
+            try:
+                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+            except:
+                pass
+                
+        current_count = len(history)
+        
+        if current_count == 0:
+            st.sidebar.info("🈳 現在、台帳は白紙です。")
+        else:
+            st.sidebar.success(f"✅ 現在 **{current_count}枚** のラベルが配置されています！")
+            
+            # 視覚的な配置マップ（番号付き）
+            rows_per_col = 5
+            display_cols = max(3, (current_count // rows_per_col) + 1)
+            
+            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:18px; line-height:1.5; text-align:center;'>"
+            for r in range(rows_per_col):
+                row_str = ""
+                for c in range(display_cols):
+                    idx = c * rows_per_col + r
+                    if idx < current_count:
+                        # 丸数字に変換（①〜⑳まで対応）
+                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
+                        row_str += f"<span style='display:inline-block; width:30px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
+                    else:
+                        row_str += "<span style='display:inline-block; width:30px; color:#ccc;'>⬜</span>"
+                grid_html += f"{row_str}<br>"
+            grid_html += "</div>"
+            
+            st.sidebar.markdown("**【現在の配置マップ】**")
+            st.sidebar.markdown(grid_html, unsafe_allow_html=True)
+            
+            # 配置済みリストと削除ボタン
+            st.sidebar.markdown("**【配置済みラベル一覧】**")
+            for i, item in enumerate(history):
+                col1, col2 = st.sidebar.columns([4, 1])
+                num_char = chr(9311 + i + 1) if i < 20 else f"({i+1})"
+                col1.write(f"**{num_char}** {item['name']}")
+                # ゴミ箱（削除）ボタン
+                if col2.button("❌", key=f"del_btn_{i}", help="このラベルを削除して間を詰める"):
+                    delete_label_from_history(i)
+                    st.rerun()
+
+        if EXCEL_LABEL_PATH.exists():
+            with open(EXCEL_LABEL_PATH, "rb") as f:
+                st.sidebar.download_button(
+                    label="📥 蓄積された最新のExcel台帳をダウンロード",
+                    data=f,
+                    file_name="print_labels.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            if st.sidebar.button("🗑️ 台帳をリセット (白紙に戻す)"):
+                clear_history()
+                st.sidebar.success("Excel台帳を白紙にリセットしました！")
+                st.rerun()
 
 if __name__ == "__main__":
     main()
