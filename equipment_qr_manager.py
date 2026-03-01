@@ -317,11 +317,14 @@ def main():
         if save_mode == "2. GitHubへ自動アップロード":
             st.sidebar.info("💡 GitHubの合鍵（トークン）を設定すると全自動化されます。")
             github_repo = st.sidebar.text_input("リポジトリ名", value="equipment-portal/qr-manager")
+            
+            # --- 修正：安全なStreamlit Secretsから合鍵を読み込む（コードへの直書きは禁止） ---
+            default_token = st.secrets.get("github_token", "")
             github_token = st.sidebar.text_input(
                 "アクセス・トークン (ghp_...)", 
-                value="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", 
+                value=default_token, 
                 type="password", 
-                key="github_token_input"  # ←追加：Streamlitの記憶をリセットして確実に反映させる
+                key="github_token_input"
             )
             
         elif save_mode == "3. 社内共有フォルダへ自動保存":
@@ -551,5 +554,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
