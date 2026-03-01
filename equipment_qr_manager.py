@@ -395,7 +395,39 @@ def main():
         # --- 新設：Excel台帳管理エリア ---
         st.sidebar.markdown("---")
         st.sidebar.subheader("🖨️ 印刷用Excel台帳")
-        st.sidebar.info("発行したラベルが順番に蓄積されます。")
+        
+        # --- 変更：現在の蓄積状況をリアルタイム表示する「配置マップ」UIを追加 ---
+        try:
+            with open(COUNT_FILE, "r", encoding="utf-8") as f:
+                current_count = int(f.read().strip())
+        except Exception:
+            current_count = 0
+            
+        if current_count == 0:
+            st.sidebar.info("🈳 現在、台帳は白紙です。")
+        else:
+            st.sidebar.success(f"✅ 現在 **{current_count}枚** のラベルが配置されています！")
+            
+            # 視覚的な配置マップ（絵文字で表現）
+            rows_per_col = 5
+            display_cols = max(3, (current_count // rows_per_col) + 1) # 最低3列は表示して全体像を見せる
+            
+            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:18px; line-height:1.5; letter-spacing:4px; text-align:center;'>"
+            for r in range(rows_per_col):
+                row_str = ""
+                for c in range(display_cols):
+                    idx = c * rows_per_col + r
+                    if idx < current_count:
+                        row_str += "🟨" # 配置済み（黄色のラベル）
+                    else:
+                        row_str += "⬜" # 未配置（空白のセル）
+                grid_html += f"{row_str}<br>"
+            grid_html += "</div>"
+            
+            st.sidebar.markdown("**【現在のExcel配置マップ】**")
+            st.sidebar.markdown(grid_html, unsafe_allow_html=True)
+            st.sidebar.caption("※ 🟨: 配置済み / ⬜: 空白")
+
         if EXCEL_LABEL_PATH.exists():
             with open(EXCEL_LABEL_PATH, "rb") as f:
                 st.sidebar.download_button(
@@ -635,6 +667,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
