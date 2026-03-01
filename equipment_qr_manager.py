@@ -297,7 +297,7 @@ def main():
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"])
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"])
             
-            is_related_loto = st.checkbox("LOTO手順書は関連機器のもの")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
             
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"])
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"])
@@ -413,3 +413,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
