@@ -310,14 +310,19 @@ def main():
         save_mode = st.sidebar.radio(
             "PDFとQRコードの保存方式を選択:",
             ["1. 手動ダウンロードのみ (現在の方式)", "2. GitHubへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
-            index=1  # 変更：リストの2番目（インデックス1）をデフォルト選択にする
+            index=1,
+            key="save_mode_radio"  # ←追加：Streamlitの記憶をリセットして確実に反映させる
         )
         
         if save_mode == "2. GitHubへ自動アップロード":
             st.sidebar.info("💡 GitHubの合鍵（トークン）を設定すると全自動化されます。")
             github_repo = st.sidebar.text_input("リポジトリ名", value="equipment-portal/qr-manager")
-            # --- 変更：value属性を追加し、デフォルトでトークンを入力済みにしておく ---
-            github_token = st.sidebar.text_input("アクセス・トークン (ghp_...)", value="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", type="password")
+            github_token = st.sidebar.text_input(
+                "アクセス・トークン (ghp_...)", 
+                value="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", 
+                type="password", 
+                key="github_token_input"  # ←追加：Streamlitの記憶をリセットして確実に反映させる
+            )
             
         elif save_mode == "3. 社内共有フォルダへ自動保存":
             st.sidebar.warning("※機能実装準備中※\n会社のPCで直接アプリを動かす（オンプレミス稼働）環境への移行が必要です。")
@@ -546,3 +551,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
