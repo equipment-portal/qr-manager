@@ -87,7 +87,7 @@ def display_pdf(file_path):
     </style>
     </head>
     <body style="margin: 0; padding: 10px 0;">
-        <button class="btn" onclick="openPdf()">👀 新しいウィンドウでPDFプレビューを開く</button>
+        <button class="btn" onclick="openPdf()">🔍 新しいウィンドウでPDFプレビューを開く</button>
         <script>
         function openPdf() {{
             var pdfData = "{base64_pdf}";
@@ -193,55 +193,63 @@ def create_pdf(data, output_path):
 
 # --- 印刷用ラベル生成関数 ---
 def create_label_image(data):
-    w_px, h_px = 472, 295
+    """
+    印刷用に高画質化（解像度4倍）し、黄色の枠線を付与したラベル画像を生成
+    """
+    scale = 4  # 画質を4倍に引き上げ（印刷品質）
+    w_px, h_px = 472 * scale, 295 * scale
+    
+    # 背景を白で作成
     label_img = Image.new('RGB', (w_px, h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
+    # 画像のフチに黄色の枠線（PDFのヘッダー色）を描画
+    border_color = (255, 215, 0)
+    border_width = 12 * scale
+    draw.rectangle([0, 0, w_px - 1, h_px - 1], outline=border_color, width=border_width)
+    
+    # フォント設定（サイズも4倍に）
     font_path = cloud_font_path
     try:
-        font_lg = ImageFont.truetype(font_path, 20)
-        font_sm = ImageFont.truetype(font_path, 12)
-        font_xs = ImageFont.truetype(font_path, 8)
+        font_lg = ImageFont.truetype(font_path, 20 * scale)
+        font_sm = ImageFont.truetype(font_path, 12 * scale)
+        font_xs = ImageFont.truetype(font_path, 9 * scale) # 潰れ防止のため微増
     except Exception as e:
         font_lg = font_sm = font_xs = ImageFont.load_default()
     
-    try:
-        factory_icon_path = "factory_icon.png"
-        if not os.path.exists(factory_icon_path):
-            factory_icon_url = "https://raw.githubusercontent.com/googlefonts/morisawa-biz-ud-gothic/main/docs/biz_font_specimen/sample_ud_gothic.png"
-            urllib.request.urlretrieve(factory_icon_url, factory_icon_path)
-        
-        icon_img = Image.open(factory_icon_path)
-        icon_img = icon_img.resize((30, 30))
-        label_img.paste(icon_img, (10, 10))
-    except Exception as e:
-        draw.text((10, 10), "🏭", fill="black", font=font_lg)
+    # 1. アイコン（文字化けする🏭の代わりに、安全なリスト記号「≡」を使用）
+    draw.text((20 * scale, 12 * scale), "≡", fill="black", font=font_lg)
     
-    draw.text((45, 10), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
+    # 2. タイトル
+    draw.text((50 * scale, 12 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
     
+    # 3. QRコードを配置（サイズも4倍に）
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
-            qr_pil_img = qr_pil_img.resize((140, 140))
-            label_img.paste(qr_pil_img, (10, 50))
+            qr_pil_img = qr_pil_img.resize((140 * scale, 140 * scale))
+            label_img.paste(qr_pil_img, (15 * scale, 50 * scale))
         except Exception as e:
             pass
     
-    x_text = 160
-    y_text = 50
-    line_height = 20
+    # 4. 詳細テキスト
+    x_text = 165 * scale
+    y_text = 60 * scale
+    line_height = 25 * scale
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
     
     draw.text((x_text, y_text), f"機器名称: {device_name}", fill="black", font=font_sm)
     draw.text((x_text, y_text + line_height), f"使用電源: AC {device_power}", fill="black", font=font_sm)
     
-    y_line = y_text + line_height * 2 + 5
-    draw.line((x_text, y_line, w_px - 10, y_line), fill="gray", width=1)
+    # 5. 区切り線
+    y_line = y_text + line_height * 2 + 10 * scale
+    draw.line((x_text, y_line, w_px - 20 * scale, y_line), fill="gray", width=1 * scale)
     
-    draw.text((x_text, y_line + 10), "📱詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
+    # 6. 極短の案内文（文字化けする📱の代わりに、スキャンを連想させる「[QR]」を使用）
+    draw.text((x_text, y_line + 10 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
     
     return label_img
 
@@ -536,6 +544,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
