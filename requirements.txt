@@ -3,4 +3,3 @@ pandas
 qrcode
 Pillow
 openpyxl==3.1.2
-reportlab
