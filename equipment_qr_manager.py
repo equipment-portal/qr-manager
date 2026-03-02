@@ -239,8 +239,8 @@ def rebuild_excel():
     # 40%縮小設定
     shrink_ratio = 0.40
     
-    # A4横設定のため、縦には6個並べる
-    rows_per_col = 6
+    # A4横設定のため、縦には5個並べる
+    rows_per_col = 5
     # 間隔を広く取るため、ラベルと空白で2列/2行を1セットにする
     col_multiplier = 2
     row_multiplier = 2
@@ -739,3 +739,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
