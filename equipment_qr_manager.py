@@ -15,6 +15,7 @@ import openpyxl
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
+# --- 画像処理用ライブラリ ---
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 # --- 初期設定 ---
@@ -142,8 +143,9 @@ def create_manual_image(data, output_path):
         
     final_img.save(str(output_path), format="PNG", quality=90)
 
-
+# ==========================================
 # --- 印刷用ラベル生成関数（自動拡張機能つき） ---
+# ==========================================
 def create_label_image(data):
     scale = 4  
     
@@ -314,7 +316,9 @@ def clear_history():
         try: f.unlink()
         except: pass
 
+# ==========================================
 # --- メインアプリ ---
+# ==========================================
 def main():
     query_params = st.query_params
     is_redirect_mode = "id" in query_params
@@ -390,18 +394,18 @@ def main():
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
             "機器情報ページとQRコードの保存方式を選択:",
-            ["1. 手動ダウンロードのみ", "2. クラウドへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
+            ["1. 手動ダウンロードのみ", "2. システム専用データベースへ自動保存", "3. 社内共有フォルダへ自動保存"],
             index=1,
             key="save_mode_radio"
         )
         
-        if save_mode == "2. クラウドへ自動アップロード":
-            st.sidebar.info("💡 クラウドの合鍵（トークン）を設定すると全自動化されます。")
-            github_repo = st.sidebar.text_input("クラウド保存先 (リポジトリ名)", value="equipment-portal/qr-manager")
+        if save_mode == "2. システム専用データベースへ自動保存":
+            st.sidebar.info("💡 データベースの接続キーを設定すると全自動化されます。")
+            github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
             
             default_token = st.secrets.get("github_token", "")
             github_token = st.sidebar.text_input(
-                "アクセス・トークン (合鍵)", 
+                "システム接続キー (トークン)", 
                 value=default_token, 
                 type="password", 
                 key="github_token_input"
@@ -427,7 +431,7 @@ def main():
             power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください")
             
         with col2:
-            st.header("2. 画像アップロード")
+            st.header("2. 画像の指定")
             img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"])
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"])
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"])
@@ -439,7 +443,7 @@ def main():
             
         st.markdown("---")
         st.header("3. 機器情報ページ プレビュー確認")
-        st.info("💡 発行（クラウド保存）する前に、まずはここでスマホ用画面の出来栄えや画像の向きをチェックしてください。")
+        st.info("💡 発行（データ登録）する前に、まずはここでスマホ用画面の出来栄えや画像の向きをチェックしてください。")
         
         if st.button("🔍 機器情報ページを生成してプレビュー", type="secondary"):
             if did and name and power:
@@ -463,7 +467,7 @@ def main():
                         create_manual_image(data, manual_path)
                         
                         if manual_path.exists():
-                            st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ保存 ＆ 印刷用ラベル発行」に進んでください。")
+                            st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ登録 ＆ 印刷用ラベル発行」に進んでください。")
                             
                             import streamlit.components.v1 as components
                             with open(manual_path, "rb") as f:
@@ -491,10 +495,10 @@ def main():
                 st.error("管理番号、機器名称、使用電源は全て必須です。")
 
         st.markdown("---")
-        st.header("4. データ保存 ＆ 印刷用ラベル発行")
+        st.header("4. データ登録 ＆ 印刷用ラベル発行")
         
         if save_mode == "1. 手動ダウンロードのみ":
-            long_url = st.text_input("パソコンで画像を開いた時の【上部アドレスバーの長いURL】（クラウド等のURL）を貼り付け")
+            long_url = st.text_input("パソコンで画像を開いた時の【上部アドレスバーの長いURL】（登録先等のURL）を貼り付け")
             if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
                 if long_url and did and name and power:
                     try:
@@ -533,13 +537,13 @@ def main():
                 else:
                     st.error("「管理番号」「機器名称」「使用電源」「URL」の全てを入力してください。")
                     
-        elif save_mode == "2. クラウドへ自動アップロード":
-            st.info("💡 プレビューで問題がなければ、ボタン1つで【クラウド保存 ＋ QR発行】を全自動で行います。")
-            if st.button("🖨️ 【全自動】機器情報ページをクラウドへ保存し、印刷用QRラベルを発行する", type="primary"):
+        elif save_mode == "2. システム専用データベースへ自動保存":
+            st.info("💡 プレビューで問題がなければ、ボタン1つで【データベース登録 ＋ QR発行】を全自動で行います。")
+            if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
-                    st.error("左の「⚙️ システム詳細設定」から、クラウド保存先とアクセス・トークン(合鍵)を入力してください。")
+                    st.error("左の「⚙️ システム詳細設定」から、データベース領域名と接続キーを入力してください。")
                 elif did and name and power:
-                    with st.spinner("☁️ クラウドへ自動アップロード中...（約5〜10秒かかります）"):
+                    with st.spinner("🔄 データベースへ登録中...（約5〜10秒かかります）"):
                         try:
                             data = {
                                 "id": did,
@@ -610,7 +614,7 @@ def main():
                             df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                             df.to_csv(DB_CSV, index=False)
                             
-                            st.success(f"✅ クラウドへの保存とQRコード生成が完了しました！\n保管先URL: {long_url}")
+                            st.success(f"✅ データの登録とQRコード生成が完了しました！\n登録先URL: {long_url}")
                             
                             st.markdown("---")
                             st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
@@ -627,7 +631,7 @@ def main():
                             st.download_button(label="📥 画像のみ(PNG)をダウンロード", data=buf.getvalue(), file_name=label_dl_name, mime="image/png")
                             
                         except Exception as e:
-                            st.error(f"クラウド通信エラー: {str(e)}\n※トークンが間違っているか、権限が不足している可能性があります。")
+                            st.error(f"データベース通信エラー: {str(e)}\n※接続キーが間違っているか、権限が不足している可能性があります。")
                 else:
                     st.error("管理番号、機器名称、使用電源は全て必須です。")
 
@@ -695,5 +699,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
