@@ -459,7 +459,9 @@ def main():
                         st.session_state.input_did = ""
                         st.session_state.input_name = ""
                         st.session_state.input_power = None
-                        st.session_state.db_select = "✨ 新規登録 (クリア)"
+                        # エラー回避：無理に書き換えず、記憶(セッション)を削除して初期化する
+                        if "db_select" in st.session_state:
+                            del st.session_state["db_select"]
                         st.rerun()
         
         st.sidebar.markdown("---")
@@ -719,8 +721,9 @@ def main():
             st.session_state.input_did = ""
             st.session_state.input_name = ""
             st.session_state.input_power = None
+            # エラー回避：無理に書き換えず、記憶(セッション)を削除して初期化する
             if "db_select" in st.session_state:
-                st.session_state.db_select = "✨ 新規登録 (クリア)"
+                del st.session_state["db_select"]
             
             # 画像アップローダーの履歴も強制クリア
             for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
@@ -800,3 +803,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
