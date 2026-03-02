@@ -596,7 +596,8 @@ def main():
                             
                             with urllib.request.urlopen(req) as response:
                                 res_data = json.loads(response.read().decode("utf-8"))
-                                github_pdf_url = res_data["content"]["html_url"]
+                                # --- 修正：管理画面のURL(html)ではなく、PDF直接のURL(download)を取得する ---
+                                github_pdf_url = res_data["content"]["download_url"]
                             
                             long_url = github_pdf_url
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
@@ -705,3 +706,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
