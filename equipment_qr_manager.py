@@ -9,7 +9,6 @@ from datetime import datetime
 import io
 import base64
 import json
-import streamlit.components.v1 as components
 
 # --- Excel操作用ライブラリ ---
 import openpyxl
@@ -49,7 +48,7 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 縦長マニュアル画像 生成関数 ---
+# --- 縦長「機器情報ページ」画像 生成関数 ---
 # ==========================================
 def create_manual_image(data, output_path):
     W = 1600  
@@ -321,7 +320,19 @@ def main():
     is_redirect_mode = "id" in query_params
     
     if is_redirect_mode:
-        st.set_page_config(page_title="マニュアルを開く", layout="centered")
+        # ※もし過去に発行したQRコード（B案など）を読み込んだ時のための救済ページ
+        st.set_page_config(page_title="機器情報ページ", layout="centered")
+        
+        # --- 魔法のCSS：邪魔なメニューを完全に非表示にする ---
+        hide_streamlit_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
         target_id = query_params["id"]
         
         if DB_CSV.exists():
@@ -336,17 +347,27 @@ def main():
                     if "github.com" in target_url and "/blob/" in target_url:
                         img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                         
-                    # --- 【究極のB案】JavaScriptの魔法でボタン表示を消し、0秒で自動転送させる ---
+                    # iPhoneの制限対策として、自動転送を諦めてボタン表示に戻します（救済用）
                     link_html = f"""
-                    <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
-                        <p style="font-size: 18px; color: #555;">🔄 マニュアルを読み込んでいます...<br>そのままお待ちください。</p>
-                        <script>
-                            // 画面が開いた瞬間に、親ブラウザごと自動的に画像のURLへジャンプする魔法
-                            window.top.location.href = "{img_cdn_url}";
-                        </script>
+                    <div style="text-align: center; margin-top: 60px;">
+                        <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 機器情報ページの準備ができました</p>
+                        <a href="{img_cdn_url}" style="
+                            display: inline-block;
+                            margin-top: 15px;
+                            padding: 20px 40px;
+                            background-color: #28a745;
+                            color: white;
+                            font-size: 22px;
+                            font-weight: bold;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+                        ">
+                            📱 機器情報ページを開く
+                        </a>
                     </div>
                     """
-                    components.html(link_html, height=150)
+                    st.markdown(link_html, unsafe_allow_html=True)
                 else:
                     st.error(f"エラー: 管理番号 '{target_id}' は見つかりませんでした。")
             except Exception as e:
@@ -355,14 +376,24 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="設備QR＆マニュアル管理システム", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="設備QR＆機器情報ページ管理", layout="wide", initial_sidebar_state="expanded")
+        
+        # --- 魔法のCSS：邪魔なメニューを完全に非表示にする ---
+        hide_streamlit_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
         
         st.sidebar.header("⚙️ システム詳細設定")
         
         st.sidebar.markdown("---")
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
-            "マニュアルとQRコードの保存方式を選択:",
+            "機器情報ページとQRコードの保存方式を選択:",
             ["1. 手動ダウンロードのみ", "2. GitHubへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
             index=1,
             key="save_mode_radio"
@@ -388,8 +419,8 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
         
-        st.title("📱 設備QR＆マニュアル管理システム")
-        st.info("※ この画面はPCでのマニュアル作成・台帳登録用です。")
+        st.title("📱 設備QR＆機器情報ページ管理システム")
+        st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
         col1, col2 = st.columns(2)
         
@@ -411,10 +442,10 @@ def main():
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"])
             
         st.markdown("---")
-        st.header("3. マニュアルプレビュー確認")
+        st.header("3. 機器情報ページ プレビュー確認")
         st.info("💡 発行（クラウド保存）する前に、まずはここでスマホ用画面の出来栄えや画像の向きをチェックしてください。")
         
-        if st.button("🔍 マニュアル画像を生成してプレビュー", type="secondary"):
+        if st.button("🔍 機器情報ページを生成してプレビュー", type="secondary"):
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
                     try:
@@ -438,7 +469,16 @@ def main():
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ保存 ＆ 印刷用ラベル発行」に進んでください。")
                             
-                            st.image(str(manual_path), use_container_width=True)
+                            import streamlit.components.v1 as components
+                            # 縦長画像をきれいに表示するためのHTMLラッパー
+                            with open(manual_path, "rb") as f:
+                                img_base64 = base64.b64encode(f.read()).decode("utf-8")
+                            img_html = f"""
+                            <div style="max-height: 500px; overflow-y: scroll; border: 2px solid #ddd; padding: 10px; border-radius: 5px;">
+                                <img src="data:image/png;base64,{img_base64}" style="width: 100%; height: auto;">
+                            </div>
+                            """
+                            components.html(img_html, height=520)
                             
                             dl_file_name = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                             with open(manual_path, "rb") as img_file:
@@ -466,10 +506,8 @@ def main():
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
                         
-                        # --- 修正：QRコードにはStreamlitのURLを埋め込む（将来の変更に備える） ---
-                        clean_base_url = "https://equipment-qr-manager.streamlit.app"
-                        dynamic_url = f"{clean_base_url}/?id={did}"
-                        img_qr = qrcode.make(dynamic_url)
+                        # --- 【A案】Streamlitを経由せず、直接画像のURLをQRコードに埋め込む ---
+                        img_qr = qrcode.make(long_url)
                         img_qr.save(qr_path)
                         
                         if DB_CSV.exists():
@@ -503,7 +541,7 @@ def main():
                     
         elif save_mode == "2. GitHubへ自動アップロード":
             st.info("💡 プレビューで問題がなければ、ボタン1つで【GitHub保存 ＋ QR発行】を全自動で行います。")
-            if st.button("🖨️ 【全自動】マニュアル画像をGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
+            if st.button("🖨️ 【全自動】機器情報ページをGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
                     st.error("左の「⚙️ システム詳細設定」から、GitHubのリポジトリ名とアクセス・トークンを入力してください。")
                 elif did and name and power:
@@ -560,13 +598,14 @@ def main():
                                 res_data = json.loads(response.read().decode("utf-8"))
                                 github_img_url = res_data["content"]["html_url"]
                             
-                            long_url = github_img_url
+                            # --- 【A案】QRコードにはStreamlitのURLではなく、超高速画像URL(CDN)を直接埋め込む ---
+                            img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                            long_url = img_cdn_url
+                            
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             
-                            # --- 修正：QRコードにはStreamlitのURLを埋め込む（将来の変更に備える） ---
-                            clean_base_url = "https://equipment-qr-manager.streamlit.app"
-                            dynamic_url = f"{clean_base_url}/?id={did}"
-                            img_qr = qrcode.make(dynamic_url)
+                            # 直接画像のURLを焼き付ける（ボタン画面のワンクッション消滅！）
+                            img_qr = qrcode.make(img_cdn_url)
                             img_qr.save(qr_path)
                             
                             if DB_CSV.exists():
