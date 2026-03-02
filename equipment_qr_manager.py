@@ -495,31 +495,28 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
+        # --- 【最終奥義】一番上に戻るための「透明な目印」を設置 ---
+        st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
-        # --- 【強化版】フラグを検知して一番上へ自動スクロールさせる魔法 ---
+        # --- 【最終奥義】フラグを検知して一番上の目印へ強制ジャンプさせる魔法 ---
         if st.session_state.get("scroll_to_top"):
             import streamlit.components.v1 as components
             import time
-            # 毎回必ず魔法が発動するようにタイムスタンプを埋め込み、すべてのスクロール領域を強制リセットする
             js = f"""
             <script>
-                var ts = "{time.time()}"; 
-                var targets = [
-                    window.parent.document.querySelector('[data-testid="stAppViewContainer"]'),
-                    window.parent.document.querySelector('.main'),
-                    window.parent.document.documentElement,
-                    window.parent.document.body,
-                    window.document.documentElement,
-                    window.document.body
-                ];
-                targets.forEach(function(target) {{
-                    if (target) {{
-                        target.scrollTo({{top: 0, behavior: 'smooth'}});
-                        target.scrollTop = 0;
-                    }}
-                }});
+                // タイムスタンプで毎回確実に発動させる: {time.time()}
+                // 設置した目印（またはタイトル）を見つけて、0秒で強制的に画面のトップに合わせる
+                var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1');
+                if (target) {{
+                    target.scrollIntoView(true);
+                }} else {{
+                    // 予備手段
+                    window.parent.scrollTo(0, 0);
+                    var elems = window.parent.document.querySelectorAll('.main, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"]');
+                    for (var i=0; i<elems.length; i++) {{ elems[i].scrollTop = 0; }}
+                }}
             </script>
             """
             components.html(js, height=0)
@@ -830,6 +827,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
