@@ -9,19 +9,19 @@ from datetime import datetime
 import io
 import base64
 import json
+import streamlit.components.v1 as components
 
 # --- Excel操作用ライブラリ ---
 import openpyxl
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
-# --- 画像処理用ライブラリ（PDFの代わりに使用） ---
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 # --- 初期設定 ---
 DB_CSV = Path("devices.csv")
 QR_DIR = Path("qr_codes")
-MANUAL_DIR = Path("manuals")  # ← PDF_DIR から MANUAL_DIR（マニュアル画像用）に変更
+MANUAL_DIR = Path("manuals")
 EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 
 # --- 履歴管理用の設定 ---
@@ -35,7 +35,6 @@ TEMP_LABEL_DIR.mkdir(exist_ok=True)
 cloud_font_path = "BIZUDGothic-Regular.ttf"
 
 def setup_fonts():
-    """クラウド上の日本語フォントをダウンロードする（PDF用処理を撤去し簡略化）"""
     if not os.path.exists(cloud_font_path):
         try:
             font_url = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
@@ -50,13 +49,10 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【新開発】縦長マニュアル画像 生成関数 ---
+# --- 縦長マニュアル画像 生成関数 ---
 # ==========================================
 def create_manual_image(data, output_path):
-    """
-    スマホでスクロールして読みやすい、超高画質の縦長1枚画像（PNG）を自動合成する
-    """
-    W = 1600  # スマホで拡大してもクッキリ見える高解像度の基準幅
+    W = 1600  
     margin = 80
     content_w = W - margin * 2
 
@@ -69,29 +65,21 @@ def create_manual_image(data, output_path):
 
     sections = []
     
-    # --- 1. ヘッダー部分の作成 ---
     header_h = 380
     header_img = Image.new('RGB', (W, header_h), 'white')
     draw = ImageDraw.Draw(header_img)
     
-    # 黄色い帯（上部）
     draw.rectangle([0, 0, W, 100], fill=(255, 215, 0))
     draw.text((W - margin, 25), f"管理番号: {data['id']}", fill="black", font=font_text, anchor="ra")
-    
-    # 機器名称
     draw.text((margin, 150), data['name'], fill="black", font=font_title)
-    
-    # オレンジ帯（使用電源）
     draw.rectangle([margin, 280, W - margin, 340], fill=(242, 155, 33))
     power_text = data['power'] if data['power'] else "未設定"
     draw.text((margin + 20, 285), f"■ 使用電源: AC {power_text}", fill="white", font=font_text)
     
     sections.append(header_img)
 
-    # --- 2. 各画像セクションを処理するヘルパー関数 ---
     def process_img_section(img_file, title):
         if img_file is None:
-            # 画像がない場合はプレースホルダー（空白枠）を作成
             box_h = 200
             sec_img = Image.new('RGB', (W, box_h), 'white')
             s_draw = ImageDraw.Draw(sec_img)
@@ -107,17 +95,15 @@ def create_manual_image(data, output_path):
             else:
                 pil_img = Image.open(img_file)
             
-            # スマホ写真の回転バグを自動補正
             pil_img = ImageOps.exif_transpose(pil_img)
             if pil_img.mode in ('RGBA', 'P'):
                 pil_img = pil_img.convert('RGB')
             
-            # 横幅に合わせてアスペクト比を維持したままリサイズ
             img_ratio = pil_img.height / pil_img.width
             new_h = int(content_w * img_ratio)
             pil_img = pil_img.resize((content_w, new_h), Image.Resampling.LANCZOS)
             
-            sec_h = 90 + new_h + 50 # セクション全体の高さ
+            sec_h = 90 + new_h + 50 
             sec_img = Image.new('RGB', (W, sec_h), 'white')
             s_draw = ImageDraw.Draw(sec_img)
             
@@ -130,7 +116,6 @@ def create_manual_image(data, output_path):
             print(f"画像エラー: {e}")
             return None
 
-    # --- 3. 順番に画像を並べる ---
     img_list = [
         (data.get('img_exterior'), "機器外観"),
         (data.get('img_outlet'), "コンセント位置"),
@@ -148,7 +133,6 @@ def create_manual_image(data, output_path):
         if sec:
             sections.append(sec)
 
-    # --- 4. すべてのパーツを縦に結合して1枚の画像にする ---
     total_h = sum(s.height for s in sections) + 100
     final_img = Image.new('RGB', (W, total_h), 'white')
     
@@ -348,32 +332,21 @@ def main():
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
                     
-                    # --- 【究極修正】PDFではなく、画像(PNG)へダイレクトアクセス ---
                     img_cdn_url = target_url
                     if "github.com" in target_url and "/blob/" in target_url:
-                        # 画像の生データへの直接リンク
                         img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                         
+                    # --- 【究極のB案】JavaScriptの魔法でボタン表示を消し、0秒で自動転送させる ---
                     link_html = f"""
-                    <div style="text-align: center; margin-top: 60px;">
-                        <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 資料の準備ができました</p>
-                        <a href="{img_cdn_url}" style="
-                            display: inline-block;
-                            margin-top: 15px;
-                            padding: 20px 40px;
-                            background-color: #28a745;
-                            color: white;
-                            font-size: 22px;
-                            font-weight: bold;
-                            text-decoration: none;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-                        ">
-                            📱 マニュアルを表示する
-                        </a>
+                    <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
+                        <p style="font-size: 18px; color: #555;">🔄 マニュアルを読み込んでいます...<br>そのままお待ちください。</p>
+                        <script>
+                            // 画面が開いた瞬間に、親ブラウザごと自動的に画像のURLへジャンプする魔法
+                            window.top.location.href = "{img_cdn_url}";
+                        </script>
                     </div>
                     """
-                    st.markdown(link_html, unsafe_allow_html=True)
+                    components.html(link_html, height=150)
                 else:
                     st.error(f"エラー: 管理番号 '{target_id}' は見つかりませんでした。")
             except Exception as e:
@@ -458,7 +431,6 @@ def main():
                         }
                         
                         safe_id = safe_filename(did)
-                        # 拡張子を .png に変更
                         manual_path = MANUAL_DIR / f"{safe_id}.png"
                         
                         create_manual_image(data, manual_path)
@@ -466,7 +438,6 @@ def main():
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ保存 ＆ 印刷用ラベル発行」に進んでください。")
                             
-                            # --- プレビュー表示が超シンプルになりました ---
                             st.image(str(manual_path), use_container_width=True)
                             
                             dl_file_name = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
@@ -494,6 +465,8 @@ def main():
                     try:
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
+                        
+                        # --- 修正：QRコードにはStreamlitのURLを埋め込む（将来の変更に備える） ---
                         clean_base_url = "https://equipment-qr-manager.streamlit.app"
                         dynamic_url = f"{clean_base_url}/?id={did}"
                         img_qr = qrcode.make(dynamic_url)
@@ -557,7 +530,6 @@ def main():
                             
                             file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                             
-                            # 保存先フォルダも pdfs/ から manuals/ へ変更
                             encoded_file_name = urllib.parse.quote(file_name_for_github)
                             api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
                             
@@ -590,6 +562,8 @@ def main():
                             
                             long_url = github_img_url
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
+                            
+                            # --- 修正：QRコードにはStreamlitのURLを埋め込む（将来の変更に備える） ---
                             clean_base_url = "https://equipment-qr-manager.streamlit.app"
                             dynamic_url = f"{clean_base_url}/?id={did}"
                             img_qr = qrcode.make(dynamic_url)
