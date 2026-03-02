@@ -702,8 +702,7 @@ def main():
             # 配置マップの表示 Kaizen
             rows_per_col = 10 # エクセル設計と同じ数にする
             # 3列に1セット配置されるため、display_colsの計算を合わせる
-            label_col_ multiplier = 3
-            last_idx = history[-1]['name']
+            label_col_multiplier = 3
             total_labels = len(history)
             actual_excel_cols = ((total_labels - 1) // rows_per_col) + 1
             display_cols = actual_excel_cols * label_col_multiplier
@@ -754,3 +753,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
