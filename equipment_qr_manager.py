@@ -373,7 +373,6 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        # 【変更】システム名を変更
         st.set_page_config(page_title="機器QR＆情報ページ管理", layout="wide", initial_sidebar_state="expanded")
         
         hide_streamlit_style = """
@@ -391,18 +390,18 @@ def main():
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
             "機器情報ページとQRコードの保存方式を選択:",
-            ["1. 手動ダウンロードのみ", "2. GitHubへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
+            ["1. 手動ダウンロードのみ", "2. クラウドへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
             index=1,
             key="save_mode_radio"
         )
         
-        if save_mode == "2. GitHubへ自動アップロード":
-            st.sidebar.info("💡 GitHubの合鍵（トークン）を設定すると全自動化されます。")
-            github_repo = st.sidebar.text_input("リポジトリ名", value="equipment-portal/qr-manager")
+        if save_mode == "2. クラウドへ自動アップロード":
+            st.sidebar.info("💡 クラウドの合鍵（トークン）を設定すると全自動化されます。")
+            github_repo = st.sidebar.text_input("クラウド保存先 (リポジトリ名)", value="equipment-portal/qr-manager")
             
             default_token = st.secrets.get("github_token", "")
             github_token = st.sidebar.text_input(
-                "アクセス・トークン (ghp_...)", 
+                "アクセス・トークン (合鍵)", 
                 value=default_token, 
                 type="password", 
                 key="github_token_input"
@@ -414,10 +413,8 @@ def main():
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
-        # 【変更】「設備名称」から「機器名称」へ変更
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        # 【変更】タイトルをスッキリと変更
         st.title("📱 機器QR＆情報ページ管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
@@ -426,7 +423,6 @@ def main():
         with col1:
             st.header("1. 基本情報入力")
             did = st.text_input("管理番号 (例: 2699)")
-            # 【変更】「設備名称」から「機器名称」へ変更
             name = st.text_input("機器名称 (例: 5t金型反転機)")
             power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください")
             
@@ -492,14 +488,13 @@ def main():
                     except Exception as e:
                         st.error(f"プレビュー生成エラー: {str(e)}")
             else:
-                # 【変更】エラーメッセージも修正
                 st.error("管理番号、機器名称、使用電源は全て必須です。")
 
         st.markdown("---")
         st.header("4. データ保存 ＆ 印刷用ラベル発行")
         
         if save_mode == "1. 手動ダウンロードのみ":
-            long_url = st.text_input("パソコンで画像を開いた時の【上部アドレスバーの長いURL】（GitHub等のURL）を貼り付け")
+            long_url = st.text_input("パソコンで画像を開いた時の【上部アドレスバーの長いURL】（クラウド等のURL）を貼り付け")
             if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
                 if long_url and did and name and power:
                     try:
@@ -536,16 +531,15 @@ def main():
                     except Exception as e:
                         st.error(f"エラー: {str(e)}")
                 else:
-                    # 【変更】エラーメッセージも修正
                     st.error("「管理番号」「機器名称」「使用電源」「URL」の全てを入力してください。")
                     
-        elif save_mode == "2. GitHubへ自動アップロード":
-            st.info("💡 プレビューで問題がなければ、ボタン1つで【GitHub保存 ＋ QR発行】を全自動で行います。")
-            if st.button("🖨️ 【全自動】機器情報ページをGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
+        elif save_mode == "2. クラウドへ自動アップロード":
+            st.info("💡 プレビューで問題がなければ、ボタン1つで【クラウド保存 ＋ QR発行】を全自動で行います。")
+            if st.button("🖨️ 【全自動】機器情報ページをクラウドへ保存し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
-                    st.error("左の「⚙️ システム詳細設定」から、GitHubのリポジトリ名とアクセス・トークンを入力してください。")
+                    st.error("左の「⚙️ システム詳細設定」から、クラウド保存先とアクセス・トークン(合鍵)を入力してください。")
                 elif did and name and power:
-                    with st.spinner("☁️ GitHubのクラウドへ自動アップロード中...（約5〜10秒かかります）"):
+                    with st.spinner("☁️ クラウドへ自動アップロード中...（約5〜10秒かかります）"):
                         try:
                             data = {
                                 "id": did,
@@ -616,7 +610,7 @@ def main():
                             df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                             df.to_csv(DB_CSV, index=False)
                             
-                            st.success(f"✅ GitHubへの保存とQRコード生成が完了しました！\n保管先URL: {long_url}")
+                            st.success(f"✅ クラウドへの保存とQRコード生成が完了しました！\n保管先URL: {long_url}")
                             
                             st.markdown("---")
                             st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
@@ -633,9 +627,8 @@ def main():
                             st.download_button(label="📥 画像のみ(PNG)をダウンロード", data=buf.getvalue(), file_name=label_dl_name, mime="image/png")
                             
                         except Exception as e:
-                            st.error(f"GitHub連携エラー: {str(e)}\n※トークンが間違っているか、権限(repo)が不足している可能性があります。")
+                            st.error(f"クラウド通信エラー: {str(e)}\n※トークンが間違っているか、権限が不足している可能性があります。")
                 else:
-                    # 【変更】エラーメッセージも修正
                     st.error("管理番号、機器名称、使用電源は全て必須です。")
 
         # ==========================================
@@ -702,3 +695,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
