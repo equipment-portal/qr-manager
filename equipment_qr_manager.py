@@ -393,13 +393,11 @@ def main():
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
                     
-                    # --- 【修正】GitHub管理画面ではなく、PDFを直接プレビュー表示するURLに変換 ---
-                    pdf_raw_url = target_url
-                    if "github.com" in pdf_raw_url and "/blob/" in pdf_raw_url:
-                        pdf_raw_url = pdf_raw_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-                        
-                    # Google Docs Viewer（スマホでダウンロードせずに直接中身を見るための安全な仕組み）
-                    viewer_url = f"https://docs.google.com/viewer?url={urllib.parse.quote(pdf_raw_url, safe='')}"
+                    # --- 【修正】画質劣化を防ぐため、高画質なオリジナルPDFを直接開くURLに変換 ---
+                    viewer_url = target_url
+                    if "github.com" in target_url and "/blob/main/" in target_url:
+                        # GitHubのURLを、直接PDFを超高画質で開ける専用の配信サーバー(jsDelivr)のURLに書き換える
+                        viewer_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/main/", "@main/")
                     
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
@@ -732,3 +730,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
