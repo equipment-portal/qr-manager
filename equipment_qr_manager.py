@@ -393,11 +393,14 @@ def main():
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
                     
-                    # --- 【修正】画質劣化を防ぐため、高画質なオリジナルPDFを直接開くURLに変換 ---
+                    # --- 【修正】画質劣化とスマホのダウンロード確認を両方防ぐ最強のビューア（PDF.js）に変更 ---
                     viewer_url = target_url
                     if "github.com" in target_url and "/blob/main/" in target_url:
-                        # GitHubのURLを、直接PDFを超高画質で開ける専用の配信サーバー(jsDelivr)のURLに書き換える
-                        viewer_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/main/", "@main/")
+                        # 1. GitHubのURLを、高画質な直接PDFファイル(jsDelivr)のURLに書き換える
+                        pdf_raw_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/main/", "@main/")
+                        # 2. スマホの「ダウンロード確認」を防ぐため、Webブラウザ内蔵型の超高画質ビューア(PDF.js)を経由させる
+                        import urllib.parse
+                        viewer_url = f"https://mozilla.github.io/pdf.js/web/viewer.html?file={urllib.parse.quote(pdf_raw_url, safe='')}"
                     
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
@@ -730,4 +733,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
