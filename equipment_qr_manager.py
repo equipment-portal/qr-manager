@@ -399,7 +399,6 @@ def main():
                         # 1. GitHubのURLを、高画質な直接PDFファイル(jsDelivr)のURLに書き換える
                         pdf_raw_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/main/", "@main/")
                         # 2. スマホの「ダウンロード確認」を防ぐため、Webブラウザ内蔵型の超高画質ビューア(PDF.js)を経由させる
-                        import urllib.parse
                         viewer_url = f"https://mozilla.github.io/pdf.js/web/viewer.html?file={urllib.parse.quote(pdf_raw_url, safe='')}"
                     
                     link_html = f"""
@@ -733,5 +732,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
