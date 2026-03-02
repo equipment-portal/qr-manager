@@ -320,10 +320,8 @@ def main():
     is_redirect_mode = "id" in query_params
     
     if is_redirect_mode:
-        # ※もし過去に発行したQRコード（B案など）を読み込んだ時のための救済ページ
         st.set_page_config(page_title="機器情報ページ", layout="centered")
         
-        # --- 魔法のCSS：邪魔なメニューを完全に非表示にする ---
         hide_streamlit_style = """
         <style>
         #MainMenu {visibility: hidden;}
@@ -347,7 +345,6 @@ def main():
                     if "github.com" in target_url and "/blob/" in target_url:
                         img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                         
-                    # iPhoneの制限対策として、自動転送を諦めてボタン表示に戻します（救済用）
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
                         <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 機器情報ページの準備ができました</p>
@@ -376,9 +373,9 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="設備QR＆機器情報ページ管理", layout="wide", initial_sidebar_state="expanded")
+        # 【変更】システム名を変更
+        st.set_page_config(page_title="機器QR＆情報ページ管理", layout="wide", initial_sidebar_state="expanded")
         
-        # --- 魔法のCSS：邪魔なメニューを完全に非表示にする ---
         hide_streamlit_style = """
         <style>
         #MainMenu {visibility: hidden;}
@@ -417,9 +414,11 @@ def main():
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
-        include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
+        # 【変更】「設備名称」から「機器名称」へ変更
+        include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        st.title("📱 設備QR＆機器情報ページ管理システム")
+        # 【変更】タイトルをスッキリと変更
+        st.title("📱 機器QR＆情報ページ管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
         col1, col2 = st.columns(2)
@@ -427,7 +426,8 @@ def main():
         with col1:
             st.header("1. 基本情報入力")
             did = st.text_input("管理番号 (例: 2699)")
-            name = st.text_input("設備名称 (例: 5t金型反転機)")
+            # 【変更】「設備名称」から「機器名称」へ変更
+            name = st.text_input("機器名称 (例: 5t金型反転機)")
             power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください")
             
         with col2:
@@ -470,7 +470,6 @@ def main():
                             st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ保存 ＆ 印刷用ラベル発行」に進んでください。")
                             
                             import streamlit.components.v1 as components
-                            # 縦長画像をきれいに表示するためのHTMLラッパー
                             with open(manual_path, "rb") as f:
                                 img_base64 = base64.b64encode(f.read()).decode("utf-8")
                             img_html = f"""
@@ -493,7 +492,8 @@ def main():
                     except Exception as e:
                         st.error(f"プレビュー生成エラー: {str(e)}")
             else:
-                st.error("管理番号、設備名称、使用電源は全て必須です。")
+                # 【変更】エラーメッセージも修正
+                st.error("管理番号、機器名称、使用電源は全て必須です。")
 
         st.markdown("---")
         st.header("4. データ保存 ＆ 印刷用ラベル発行")
@@ -506,7 +506,6 @@ def main():
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
                         
-                        # --- 【A案】Streamlitを経由せず、直接画像のURLをQRコードに埋め込む ---
                         img_qr = qrcode.make(long_url)
                         img_qr.save(qr_path)
                         
@@ -537,7 +536,8 @@ def main():
                     except Exception as e:
                         st.error(f"エラー: {str(e)}")
                 else:
-                    st.error("「管理番号」「設備名称」「使用電源」「URL」の全てを入力してください。")
+                    # 【変更】エラーメッセージも修正
+                    st.error("「管理番号」「機器名称」「使用電源」「URL」の全てを入力してください。")
                     
         elif save_mode == "2. GitHubへ自動アップロード":
             st.info("💡 プレビューで問題がなければ、ボタン1つで【GitHub保存 ＋ QR発行】を全自動で行います。")
@@ -598,13 +598,11 @@ def main():
                                 res_data = json.loads(response.read().decode("utf-8"))
                                 github_img_url = res_data["content"]["html_url"]
                             
-                            # --- 【A案】QRコードにはStreamlitのURLではなく、超高速画像URL(CDN)を直接埋め込む ---
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                             long_url = img_cdn_url
                             
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             
-                            # 直接画像のURLを焼き付ける（ボタン画面のワンクッション消滅！）
                             img_qr = qrcode.make(img_cdn_url)
                             img_qr.save(qr_path)
                             
@@ -637,7 +635,8 @@ def main():
                         except Exception as e:
                             st.error(f"GitHub連携エラー: {str(e)}\n※トークンが間違っているか、権限(repo)が不足している可能性があります。")
                 else:
-                    st.error("管理番号、設備名称、使用電源は全て必須です。")
+                    # 【変更】エラーメッセージも修正
+                    st.error("管理番号、機器名称、使用電源は全て必須です。")
 
         # ==========================================
         # --- 🖨️ 印刷用Excel台帳UI ---
