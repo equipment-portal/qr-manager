@@ -413,6 +413,23 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
         
+        # --- 【新規追加】データベース連動用の裏側ロジック ---
+        def load_data_callback():
+            selected = st.session_state.db_select
+            if selected == "✨ 新規登録 (クリア)":
+                st.session_state.input_did = ""
+                st.session_state.input_name = ""
+                st.session_state.input_power = None
+            else:
+                did_str = selected.split(" : ")[0]
+                df = pd.read_csv(DB_CSV)
+                match = df[df["ID"].astype(str) == did_str]
+                if not match.empty:
+                    row = match.iloc[-1]
+                    st.session_state.input_did = str(row["ID"])
+                    st.session_state.input_name = str(row["Name"])
+                    st.session_state.input_power = str(row["Power"]) if pd.notna(row["Power"]) else None
+
         hide_streamlit_style = """
         <style>
         #MainMenu {visibility: hidden;}
@@ -422,9 +439,32 @@ def main():
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
         
-        st.sidebar.header("⚙️ システム詳細設定")
+        # --- 【新規追加】サイドバー：データベース管理機能 ---
+        st.sidebar.header("🗄️ 登録済み機器データベース")
+        if DB_CSV.exists():
+            df = pd.read_csv(DB_CSV)
+            if not df.empty:
+                options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
+                
+                selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select", on_change=load_data_callback)
+                
+                if selected_edit != "✨ 新規登録 (クリア)":
+                    st.sidebar.warning("⚠️ 過去の写真は保存されていないため、再発行時は画像の再選択が必要です。")
+                    if st.sidebar.button("🗑️ この機器をデータベースから削除"):
+                        did_to_del = selected_edit.split(" : ")[0]
+                        df = df[df["ID"].astype(str) != did_to_del]
+                        df.to_csv(DB_CSV, index=False)
+                        st.sidebar.success("削除しました！")
+                        # 削除後にフォームをクリアしてリロード
+                        st.session_state.input_did = ""
+                        st.session_state.input_name = ""
+                        st.session_state.input_power = None
+                        st.session_state.db_select = "✨ 新規登録 (クリア)"
+                        st.rerun()
         
         st.sidebar.markdown("---")
+        st.sidebar.header("⚙️ システム詳細設定")
+        
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
             "機器情報ページとQRコードの保存方式を選択:",
@@ -460,20 +500,22 @@ def main():
         
         with col1:
             st.header("1. 基本情報入力")
-            did = st.text_input("管理番号 (例: 2699)")
-            name = st.text_input("機器名称 (例: 5t金型反転機)")
-            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください")
+            # 【変更】セッションステート（記憶領域）と連動
+            did = st.text_input("管理番号 (例: 2699)", key="input_did")
+            name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
+            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください", key="input_power")
             
         with col2:
             st.header("2. 画像の指定")
-            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"])
-            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"])
-            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"])
+            # 【変更】リセット機能のためにキーを付与
+            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key="img_exterior")
+            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key="img_outlet")
+            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key="img_label")
             
             is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
             
-            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"])
-            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"])
+            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key="img_loto1")
+            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key="img_loto2")
             
         st.markdown("---")
         st.header("3. 機器情報ページ プレビュー確認")
@@ -669,6 +711,25 @@ def main():
                 else:
                     st.error("管理番号、機器名称、使用電源は全て必須です。")
 
+        # --- 【新規追加】Step 5: 連続入力用のリセットボタン ---
+        st.markdown("---")
+        st.header("5. 次の作業")
+        st.info("💡 続けて別の機器を登録する場合は、以下のボタンを押すと入力内容がリセットされ、一番上に戻ります。")
+        if st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True):
+            st.session_state.input_did = ""
+            st.session_state.input_name = ""
+            st.session_state.input_power = None
+            if "db_select" in st.session_state:
+                st.session_state.db_select = "✨ 新規登録 (クリア)"
+            
+            # 画像アップローダーの履歴も強制クリア
+            for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
+                if k in st.session_state:
+                    del st.session_state[k]
+            
+            # ページをリロードして一番上にジャンプ
+            st.rerun()
+
         # ==========================================
         # --- 🖨️ 印刷用Excel台帳UI ---
         # ==========================================
@@ -690,7 +751,7 @@ def main():
         else:
             st.sidebar.success(f"✅ 現在 **{current_count}枚** のラベルが配置されています！")
             
-            rows_per_col = 6 # A4横の配置設計に合わせる
+            rows_per_col = 5 
             label_col_multiplier = 2
             total_labels = len(history)
             actual_excel_cols = ((total_labels - 1) // rows_per_col) + 1
@@ -739,4 +800,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
