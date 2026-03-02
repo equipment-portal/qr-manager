@@ -373,7 +373,7 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="機器QR＆情報ページ管理", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
         
         hide_streamlit_style = """
         <style>
@@ -415,7 +415,7 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        st.title("📱 機器QR＆情報ページ管理システム")
+        st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
         col1, col2 = st.columns(2)
@@ -695,4 +695,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
