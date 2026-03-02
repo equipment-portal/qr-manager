@@ -9,58 +9,39 @@ from datetime import datetime
 import io
 import base64
 import json
-import streamlit.components.v1 as components
 
 # --- Excel操作用ライブラリ ---
 import openpyxl
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
+# --- 画像処理用ライブラリ（PDFの代わりに使用） ---
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-
-# PDF生成用ライブラリ
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.utils import ImageReader
 
 # --- 初期設定 ---
 DB_CSV = Path("devices.csv")
 QR_DIR = Path("qr_codes")
-PDF_DIR = Path("pdfs")
+MANUAL_DIR = Path("manuals")  # ← PDF_DIR から MANUAL_DIR（マニュアル画像用）に変更
 EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 
 # --- 履歴管理用の設定 ---
 LABEL_HISTORY_FILE = Path("label_history.json")
 TEMP_LABEL_DIR = Path("temp_labels")
 QR_DIR.mkdir(exist_ok=True)
-PDF_DIR.mkdir(exist_ok=True)
+MANUAL_DIR.mkdir(exist_ok=True)
 TEMP_LABEL_DIR.mkdir(exist_ok=True)
 
 # グローバルフォント設定
-FONT_NAME = "Helvetica"
 cloud_font_path = "BIZUDGothic-Regular.ttf"
 
-# --- 日本語フォントの設定 ---
 def setup_fonts():
-    global FONT_NAME, cloud_font_path
-    try:
-        if not os.path.exists(cloud_font_path):
+    """クラウド上の日本語フォントをダウンロードする（PDF用処理を撤去し簡略化）"""
+    if not os.path.exists(cloud_font_path):
+        try:
             font_url = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
             urllib.request.urlretrieve(font_url, cloud_font_path)
-        
-        if "BIZUDGothic" not in pdfmetrics._fonts:
-            pdfmetrics.registerFont(TTFont("BIZUDGothic", cloud_font_path))
-        FONT_NAME = "BIZUDGothic"
-    except Exception as e:
-        try:
-            win_font_path = "C:/Windows/Fonts/meiryo.ttc"
-            if "Meiryo" not in pdfmetrics._fonts:
-                pdfmetrics.registerFont(TTFont("Meiryo", win_font_path))
-            FONT_NAME = "Meiryo"
-        except Exception as e2:
-            FONT_NAME = "Helvetica"
+        except Exception as e:
+            pass
 
 setup_fonts()
 
@@ -68,136 +49,116 @@ def safe_filename(name):
     keepcharacters = (' ', '.', '_', '-')
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
-def display_pdf(file_path):
-    with open(file_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    
-    html_code = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-    .btn {{
-        display: inline-block;
-        padding: 12px 24px;
-        background-color: #17a2b8;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: bold;
-        font-family: sans-serif;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
-    }}
-    .btn:hover {{
-        background-color: #138496;
-    }}
-    </style>
-    </head>
-    <body style="margin: 0; padding: 10px 0;">
-        <button class="btn" onclick="openPdf()">🔍 新しいウィンドウでPDFプレビューを開く</button>
-        <script>
-        function openPdf() {{
-            var pdfData = "{base64_pdf}";
-            var byteCharacters = atob(pdfData);
-            var byteNumbers = new Array(byteCharacters.length);
-            for (var i = 0; i < byteCharacters.length; i++) {{
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }}
-            var byteArray = new Uint8Array(byteNumbers);
-            var file = new Blob([byteArray], {{ type: 'application/pdf' }});
-            var fileURL = URL.createObjectURL(file);
-            window.open(fileURL, '_blank');
-        }}
-        </script>
-    </body>
-    </html>
+# ==========================================
+# --- 【新開発】縦長マニュアル画像 生成関数 ---
+# ==========================================
+def create_manual_image(data, output_path):
     """
-    components.html(html_code, height=70)
+    スマホでスクロールして読みやすい、超高画質の縦長1枚画像（PNG）を自動合成する
+    """
+    W = 1600  # スマホで拡大してもクッキリ見える高解像度の基準幅
+    margin = 80
+    content_w = W - margin * 2
 
-def create_pdf(data, output_path):
-    c = canvas.Canvas(str(output_path), pagesize=A4)
-    width, height = A4
+    try:
+        font_title = ImageFont.truetype(cloud_font_path, 80)
+        font_sub = ImageFont.truetype(cloud_font_path, 55)
+        font_text = ImageFont.truetype(cloud_font_path, 45)
+    except:
+        font_title = font_sub = font_text = ImageFont.load_default()
+
+    sections = []
     
-    bg_c = (1.0, 0.84, 0.0)
-    txt_c = (0.2, 0.2, 0.2)
-    c.setFillColorRGB(*bg_c)
+    # --- 1. ヘッダー部分の作成 ---
+    header_h = 380
+    header_img = Image.new('RGB', (W, header_h), 'white')
+    draw = ImageDraw.Draw(header_img)
     
-    c.rect(0, height - 60, width, 60, stroke=0, fill=1)
+    # 黄色い帯（上部）
+    draw.rectangle([0, 0, W, 100], fill=(255, 215, 0))
+    draw.text((W - margin, 25), f"管理番号: {data['id']}", fill="black", font=font_text, anchor="ra")
     
-    c.setFillColorRGB(*txt_c)
-    c.setFont(FONT_NAME, 10)
-    c.drawRightString(width - 20, height - 20, f"管理番号: {data['id']}")
+    # 機器名称
+    draw.text((margin, 150), data['name'], fill="black", font=font_title)
     
-    c.setFont(FONT_NAME, 22)
-    c.drawString(20, height - 40, data['name'])
-    
-    p_y = height - 85
-    c.setFillColorRGB(0.95, 0.61, 0.13)
-    c.rect(20, p_y, width - 40, 18, stroke=0, fill=1)
-    
-    c.setFillColorRGB(*txt_c)
-    c.setFont(FONT_NAME, 12)
+    # オレンジ帯（使用電源）
+    draw.rectangle([margin, 280, W - margin, 340], fill=(242, 155, 33))
     power_text = data['power'] if data['power'] else "未設定"
-    c.drawString(25, p_y + 4, f"■ 使用電源: AC {power_text}")
-
-    def draw_smart_image_box(c, img_file, title, x, y, w, h, none_title=None):
-        c.setFillColorRGB(0, 0, 0)
-        c.setFont(FONT_NAME, 11)
-        c.drawString(x, y + h + 4, title)
-        
-        display_none_title = none_title if none_title else title
-        
-        if img_file is not None:
-            try:
-                if hasattr(img_file, 'read'):
-                    img_data = img_file.read()
-                    img = Image.open(io.BytesIO(img_data))
-                else:
-                    img = Image.open(img_file)
-                
-                img = ImageOps.exif_transpose(img)
-                
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-                
-                img_byte_arr = io.BytesIO()
-                img.save(img_byte_arr, format='JPEG', quality=90)
-                img_byte_arr.seek(0)
-                
-                img_reader = ImageReader(img_byte_arr)
-                c.drawImage(img_reader, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c')
-                
-                c.setStrokeColorRGB(0.8, 0.8, 0.8)
-                c.rect(x, y, w, h)
-                c.setStrokeColorRGB(0, 0, 0)
-                
-            except Exception as e:
-                print(f"画像読み込みエラー({title}): {str(e)}")
-                c.rect(x, y, w, h)
-        else:
-            c.setDash(3, 3)
-            c.rect(x, y, w, h)
-            c.setDash()
-            c.setFont(FONT_NAME, 10)
-            c.drawCentredString(x + w/2, y + h/2, f"None ({display_none_title}なし)")
-
-    if data.get('is_related_loto'):
-        loto_title1 = "LOTO手順書（関連機器）Page 1"
-        loto_title2 = "LOTO手順書（関連機器）Page 2"
-    else:
-        loto_title1 = "LOTO手順書 Page 1"
-        loto_title2 = "LOTO手順書 Page 2"
+    draw.text((margin + 20, 285), f"■ 使用電源: AC {power_text}", fill="white", font=font_text)
     
-    draw_smart_image_box(c, data.get('img_loto1'), loto_title1, 30, 40, 260, 360, none_title="LOTO手順書 Page 1")
-    draw_smart_image_box(c, data.get('img_loto2'), loto_title2, 305, 40, 260, 360, none_title="LOTO手順書 Page 2")
+    sections.append(header_img)
 
-    draw_smart_image_box(c, data.get('img_exterior'), "機器外観", 30, 440, 260, 280)
-    draw_smart_image_box(c, data.get('img_label'), "資産管理ラベル", 305, 440, 260, 130)
-    draw_smart_image_box(c, data.get('img_outlet'), "コンセント位置", 305, 590, 260, 130)
+    # --- 2. 各画像セクションを処理するヘルパー関数 ---
+    def process_img_section(img_file, title):
+        if img_file is None:
+            # 画像がない場合はプレースホルダー（空白枠）を作成
+            box_h = 200
+            sec_img = Image.new('RGB', (W, box_h), 'white')
+            s_draw = ImageDraw.Draw(sec_img)
+            s_draw.text((margin, 20), title, fill="black", font=font_sub)
+            s_draw.rectangle([margin, 90, W - margin, box_h - 10], outline="gray", width=3)
+            s_draw.text((W // 2, 145), "画像なし", fill="gray", font=font_text, anchor="mm")
+            return sec_img
+        
+        try:
+            if hasattr(img_file, 'read'):
+                img_data = img_file.read()
+                pil_img = Image.open(io.BytesIO(img_data))
+            else:
+                pil_img = Image.open(img_file)
+            
+            # スマホ写真の回転バグを自動補正
+            pil_img = ImageOps.exif_transpose(pil_img)
+            if pil_img.mode in ('RGBA', 'P'):
+                pil_img = pil_img.convert('RGB')
+            
+            # 横幅に合わせてアスペクト比を維持したままリサイズ
+            img_ratio = pil_img.height / pil_img.width
+            new_h = int(content_w * img_ratio)
+            pil_img = pil_img.resize((content_w, new_h), Image.Resampling.LANCZOS)
+            
+            sec_h = 90 + new_h + 50 # セクション全体の高さ
+            sec_img = Image.new('RGB', (W, sec_h), 'white')
+            s_draw = ImageDraw.Draw(sec_img)
+            
+            s_draw.text((margin, 20), title, fill="black", font=font_sub)
+            sec_img.paste(pil_img, (margin, 90))
+            s_draw.rectangle([margin, 90, margin + content_w, 90 + new_h], outline="gray", width=3)
+            
+            return sec_img
+        except Exception as e:
+            print(f"画像エラー: {e}")
+            return None
 
-    c.save()
+    # --- 3. 順番に画像を並べる ---
+    img_list = [
+        (data.get('img_exterior'), "機器外観"),
+        (data.get('img_outlet'), "コンセント位置"),
+        (data.get('img_label'), "資産管理ラベル")
+    ]
+    
+    loto_title1 = "LOTO手順書（関連機器）Page 1" if data.get('is_related_loto') else "LOTO手順書 Page 1"
+    loto_title2 = "LOTO手順書（関連機器）Page 2" if data.get('is_related_loto') else "LOTO手順書 Page 2"
+    
+    img_list.append((data.get('img_loto1'), loto_title1))
+    img_list.append((data.get('img_loto2'), loto_title2))
+
+    for f, t in img_list:
+        sec = process_img_section(f, t)
+        if sec:
+            sections.append(sec)
+
+    # --- 4. すべてのパーツを縦に結合して1枚の画像にする ---
+    total_h = sum(s.height for s in sections) + 100
+    final_img = Image.new('RGB', (W, total_h), 'white')
+    
+    curr_y = 0
+    for s in sections:
+        final_img.paste(s, (0, curr_y))
+        curr_y += s.height
+        
+    final_img.save(str(output_path), format="PNG", quality=90)
+
 
 # --- 印刷用ラベル生成関数（自動拡張機能つき） ---
 def create_label_image(data):
@@ -215,7 +176,6 @@ def create_label_image(data):
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
     
-    # はみ出し防止処理：テキストの横幅を計算
     dummy_img = Image.new('RGB', (1, 1))
     dummy_draw = ImageDraw.Draw(dummy_img)
     bbox = dummy_draw.textbbox((0, 0), f"{device_name}", font=font_md)
@@ -377,7 +337,7 @@ def main():
     is_redirect_mode = "id" in query_params
     
     if is_redirect_mode:
-        st.set_page_config(page_title="PDFを開く", layout="centered")
+        st.set_page_config(page_title="マニュアルを開く", layout="centered")
         target_id = query_params["id"]
         
         if DB_CSV.exists():
@@ -388,16 +348,16 @@ def main():
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
                     
-                    # --- 【究極修正】最速のCDN(jsDelivr)を経由し、ダウンロード確認を防ぐため同タブで直接開く ---
-                    pdf_cdn_url = target_url
+                    # --- 【究極修正】PDFではなく、画像(PNG)へダイレクトアクセス ---
+                    img_cdn_url = target_url
                     if "github.com" in target_url and "/blob/" in target_url:
-                        # 複雑なビューアを一切使わず、高画質なPDF生データへのダイレクトリンクを作成
-                        pdf_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                        # 画像の生データへの直接リンク
+                        img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                         
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
                         <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 資料の準備ができました</p>
-                        <a href="{pdf_cdn_url}" style="
+                        <a href="{img_cdn_url}" style="
                             display: inline-block;
                             margin-top: 15px;
                             padding: 20px 40px;
@@ -409,7 +369,7 @@ def main():
                             border-radius: 8px;
                             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
                         ">
-                            📄 PDFを表示する
+                            📱 マニュアルを表示する
                         </a>
                     </div>
                     """
@@ -422,14 +382,14 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="設備QR＆PDF管理システム", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="設備QR＆マニュアル管理システム", layout="wide", initial_sidebar_state="expanded")
         
         st.sidebar.header("⚙️ システム詳細設定")
         
         st.sidebar.markdown("---")
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
-            "PDFとQRコードの保存方式を選択:",
+            "マニュアルとQRコードの保存方式を選択:",
             ["1. 手動ダウンロードのみ", "2. GitHubへ自動アップロード", "3. 社内共有フォルダへ自動保存"],
             index=1,
             key="save_mode_radio"
@@ -449,14 +409,14 @@ def main():
             
         elif save_mode == "3. 社内共有フォルダへ自動保存":
             st.sidebar.warning("※機能実装準備中※\n会社のPCで直接アプリを動かす（オンプレミス稼働）環境への移行が必要です。")
-            local_path = st.sidebar.text_input("共有フォルダのパス (例: Z:\\LOTO手順書)", value=r"C:\Equipment_PDF")
+            local_path = st.sidebar.text_input("共有フォルダのパス (例: Z:\\LOTO手順書)", value=r"C:\Equipment_Manuals")
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「設備名称」を含める", value=True)
         
-        st.title("📄 設備QR＆PDF管理システム")
-        st.info("※ この画面はPCでのPDF作成・台帳登録用です。")
+        st.title("📱 設備QR＆マニュアル管理システム")
+        st.info("※ この画面はPCでのマニュアル作成・台帳登録用です。")
         
         col1, col2 = st.columns(2)
         
@@ -478,10 +438,10 @@ def main():
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"])
             
         st.markdown("---")
-        st.header("3. PDFプレビュー確認")
-        st.info("💡 発行（クラウド保存）する前に、まずはここでPDFの出来栄えや画像の向きをチェックしてください。")
+        st.header("3. マニュアルプレビュー確認")
+        st.info("💡 発行（クラウド保存）する前に、まずはここでスマホ用画面の出来栄えや画像の向きをチェックしてください。")
         
-        if st.button("🔍 PDFを生成してプレビューを表示", type="secondary"):
+        if st.button("🔍 マニュアル画像を生成してプレビュー", type="secondary"):
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
                     try:
@@ -498,26 +458,29 @@ def main():
                         }
                         
                         safe_id = safe_filename(did)
-                        pdf_path = PDF_DIR / f"{safe_id}.pdf"
+                        # 拡張子を .png に変更
+                        manual_path = MANUAL_DIR / f"{safe_id}.png"
                         
-                        create_pdf(data, pdf_path)
+                        create_manual_image(data, manual_path)
                         
-                        if pdf_path.exists():
+                        if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！内容に問題がなければ、下の「4. データ保存 ＆ 印刷用ラベル発行」に進んでください。")
-                            display_pdf(pdf_path)
                             
-                            dl_file_name = f"{safe_id}_{safe_filename(name)}.pdf" if include_equip_name else f"{safe_id}.pdf"
-                            with open(pdf_path, "rb") as pdf_file:
+                            # --- プレビュー表示が超シンプルになりました ---
+                            st.image(str(manual_path), use_container_width=True)
+                            
+                            dl_file_name = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
+                            with open(manual_path, "rb") as img_file:
                                 st.download_button(
-                                    label="📥 (手動用) プレビューしたPDFをダウンロード",
-                                    data=pdf_file,
+                                    label="📥 (手動用) プレビューした画像をダウンロード",
+                                    data=img_file,
                                     file_name=dl_file_name,
-                                    mime="application/pdf"
+                                    mime="image/png"
                                 )
                         else:
-                            st.error("エラー：PDFの保存に失敗しました。")
+                            st.error("エラー：画像の保存に失敗しました。")
                     except Exception as e:
-                        st.error(f"PDFプレビュー生成エラー: {str(e)}")
+                        st.error(f"プレビュー生成エラー: {str(e)}")
             else:
                 st.error("管理番号、設備名称、使用電源は全て必須です。")
 
@@ -525,7 +488,7 @@ def main():
         st.header("4. データ保存 ＆ 印刷用ラベル発行")
         
         if save_mode == "1. 手動ダウンロードのみ":
-            long_url = st.text_input("パソコンでPDFを開いた時の【上部アドレスバーの長いURL】（GitHub等のURL）を貼り付け")
+            long_url = st.text_input("パソコンで画像を開いた時の【上部アドレスバーの長いURL】（GitHub等のURL）を貼り付け")
             if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
                 if long_url and did and name and power:
                     try:
@@ -567,7 +530,7 @@ def main():
                     
         elif save_mode == "2. GitHubへ自動アップロード":
             st.info("💡 プレビューで問題がなければ、ボタン1つで【GitHub保存 ＋ QR発行】を全自動で行います。")
-            if st.button("🖨️ 【全自動】PDFをGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
+            if st.button("🖨️ 【全自動】マニュアル画像をGitHubへ保存し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
                     st.error("左の「⚙️ システム詳細設定」から、GitHubのリポジトリ名とアクセス・トークンを入力してください。")
                 elif did and name and power:
@@ -585,16 +548,18 @@ def main():
                                 "is_related_loto": is_related_loto
                             }
                             safe_id = safe_filename(did)
-                            pdf_path = PDF_DIR / f"{safe_id}.pdf"
-                            create_pdf(data, pdf_path)
+                            manual_path = MANUAL_DIR / f"{safe_id}.png"
                             
-                            with open(pdf_path, "rb") as f:
+                            create_manual_image(data, manual_path)
+                            
+                            with open(manual_path, "rb") as f:
                                 encoded_content = base64.b64encode(f.read()).decode("utf-8")
                             
-                            file_name_for_github = f"{safe_id}_{safe_filename(name)}.pdf" if include_equip_name else f"{safe_id}.pdf"
+                            file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                             
+                            # 保存先フォルダも pdfs/ から manuals/ へ変更
                             encoded_file_name = urllib.parse.quote(file_name_for_github)
-                            api_url = f"https://api.github.com/repos/{github_repo}/contents/pdfs/{encoded_file_name}"
+                            api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
                             
                             sha = None
                             try:
@@ -621,9 +586,9 @@ def main():
                             
                             with urllib.request.urlopen(req) as response:
                                 res_data = json.loads(response.read().decode("utf-8"))
-                                github_pdf_url = res_data["content"]["html_url"]
+                                github_img_url = res_data["content"]["html_url"]
                             
-                            long_url = github_pdf_url
+                            long_url = github_img_url
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             clean_base_url = "https://equipment-qr-manager.streamlit.app"
                             dynamic_url = f"{clean_base_url}/?id={did}"
