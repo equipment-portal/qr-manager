@@ -3,7 +3,7 @@ import pandas as pd
 import qrcode
 import os
 import urllib.request
-import urllib.parse  # URL変換用に追加
+import urllib.parse
 from pathlib import Path
 from datetime import datetime
 import io
@@ -29,7 +29,7 @@ from reportlab.lib.utils import ImageReader
 DB_CSV = Path("devices.csv")
 QR_DIR = Path("qr_codes")
 PDF_DIR = Path("pdfs")
-EXCEL_LABEL_PATH = Path("print_labels.xlsx")  # Excel台帳の保存先
+EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 
 # --- 履歴管理用の設定 ---
 LABEL_HISTORY_FILE = Path("label_history.json")
@@ -64,7 +64,6 @@ def setup_fonts():
 
 setup_fonts()
 
-# --- ユーティリティ関数 ---
 def safe_filename(name):
     keepcharacters = (' ', '.', '_', '-')
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
@@ -200,7 +199,7 @@ def create_pdf(data, output_path):
 
     c.save()
 
-# --- 【修正】印刷用ラベル生成関数（自動拡張機能つき） ---
+# --- 印刷用ラベル生成関数（自動拡張機能つき） ---
 def create_label_image(data):
     scale = 4  
     
@@ -216,7 +215,7 @@ def create_label_image(data):
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
     
-    # 1. はみ出し防止処理：テキストの横幅を計算
+    # はみ出し防止処理：テキストの横幅を計算
     dummy_img = Image.new('RGB', (1, 1))
     dummy_draw = ImageDraw.Draw(dummy_img)
     bbox = dummy_draw.textbbox((0, 0), f"{device_name}", font=font_md)
@@ -225,7 +224,6 @@ def create_label_image(data):
     x_text = 165 * scale
     padding_right = 25 * scale
     
-    # 標準幅は 380。テキストが長い場合は自動で広げる
     base_w = 380 * scale
     required_w = x_text + text_width + padding_right
     w_px = max(base_w, int(required_w))
@@ -286,7 +284,6 @@ def rebuild_excel():
         if not img_path.exists():
             continue
             
-        # 画像の実際の横幅を取得してExcelに反映
         with Image.open(img_path) as tmp_img:
             print_w = tmp_img.width
             
@@ -300,7 +297,6 @@ def rebuild_excel():
         col_letter = get_column_letter(cell_col)
         cell_ref = f"{col_letter}{cell_row}"
 
-        # 伸びた画像の分だけセルの幅も自動的に広げる
         req_col_width = max(52, int(52 * (print_w / 380)))
         col_widths[col_letter] = max(col_widths.get(col_letter, 52), req_col_width)
         
@@ -327,7 +323,6 @@ def add_label_to_history(name, label_img):
     filename = f"label_{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
     img_path = TEMP_LABEL_DIR / filename
     
-    # 縦横比を維持してExcel用にリサイズ
     orig_w, orig_h = label_img.size
     print_h = 205
     print_w = int((orig_w / orig_h) * print_h)
@@ -393,18 +388,16 @@ def main():
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
                     
-                    # --- 【修正】画質劣化とスマホのダウンロード確認を両方防ぐ最強のビューア（PDF.js）に変更 ---
-                    viewer_url = target_url
-                    if "github.com" in target_url and "/blob/main/" in target_url:
-                        # 1. GitHubのURLを、高画質な直接PDFファイル(jsDelivr)のURLに書き換える
-                        pdf_raw_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/main/", "@main/")
-                        # 2. スマホの「ダウンロード確認」を防ぐため、Webブラウザ内蔵型の超高画質ビューア(PDF.js)を経由させる
-                        viewer_url = f"https://mozilla.github.io/pdf.js/web/viewer.html?file={urllib.parse.quote(pdf_raw_url, safe='')}"
-                    
+                    # --- 【究極修正】最速のCDN(jsDelivr)を経由し、ダウンロード確認を防ぐため同タブで直接開く ---
+                    pdf_cdn_url = target_url
+                    if "github.com" in target_url and "/blob/" in target_url:
+                        # 複雑なビューアを一切使わず、高画質なPDF生データへのダイレクトリンクを作成
+                        pdf_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                        
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
                         <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 資料の準備ができました</p>
-                        <a href="{viewer_url}" target="_blank" style="
+                        <a href="{pdf_cdn_url}" style="
                             display: inline-block;
                             margin-top: 15px;
                             padding: 20px 40px;
@@ -732,6 +725,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
