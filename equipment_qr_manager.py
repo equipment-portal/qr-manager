@@ -498,6 +498,23 @@ def main():
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
+        # --- 【新規追加】フラグを検知して一番上へ自動スクロールさせる魔法 ---
+        if st.session_state.get("scroll_to_top"):
+            import streamlit.components.v1 as components
+            js = """
+            <script>
+                // 親画面のスクロール領域を探して、一番上(top: 0)へ滑らかに戻す
+                var body = window.parent.document.querySelector(".main");
+                if (body) {
+                    body.scrollTo({top: 0, behavior: 'smooth'});
+                } else {
+                    window.parent.scrollTo({top: 0, behavior: 'smooth'});
+                }
+            </script>
+            """
+            components.html(js, height=0)
+            st.session_state["scroll_to_top"] = False
+            
         col1, col2 = st.columns(2)
         
         with col1:
@@ -728,6 +745,8 @@ def main():
             for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
                 if k in st.session_state:
                     del st.session_state[k]
+            # 【新規追加】一番上へスクロールさせるためのフラグをONにする
+            st.session_state["scroll_to_top"] = True
 
         # on_click を使って、画面を描き直す「前」にリセット処理を走らせる
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
@@ -801,5 +820,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
