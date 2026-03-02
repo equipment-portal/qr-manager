@@ -498,18 +498,28 @@ def main():
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
-        # --- 【新規追加】フラグを検知して一番上へ自動スクロールさせる魔法 ---
+        # --- 【強化版】フラグを検知して一番上へ自動スクロールさせる魔法 ---
         if st.session_state.get("scroll_to_top"):
             import streamlit.components.v1 as components
-            js = """
+            import time
+            # 毎回必ず魔法が発動するようにタイムスタンプを埋め込み、すべてのスクロール領域を強制リセットする
+            js = f"""
             <script>
-                // 親画面のスクロール領域を探して、一番上(top: 0)へ滑らかに戻す
-                var body = window.parent.document.querySelector(".main");
-                if (body) {
-                    body.scrollTo({top: 0, behavior: 'smooth'});
-                } else {
-                    window.parent.scrollTo({top: 0, behavior: 'smooth'});
-                }
+                var ts = "{time.time()}"; 
+                var targets = [
+                    window.parent.document.querySelector('[data-testid="stAppViewContainer"]'),
+                    window.parent.document.querySelector('.main'),
+                    window.parent.document.documentElement,
+                    window.parent.document.body,
+                    window.document.documentElement,
+                    window.document.body
+                ];
+                targets.forEach(function(target) {{
+                    if (target) {{
+                        target.scrollTo({{top: 0, behavior: 'smooth'}});
+                        target.scrollTop = 0;
+                    }}
+                }});
             </script>
             """
             components.html(js, height=0)
@@ -820,6 +830,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
