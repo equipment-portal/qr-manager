@@ -717,22 +717,20 @@ def main():
         st.markdown("---")
         st.header("5. 次の作業")
         st.info("💡 続けて別の機器を登録する場合は、以下のボタンを押すと入力内容がリセットされ、一番上に戻ります。")
-        if st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True):
+        
+        # エラー回避：ボタンが押された瞬間に実行する「コールバック関数」を定義
+        def reset_form_callback():
             st.session_state.input_did = ""
             st.session_state.input_name = ""
             st.session_state.input_power = None
-            # エラー回避：無理に書き換えず、記憶(セッション)を削除して初期化する
             if "db_select" in st.session_state:
                 del st.session_state["db_select"]
-            
-            # 画像アップローダーの履歴も強制クリア
             for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
                 if k in st.session_state:
                     del st.session_state[k]
-            
-            # ページをリロードして一番上にジャンプ
-            st.rerun()
 
+        # on_click を使って、画面を描き直す「前」にリセット処理を走らせる
+        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
         # ==========================================
         # --- 🖨️ 印刷用Excel台帳UI ---
         # ==========================================
@@ -803,4 +801,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
