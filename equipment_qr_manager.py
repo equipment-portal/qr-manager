@@ -143,72 +143,98 @@ def create_manual_image(data, output_path):
         
     final_img.save(str(output_path), format="PNG", quality=90)
 
+
 # ==========================================
-# --- 印刷用ラベル生成関数（自動拡張機能つき） ---
+# --- 印刷用ラベル生成関数（実寸：3.8x2cm対応） ---
 # ==========================================
 def create_label_image(data):
-    scale = 4  
+    # 【究極Kaizen】印刷実寸 3.8cm × 2cm にピタリと合わせる設計
+
+    # Pillow内での描画用スケール（高画質を保つために倍率をかけるが、
+    # 最終的なピクセル数はエクセルに貼り付ける「縦横比」だけを重要視する）
+    # 印刷実寸 38mm x 20mm の比率 (1.9 : 1) を保つ必要がある。
+    scale = 8
     
+    # フォントサイズを実寸に合わせて調整（非常に小さくなるため慎重に）
     font_path = cloud_font_path
     try:
-        font_lg = ImageFont.truetype(font_path, 20 * scale)
-        font_md = ImageFont.truetype(font_path, 26 * scale)
-        font_sm = ImageFont.truetype(font_path, 11 * scale)
-        font_xs = ImageFont.truetype(font_path, 9 * scale)
+        font_lg = ImageFont.truetype(font_path, 20 * scale) # ≡記号とタイトル
+        font_md = ImageFont.truetype(font_path, 28 * scale) # 機器名称・電源AC200V（少し強調）
+        font_sm = ImageFont.truetype(font_path, 13 * scale) # 「機器名称:」ラベル
+        font_xs = ImageFont.truetype(font_path, 11 * scale) # [QR]詳細スキャン
     except Exception as e:
         font_lg = font_md = font_sm = font_xs = ImageFont.load_default()
         
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
     
-    dummy_img = Image.new('RGB', (1, 1))
-    dummy_draw = ImageDraw.Draw(dummy_img)
-    bbox = dummy_draw.textbbox((0, 0), f"{device_name}", font=font_md)
-    text_width = bbox[2] - bbox[0]
+    # --- 【サイズ設計】 ---
+    # 38mm x 20mm のアスペクト比 (38:20 = 1.9:1) をピクセルに変換。
+    # openpyxlでエクセルに貼る際、画像のピクセルサイズにセルの高さを合わせる手法を取る。
     
-    x_text = 165 * scale
-    padding_right = 25 * scale
-    
-    base_w = 380 * scale
-    required_w = x_text + text_width + padding_right
-    w_px = max(base_w, int(required_w))
-    h_px = 205 * scale
+    # 最終的な画像のターゲットピクセルサイズ（エクセルに「そのまま」貼る）
+    target_h_px = 200 # 20mmに相当
+    target_w_px = 380 # 38mmに相当
+
+    # 描画キャンバスのサイズ（高解像度で描き、最後に縮小する）
+    h_px = target_h_px * scale
+    w_px = target_w_px * scale
     
     label_img = Image.new('RGB', (w_px, h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
+    # --- 【レイアウト調整】 ---
+    # 実寸が小さいため、余白（マージン）を極限まで削る
+    left_margin = 10 * scale
+    top_margin = 10 * scale
+    
+    # 黄色の枠線（実寸が小さいため細く）
     border_color = (255, 255, 0)
-    border_width = 12 * scale
+    border_width = 12 * scale # 実寸で約1mm弱
     draw.rectangle([0, 0, w_px - 1, h_px - 1], outline=border_color, width=border_width)
     
-    title_y = 20 * scale
+    # 1段目：タイトル
+    title_y = 10 * scale
     draw.text((20 * scale, title_y), "≡", fill="black", font=font_lg)
-    draw.text((50 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
+    draw.text((60 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_lg)
     
+    # QRコード（実寸が小さいため、ラベルの左下を大きく占有させる）
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
-            qr_pil_img = qr_pil_img.resize((145 * scale, 145 * scale))
-            label_img.paste(qr_pil_img, (15 * scale, 48 * scale))
+            # 実寸2cmの中に、約1.2cm四方のQRを配置
+            qr_size_px = 120 * scale 
+            qr_pil_img = qr_pil_img.resize((qr_size_px, qr_size_px))
+            label_img.paste(qr_pil_img, (15 * scale, 55 * scale))
         except Exception as e:
             pass
     
-    draw.text((x_text, 55 * scale), "機器名称:", fill="black", font=font_sm)
-    draw.text((x_text, 70 * scale), f"{device_name}", fill="black", font=font_md)
+    # テキストエリア（QRコードの右側）
+    x_text = 150 * scale
     
-    draw.text((x_text, 110 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((x_text, 125 * scale), f"AC {device_power}", fill="black", font=font_md)
+    # 2段目：機器名称（フォントを少し大きく）
+    draw.text((x_text, 60 * scale), "機器名称:", fill="black", font=font_sm)
+    draw.text((x_text, 78 * scale), f"{device_name}", fill="black", font=font_md)
     
-    y_line = 165 * scale
-    draw.line((x_text, y_line, w_px - 15 * scale, y_line), fill="gray", width=1 * scale)
-    draw.text((x_text, y_line + 8 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
+    # 3段目：使用電源（AC 200V を大きく表示）
+    draw.text((x_text, 120 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((x_text, 138 * scale), f"AC {device_power}", fill="black", font=font_md)
     
-    return label_img
+    # 4段目：フッター（[QR]詳細スキャン）
+    y_footer = 180 * scale
+    draw.text((x_text, y_footer), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_xs)
+    
+    # --- 【実寸へのリサイズ】 ---
+    # 高解像度で描いたものを、最終ターゲットピクセルサイズ (380x200) へ縮小。
+    # これにより、文字のギザギザが消え、非常にクッキリとしたラベルになる。
+    final_label_img = label_img.resize((target_w_px, target_h_px), Image.Resampling.LANCZOS)
+    
+    return final_label_img
 
 # ==========================================
-# --- 高度なExcel履歴管理・再構築システム ---
+# --- エクセル配置システム（サイズ・間隔Kaizen版） ---
 # ==========================================
 def rebuild_excel():
     wb = openpyxl.Workbook()
@@ -223,36 +249,55 @@ def rebuild_excel():
         except:
             pass
             
-    col_widths = {}
+    # 【究極Kaizen】セルのサイズを、ラベルの実寸に合わせる手法に変更。
+    # openpyxlは画像をセルにぴったり収めるのが得意ではないため、
+    # 1セル＝1ラベル画像とし、セルの高さ・幅を画像と同じに設定する。
+    
+    # PILで生成した画像のサイズ (create_label_image関数で target_h_px=200, target_w_px=380 と設定)
+    pil_w = 380
+    pil_h = 200
+    
+    # エクセルでの配置設定
+    rows_per_col = 10 # 1列に10枚まで並べる
+    # 【Kaizen】間隔を広げるため、隣り合うラベルの間に「空白セル」を2行/2列挟む
+    col_multiplier = 3 # ラベル・空白・空白 で1セット
+    row_multiplier = 3 # ラベル・空白・空白 で1セット
+
     for count, item in enumerate(history):
         img_path = TEMP_LABEL_DIR / item["img_filename"]
         if not img_path.exists():
             continue
             
-        with Image.open(img_path) as tmp_img:
-            print_w = tmp_img.width
-            
-        rows_per_col = 5
-        col_idx = count // rows_per_col
-        row_idx = count % rows_per_col
+        col_group = count // rows_per_col
+        row_in_group = count % rows_per_col
 
-        cell_col = 1 + (col_idx * 2)
-        cell_row = 2 + (row_idx * 2)
+        # セルの位置を計算（1, 1から始まり、3ずつ増える）
+        cell_col = 1 + (col_group * col_multiplier)
+        cell_row = 1 + (row_in_group * row_multiplier)
         
         col_letter = get_column_letter(cell_col)
         cell_ref = f"{col_letter}{cell_row}"
 
-        req_col_width = max(52, int(52 * (print_w / 380)))
-        col_widths[col_letter] = max(col_widths.get(col_letter, 52), req_col_width)
+        # --- 【実寸合わせ魔法】セルの幅と高さを画像のピクセル数に合わせる ---
+        # セルの幅 (ColumnWidth): PILのピクセル数 / 7.23 (非常に大雑把な変換式)
+        # 実寸3.8cm (380px) に合わせるための数値
+        ws.column_dimensions[col_letter].width = pil_w / 7.2
         
-        ws.row_dimensions[cell_row].height = 160
+        # セルの高さ (RowHeight): PILのピクセル数 * 0.75 (ピクセル->ポイント変換)
+        # 実寸2.0cm (200px) に合わせるための数値。
+        # ExcelはRowHeightを最優先するため、これが実寸を決定づける。
+        # 200px * 0.75 = 150ポイント。これをRowHeightに設定する。
+        # PILのh=200, scale=8で描いているが、貼り付けるRowHeight=150ポイントが実寸(2cm)になる。
+        ws.row_dimensions[cell_row].height = pil_h * 0.75
 
+        # 画像をエクセル用に読み込む
         xl_img = XLImage(str(img_path))
+        
+        # アンカー（画像の左上基準点）を設定
         xl_img.anchor = cell_ref
+        
+        # シートに追加
         ws.add_image(xl_img)
-
-    for col, width in col_widths.items():
-        ws.column_dimensions[col].width = width
 
     wb.save(EXCEL_LABEL_PATH)
 
@@ -268,12 +313,8 @@ def add_label_to_history(name, label_img):
     filename = f"label_{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
     img_path = TEMP_LABEL_DIR / filename
     
-    orig_w, orig_h = label_img.size
-    print_h = 205
-    print_w = int((orig_w / orig_h) * print_h)
-    
-    resized_img = label_img.resize((print_w, print_h), Image.Resampling.LANCZOS)
-    resized_img.save(img_path, format='PNG')
+    # create_label_image関数で既にリサイズされているため、ここではそのまま保存
+    label_img.save(img_path, format='PNG')
     
     history.append({"name": name, "img_filename": filename})
     
@@ -316,9 +357,7 @@ def clear_history():
         try: f.unlink()
         except: pass
 
-# ==========================================
 # --- メインアプリ ---
-# ==========================================
 def main():
     query_params = st.query_params
     is_redirect_mode = "id" in query_params
@@ -523,12 +562,15 @@ def main():
                         st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
                         label_data = {"name": name, "power": power, "img_qr": img_qr}
                         
+                        # --- 修正点：Kaizen後のラベル生成関数を呼び出す ---
                         label_img = create_label_image(label_data)
                         add_label_to_history(name, label_img)
                         
                         buf = io.BytesIO()
+                        # 実寸ピクセルのPNGをプレビュー＆ダウンロード用にバッファに保存
                         label_img.save(buf, format="PNG")
-                        st.image(label_img, caption="印刷用ラベル（Excelへ自動追記されました）", width=300)
+                        # プレビューでは少し拡大して見せる（ width=200px ）
+                        st.image(label_img, caption="印刷用ラベル（Excelへ自動追記されました）", width=200)
                         
                         label_dl_name = f"{safe_id}_{safe_filename(name)}_label.png" if include_equip_name else f"{safe_id}_label.png"
                         st.download_button(label="📥 画像のみ(PNG)をダウンロード", data=buf.getvalue(), file_name=label_dl_name, mime="image/png")
@@ -538,7 +580,7 @@ def main():
                     st.error("「管理番号」「機器名称」「使用電源」「URL」の全てを入力してください。")
                     
         elif save_mode == "2. システム専用データベースへ自動保存":
-            st.info("💡 プレビューで問題がなければ、ボタン1つで【データベース登録 ＋ QR発行】を全自動で行います。")
+            st.info("💡 プレビューで問題がなければ、ボタン1つで【データ登録 ＋ QR発行】を全自動で行います。")
             if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
                 if not github_repo or not github_token:
                     st.error("左の「⚙️ システム詳細設定」から、データベース領域名と接続キーを入力してください。")
@@ -620,12 +662,13 @@ def main():
                             st.subheader("🏷️ コンセント・タグ用ラベルのダウンロード")
                             label_data = {"name": name, "power": power, "img_qr": img_qr}
                             
+                            # --- 修正点：Kaizen後のラベル生成関数を呼び出す ---
                             label_img = create_label_image(label_data)
                             add_label_to_history(name, label_img)
                             
                             buf = io.BytesIO()
                             label_img.save(buf, format="PNG")
-                            st.image(label_img, caption="印刷用ラベル（Excelへ自動追記されました）", width=300)
+                            st.image(label_img, caption="印刷用ラベル（Excelへ自動追記されました）", width=200)
                             
                             label_dl_name = f"{safe_id}_{safe_filename(name)}_label.png" if include_equip_name else f"{safe_id}_label.png"
                             st.download_button(label="📥 画像のみ(PNG)をダウンロード", data=buf.getvalue(), file_name=label_dl_name, mime="image/png")
@@ -656,19 +699,31 @@ def main():
         else:
             st.sidebar.success(f"✅ 現在 **{current_count}枚** のラベルが配置されています！")
             
-            rows_per_col = 5
-            display_cols = max(3, (current_count // rows_per_col) + 1)
+            # 配置マップの表示 Kaizen
+            rows_per_col = 10 # エクセル設計と同じ数にする
+            # 3列に1セット配置されるため、display_colsの計算を合わせる
+            label_col_ multiplier = 3
+            last_idx = history[-1]['name']
+            total_labels = len(history)
+            actual_excel_cols = ((total_labels - 1) // rows_per_col) + 1
+            display_cols = actual_excel_cols * label_col_multiplier
             
-            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:18px; line-height:1.5; text-align:center;'>"
+            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:16px; line-height:1.2; text-align:center;'>"
             for r in range(rows_per_col):
                 row_str = ""
-                for c in range(display_cols):
-                    idx = c * rows_per_col + r
-                    if idx < current_count:
+                for c_set in range(actual_excel_cols):
+                    # 1セット（ラベル・空白・空白）を描画
+                    idx = c_set * rows_per_col + r
+                    if idx < total_labels:
                         num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
-                        row_str += f"<span style='display:inline-block; width:30px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
+                        row_str += f"<span style='display:inline-block; width:25px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
                     else:
-                        row_str += "<span style='display:inline-block; width:30px; color:#ccc;'>⬜</span>"
+                        row_str += "<span style='display:inline-block; width:25px; color:#ccc;'>⬜</span>"
+                    
+                    # 空白セルを2つ挟む（間隔Kaizenをマップに反映）
+                    row_str += "<span style='display:inline-block; width:25px; color:#ddd;'>⬜</span>"
+                    row_str += "<span style='display:inline-block; width:25px; color:#ddd;'>⬜</span>"
+
                 grid_html += f"{row_str}<br>"
             grid_html += "</div>"
             
