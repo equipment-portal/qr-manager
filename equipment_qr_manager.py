@@ -152,9 +152,11 @@ def create_label_image(data):
     draw.text((18*scale, 16*scale), "■", fill="black", font=ft)
     draw.text((42*scale, 16*scale), "機器情報・LOTO確認ラベル", fill="black", font=ft)
     
+    # QRサイズを90%縮小 (72px)
     qs = 72 * scale
     if data.get('img_qr'):
         qr = data['img_qr'].convert('RGB').resize((qs, qs))
+        # 位置を少し下げて左へ寄せる (キャプチャー③の再現)
         img.paste(qr, (tw - qs - 22*scale, th - qs - 32*scale))
     
     xm = 18 * scale; mw = tw - 40*scale
@@ -179,15 +181,22 @@ def rebuild_excel():
     h = []
     if LABEL_HISTORY_FILE.exists():
         with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
-    lpr = 7; lw = 350; lh = 200
+    
+    # 縦並び方式へ復旧 (5枚並んだら右列へ)
+    rows_per_col = 5; lw = 350; lh = 200
     for i, item in enumerate(h):
         ip = TEMP_LABEL_DIR / item["img_filename"]
         if not ip.exists(): continue
-        c, r = (i % lpr) + 1, (i // lpr) + 1
-        cl = get_column_letter(c)
+        # 縦(下)へ進むインデックス計算
+        c_idx = i // rows_per_col
+        r_idx = i % rows_per_col
+        cell_col = c_idx + 1
+        cell_row = r_idx + 1
+        
+        cl = get_column_letter(cell_col)
         ws.column_dimensions[cl].width = (lw / 7) + 0.5
-        ws.row_dimensions[r].height = (lh * 0.75) + 2
-        xi = XLImage(str(ip)); xi.width, xi.height = lw, lh; xi.anchor = f"{cl}{r}"
+        ws.row_dimensions[cell_row].height = (lh * 0.75) + 2
+        xi = XLImage(str(ip)); xi.width, xi.height = lw, lh; xi.anchor = f"{cl}{r_idx + 1}"
         ws.add_image(xi)
     wb.save(EXCEL_LABEL_PATH)
 
@@ -231,7 +240,6 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
         
-        # UI調整CSS
         st.markdown("""
         <style>
         .stButton button { width: 100%; border-radius: 5px; }
@@ -302,7 +310,10 @@ def main():
                 et = st.text_input(f"タイトルの入力 {i+1}", key=f"et_{rk}_{i}")
                 ef = st.file_uploader(f"画像の選択 {i+1}", key=f"ef_{rk}_{i}")
                 if ef: ex_imgs.append((ef, et if et else f"追加画像 {i+1}"))
-            if st.button("➕ 項目を追加する"): st.session_state["extra_images_count"] += 1; st.rerun()
+            
+            if st.button("➕ 項目を追加する"):
+                st.session_state["extra_images_count"] += 1
+                st.rerun()
 
         st.markdown("---")
         st.header("3. ページ生成 ＆ プレビュー")
@@ -336,7 +347,7 @@ def main():
                             pl = {"message":"Update","content":b64,"branch":"main"}
                             if sha: pl["sha"] = sha
                             rq = urllib.request.Request(url, data=json.dumps(pl).encode(), method="PUT"); rq.add_header("Authorization", f"token {tok}")
-                            with urllib.request.urlopen(rq) as r: gurl = json.loads(r.read())["content"]["html_url"]
+                            with urllib.request.urlopen(req) as r: gurl = json.loads(r.read())["content"]["html_url"]
                             furl = gurl.replace("github.com", "cdn.jsdelivr.net/gh").replace("/blob/", "@")
                         else: furl = f"http://dummy-url.com/{did}"
 
@@ -349,10 +360,13 @@ def main():
                     except Exception as e: st.error(f"エラーが発生しました: {e}")
 
         st.markdown("---")
-        def rst(): st.session_state["form_reset_key"]+=1; st.session_state["extra_images_count"]=0; st.session_state["scroll_to_top"]=True
+        def rst():
+            st.session_state["form_reset_key"] += 1
+            st.session_state["extra_images_count"] = 0
+            st.session_state["scroll_to_top"] = True
         st.button("🔄 次の機器を登録する（入力をクリア）", type="primary", on_click=rst)
 
-        # サイドバー：Excel台帳
+        # サイドバー：Excel台帳 (縦並びマップ復旧)
         st.sidebar.markdown("---")
         st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
         h = []
@@ -360,16 +374,20 @@ def main():
             with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
         if len(h) > 0:
             st.sidebar.success(f"✅ 合計 {len(h)} 枚のラベルを配置済み")
-            lpr = 7; rows = ((len(h)-1)//lpr)+1
-            grid = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:14px;line-height:1.2;text-align:center;'>"
-            for r in range(rows):
-                s = ""
-                for c in range(lpr):
-                    idx = r*lpr + c
-                    if idx < len(h): s += f"<span style='display:inline-block;width:26px;font-weight:bold;color:#d4af37;'>{chr(9311+idx+1) if idx<20 else idx+1}</span>"
-                    else: s += "<span style='display:inline-block;width:26px;color:#ccc;'>⬜</span>"
-                grid += s + "<br>"
-            st.sidebar.markdown(grid + "</div>", unsafe_allow_html=True)
+            rows_per_col = 5; total = len(h)
+            num_cols = ((total - 1) // rows_per_col) + 1
+            grid_html = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:14px;line-height:1.2;text-align:left;'>"
+            for r in range(rows_per_col):
+                row_str = ""
+                for c in range(num_cols):
+                    idx = c * rows_per_col + r
+                    if idx < total:
+                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
+                        row_str += f"<span style='display:inline-block;width:28px;font-weight:bold;color:#d4af37;'>{num_char}</span>"
+                    else:
+                        row_str += "<span style='display:inline-block;width:28px;color:#ccc;'>⬜</span>"
+                grid_html += row_str + "<br>"
+            st.sidebar.markdown(grid_html + "</div>", unsafe_allow_html=True)
             for i, itm in enumerate(h):
                 c1, c2 = st.sidebar.columns([5, 1])
                 c1.write(f"**{i+1}** {itm['name']}")
