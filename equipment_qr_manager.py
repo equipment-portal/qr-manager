@@ -145,21 +145,21 @@ def create_manual_image(data, output_path):
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（3.5cm x 2cm固定版） ---
+# --- 印刷用ラベル生成関数（QR右下レイアウト版） ---
 # ==========================================
 def create_label_image(data):
     scale = 4  
     
-    # --- サイズ設計 (実測3.5cm x 2.0cmに合わせる) ---
+    # 印刷実寸 3.5cm x 2.0cm
     target_w_px = 350 * scale
     target_h_px = 200 * scale
     
     font_path = cloud_font_path
     try:
-        font_title = ImageFont.truetype(font_path, 16 * scale) # 🔍 機器情報・LOTO確認ラベル
-        font_md = ImageFont.truetype(font_path, 28 * scale)    # 機器名称 (基本サイズ)
-        font_sm = ImageFont.truetype(font_path, 12 * scale)    # 「機器名称:」
-        font_footer = ImageFont.truetype(font_path, 12 * scale) # 下部説明 (少し大きく)
+        font_title = ImageFont.truetype(font_path, 16 * scale) 
+        font_md = ImageFont.truetype(font_path, 30 * scale)    # 機器名称と電源（大きく統一）
+        font_sm = ImageFont.truetype(font_path, 12 * scale)    
+        font_footer = ImageFont.truetype(font_path, 15 * scale) # フッター文言（拡大）
     except Exception as e:
         font_title = font_md = font_sm = font_footer = ImageFont.load_default()
         
@@ -174,65 +174,63 @@ def create_label_image(data):
     border_width = 12 * scale
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
     
-    # 1段目：タイトルと記号（🔍 に変更）
+    # 1段目：タイトルと記号（回 マークに変更）
     title_y = 18 * scale
-    draw.text((20 * scale, title_y), "🔍", fill="black", font=font_title)
+    draw.text((20 * scale, title_y), "回", fill="black", font=font_title)
     draw.text((45 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # QRコード（少し小さくして左側に配置）
+    # --- 【メイン情報エリア】左側 ---
+    x_margin = 20 * scale
+    max_text_w = target_w_px - (110 * scale) # QRコードの場所を空ける
+    
+    # 2段目：機器名称（自動縮小機能付きで大きく表示）
+    draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
+    
+    current_font_size = 30 * scale
+    temp_font = font_md
+    bbox = draw.textbbox((0, 0), device_name, font=temp_font)
+    while (bbox[2] - bbox[0]) > max_text_w and current_font_size > 12 * scale:
+        current_font_size -= 1 * scale
+        temp_font = ImageFont.truetype(font_path, current_font_size)
+        bbox = draw.textbbox((0, 0), device_name, font=temp_font)
+    
+    draw.text((x_margin, 68 * scale), device_name, fill="black", font=temp_font)
+    
+    # 3段目：使用電源
+    draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((x_margin, 124 * scale), f"AC {device_power}", fill="black", font=font_md)
+    
+    # --- 【QRコード】右下へ移動 ---
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
-            # 130pxサイズに小型化
-            qr_size = 130 * scale
+            # 視認性を損なわない範囲で小型化
+            qr_size = 95 * scale
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            label_img.paste(qr_pil_img, (15 * scale, 50 * scale))
+            # 右下隅に配置
+            label_img.paste(qr_pil_img, (target_w_px - qr_size - 15 * scale, target_h_px - qr_size - 25 * scale))
         except Exception as e:
             pass
     
-    # テキストエリア開始位置 (QRの右側)
-    x_text = 155 * scale
-    max_text_w = target_w_px - x_text - (20 * scale) # 右端までの幅
+    # 4段目：フッター（文言変更と拡大）
+    y_footer = 175 * scale
+    draw.text((x_margin, y_footer), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
     
-    # 2段目：機器名称（長い場合は自動縮小して3.5cmに収める）
-    draw.text((x_text, 55 * scale), "機器名称:", fill="black", font=font_sm)
-    
-    # --- 名称の自動縮小ロジック ---
-    current_font_size = 28 * scale
-    temp_font = font_md
-    bbox = draw.textbbox((0, 0), device_name, font=temp_font)
-    while (bbox[2] - bbox[0]) > max_text_w and current_font_size > 10 * scale:
-        current_font_size -= 1 * scale
-        temp_font = ImageFont.truetype(font_path, current_font_size)
-        bbox = draw.textbbox((0, 0), device_name, font=temp_font)
-    
-    draw.text((x_text, 72 * scale), device_name, fill="black", font=temp_font)
-    
-    # 3段目：使用電源
-    draw.text((x_text, 112 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((x_text, 128 * scale), f"AC {device_power}", fill="black", font=font_md)
-    
-    # 4段目：フッター（境界線と説明文を少し大きく）
-    y_line = 168 * scale
-    draw.line((x_text, y_line, target_w_px - 15 * scale, y_line), fill="gray", width=1 * scale)
-    draw.text((x_text, y_line + 8 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_footer)
-    
-    # 最終的な縮小 (Excelに貼るための実寸ピクセル 350x200 へ)
+    # 最終的な縮小 (350x200)
     final_img = label_img.resize((350, 200), Image.Resampling.LANCZOS)
     return final_img
 
 
 # ==========================================
-# --- 高度なExcel履歴管理・再構築システム ---
+# --- エクセル配置システム ---
 # ==========================================
 def rebuild_excel():
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "印刷用ラベルシート"
     
-    # A4横向きの印刷設定
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_margins.left = 0.5
@@ -249,8 +247,6 @@ def rebuild_excel():
             pass
             
     col_widths = {}
-    
-    # A4横設定のため、縦には5個並べる
     rows_per_col = 5
     col_multiplier = 2
     row_multiplier = 2
@@ -273,12 +269,10 @@ def rebuild_excel():
         col_letter = get_column_letter(cell_col)
         cell_ref = f"{col_letter}{cell_row}"
 
-        # セルの幅と高さを350x200に設定
         req_col_width = target_w / 7.2
         col_widths[col_letter] = max(col_widths.get(col_letter, 10), req_col_width)
         ws.row_dimensions[cell_row].height = target_h * 0.75
         
-        # 間隔（空白セル）の設定
         ws.row_dimensions[cell_row + 1].height = (target_h * 0.75) * 0.8 
         empty_col_letter = get_column_letter(cell_col + 1)
         col_widths[empty_col_letter] = req_col_width * 0.5 
@@ -449,9 +443,6 @@ def main():
                         df = df[df["ID"].astype(str) != did_to_del]
                         df.to_csv(DB_CSV, index=False)
                         st.sidebar.success("削除しました！")
-                        st.session_state.input_did = ""
-                        st.session_state.input_name = ""
-                        st.session_state.input_power = None
                         if "db_select" in st.session_state:
                             del st.session_state["db_select"]
                         st.rerun()
@@ -481,16 +472,13 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        # --- 【最終奥義】一番上に戻るための「透明な目印」を設置 ---
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
 
-        # リセット用のユニークキーを生成（これが変わると全入力欄が強制初期化される）
         if "form_reset_key" not in st.session_state:
             st.session_state["form_reset_key"] = 0
 
-        # --- 【最終奥義】フラグを検知して一番上の目印へ強制ジャンプさせる魔法 ---
         if st.session_state.get("scroll_to_top"):
             import streamlit.components.v1 as components
             import time
@@ -510,10 +498,8 @@ def main():
             st.session_state["scroll_to_top"] = False
             
         col1, col2 = st.columns(2)
-        
-        # 各ウィジェットにリセットキーを組み合わせた独自のKeyを付与
         rk = st.session_state["form_reset_key"]
-
+        
         with col1:
             st.header("1. 基本情報入力")
             did = st.text_input("管理番号 (例: 2699)", key=f"input_did_{rk}")
@@ -532,7 +518,6 @@ def main():
         st.markdown("---")
         st.header("3. 機器情報ページ プレビュー確認")
         
-        # プレビューボタン
         if st.button("🔍 機器情報ページを生成してプレビュー", type="secondary"):
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
@@ -585,29 +570,18 @@ def main():
                     
         elif save_mode == "2. システム専用データベースへ自動保存":
             if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
-                # 画像が選択されているかチェック
-                if not (img_exterior or img_outlet or img_label):
-                    st.error("❌ 画像が一つも指定されていません。プレビューで確認してから登録してください。")
-                elif did and name and power:
+                if did and name and power:
                     with st.spinner("🔄 データベースへ登録中..."):
                         try:
-                            # 1. 機器情報ページの画像を生成
                             data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto}
                             safe_id = safe_filename(did)
                             manual_path = MANUAL_DIR / f"{safe_id}.png"
                             create_manual_image(data, manual_path)
-                            
-                            # 2. 画像をバイナリ化
                             with open(manual_path, "rb") as f:
                                 encoded_content = base64.b64encode(f.read()).decode("utf-8")
-                            
                             file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                             encoded_file_name = urllib.parse.quote(file_name_for_github)
-                            
-                            # フォルダ名を含めたパス（manuals/ を確実に指定）
                             api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
-                            
-                            # 3. 既存ファイルの確認（SHAの取得）
                             sha = None
                             try:
                                 req_check = urllib.request.Request(api_url)
@@ -615,69 +589,40 @@ def main():
                                 with urllib.request.urlopen(req_check) as response:
                                     res_data = json.loads(response.read().decode("utf-8"))
                                     sha = res_data["sha"]
-                            except Exception:
-                                pass # 新規作成の場合はSHA不要
-                                
-                            # 4. アップロード実行
-                            payload = {
-                                "message": f"Update/Add {file_name_for_github} via System",
-                                "content": encoded_content,
-                                "branch": "main"
-                            }
-                            if sha:
-                                payload["sha"] = sha
-                                
+                            except: pass
+                            payload = {"message": f"Auto upload {file_name_for_github}", "content": encoded_content, "branch": "main"}
+                            if sha: payload["sha"] = sha
                             req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
                             req.add_header("Authorization", f"token {github_token}")
                             req.add_header("Content-Type", "application/json")
-                            
                             with urllib.request.urlopen(req) as response:
                                 res_data = json.loads(response.read().decode("utf-8"))
                                 github_img_url = res_data["content"]["html_url"]
-                            
-                            # 高速配信URLに変換
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                            
-                            # 5. ローカルDBとラベル履歴の更新
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             img_qr = qrcode.make(img_cdn_url)
                             img_qr.save(qr_path)
-                            
                             if DB_CSV.exists():
                                 df = pd.read_csv(DB_CSV)
                                 df = df[df["ID"].astype(str) != str(did)]
                             else:
                                 df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
-                                
-                            new_row = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                            new_data = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                             df.to_csv(DB_CSV, index=False)
-                            
                             label_data = {"name": name, "power": power, "img_qr": img_qr}
                             label_img = create_label_image(label_data)
                             add_label_to_history(name, label_img)
-                            
                             st.success(f"✅ 登録完了！ URL: {img_cdn_url}")
                             st.image(label_img, caption="印刷用ラベル（3.5x2cm固定版）", width=300)
-                            
-                        except urllib.error.HTTPError as e:
-                            st.error(f"❌ データベース通信エラー({e.code}): {e.reason}")
-                            st.info("💡 ヒント: 保管先リポジトリに 'manuals' フォルダが存在するか、トークンの権限が正しいか確認してください。")
                         except Exception as e:
-                            st.error(f"❌ 予期せぬエラー: {str(e)}")
-                else:
-                    st.error("❌ 管理番号、機器名称、使用電源は全て必須です。")
+                            st.error(f"エラー: {str(e)}")
 
         st.markdown("---")
         st.header("5. 次の作業")
-        
-        # 強力なリセット用コールバック
         def reset_everything_callback():
-            # フォームのKeyを更新することで、関連する全てのウィジェットを強制リセット
             st.session_state["form_reset_key"] += 1
-            # スクロールフラグを立てる
             st.session_state["scroll_to_top"] = True
-            # 古いセッションステートの値を掃除
             keys_to_clear = [k for k in st.session_state.keys() if "input_" in k or "img_" in k]
             for k in keys_to_clear:
                 del st.session_state[k]
@@ -726,5 +671,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
