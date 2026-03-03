@@ -183,27 +183,52 @@ def create_label_image(data):
 
 def rebuild_excel():
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Labels"
+    
+    # ページ設定
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    # 余白を最小化（0.1インチ ≒ 約2.5mm）
     ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.1
+    
     h = []
     if LABEL_HISTORY_FILE.exists():
         with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
     
-    rows_per_col = 5; lw = 350; lh = 200
+    # --- 実寸サイズ調整 (A4横) ---
+    # エクセルの高さ単位: 1ポイント = 1/72インチ (約0.35mm)
+    # エクセルの幅単位: 標準フォントの文字数ベース (1単位 = 約2.1mm)
+    
+    rows_per_col = 5
+    label_w_px = 350
+    label_h_px = 200
+
+    # 縦2.0cm、横3.5cmに近づけるためのエクセル設定値
+    target_row_height = 58.0  # 約2.0cm相当
+    target_col_width = 12.5   # 約3.5cm相当
+
     for i, item in enumerate(h):
         ip = TEMP_LABEL_DIR / item["img_filename"]
         if not ip.exists(): continue
+        
         c_idx = i // rows_per_col
         r_idx = i % rows_per_col
         cell_col = c_idx + 1
         cell_row = r_idx + 1
         
         cl = get_column_letter(cell_col)
-        ws.column_dimensions[cl].width = (lw / 7) + 0.5
-        ws.row_dimensions[cell_row].height = (lh * 0.75) + 2
-        xi = XLImage(str(ip)); xi.width, xi.height = lw, lh; xi.anchor = f"{cl}{cell_row}"
+        
+        # 列の幅と行の高さを物理サイズに合わせて固定
+        ws.column_dimensions[cl].width = target_col_width
+        ws.row_dimensions[cell_row].height = target_row_height
+        
+        xi = XLImage(str(ip))
+        # 画像そのもののサイズもエクセル内で縦2cm/横3.5cm相当(ポイント指定)にリサイズ
+        xi.width = 99.2    # 35mm ≒ 99.2 points
+        xi.height = 56.7   # 20mm ≒ 56.7 points
+        
+        xi.anchor = f"{cl}{cell_row}"
         ws.add_image(xi)
+        
     wb.save(EXCEL_LABEL_PATH)
 
 def add_label_to_history(n, img):
@@ -418,3 +443,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
