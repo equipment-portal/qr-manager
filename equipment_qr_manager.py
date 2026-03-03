@@ -145,12 +145,10 @@ def create_manual_image(data, output_path):
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（QR最終微調整版） ---
+# --- 印刷用ラベル生成関数（QR位置・最終微調整） ---
 # ==========================================
 def create_label_image(data):
     scale = 4  
-    
-    # 印刷実寸 3.5cm x 2.0cm
     target_w_px = 350 * scale
     target_h_px = 200 * scale
     
@@ -160,7 +158,7 @@ def create_label_image(data):
         font_main = ImageFont.truetype(font_path, 30 * scale)  
         font_sm = ImageFont.truetype(font_path, 12 * scale)    
         font_footer = ImageFont.truetype(font_path, 13 * scale) 
-    except Exception as e:
+    except:
         font_title = font_main = font_sm = font_footer = ImageFont.load_default()
         
     device_name = data.get('name', '不明')
@@ -179,26 +177,21 @@ def create_label_image(data):
     draw.text((18 * scale, title_y), "■", fill="black", font=font_title)
     draw.text((42 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # --- 【QRコード】90%に縮小し、さらに少し下へ移動 ---
-    # 前回の80scaleから72scale（90%）へ縮小
+    # --- 【QRコード】90%サイズ ＆ さらに1mm(4px*scale)左へ移動 ---
     qr_size = 72 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
-            if hasattr(qr_pil_img, 'convert'):
-                qr_pil_img = qr_pil_img.convert('RGB')
+            if hasattr(qr_pil_img, 'convert'): qr_pil_img = qr_pil_img.convert('RGB')
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            # 位置を少し下げて、機器名称との隙間を確保 (y位置を+2scale)
-            label_img.paste(qr_pil_img, (target_w_px - qr_size - 18 * scale, target_h_px - qr_size - 30 * scale))
-        except Exception as e:
-            pass
+            # x位置を 18*scale(約4.5mm) から 22*scale(約5.5mm) に増やして左へ寄せる
+            label_img.paste(qr_pil_img, (target_w_px - qr_size - 22 * scale, target_h_px - qr_size - 30 * scale))
+        except: pass
     
     # --- 【メイン情報エリア】 ---
     x_margin = 18 * scale
-    # QRを縮小・移動させたことで、名称エリアの安全マージンが拡大
-    max_text_w = target_w_px - (36 * scale) 
+    max_text_w = target_w_px - (40 * scale) # 左寄せQRに合わせて微調整
     
-    # 名称と電源のサイズを揃えて自動縮小
     current_size = 30 * scale
     temp_font = font_main
     longest_text = device_name if len(device_name) > len(f"AC {device_power}") else f"AC {device_power}"
@@ -208,15 +201,12 @@ def create_label_image(data):
         temp_font = ImageFont.truetype(font_path, current_size)
         bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
 
-    # 2段目：機器名称
     draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
     draw.text((x_margin, 66 * scale), device_name, fill="black", font=temp_font)
-    
-    # 3段目：使用電源
     draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
     draw.text((x_margin, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
     
-    # 4段目：フッター（見切れチェック付き）
+    # 4段目：フッター
     footer_text = "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）"
     y_footer = 172 * scale
     f_bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
@@ -229,73 +219,57 @@ def create_label_image(data):
 
     draw.text((x_margin, y_footer), footer_text, fill="black", font=f_font)
     
-    # 最終的な縮小 (350x200)
-    final_img = label_img.resize((350, 200), Image.Resampling.LANCZOS)
-    return final_img
-
+    return label_img.resize((350, 200), Image.Resampling.LANCZOS)
 
 # ==========================================
-# --- エクセル配置システム ---
+# --- エクセル配置システム（ギチギチ密着配置版） ---
 # ==========================================
 def rebuild_excel():
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "印刷用ラベルシート"
     
+    # ページ設定
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_margins.left = 0.5
-    ws.page_margins.right = 0.5
-    ws.page_margins.top = 0.5
-    ws.page_margins.bottom = 0.5
+    ws.page_margins.left = 0.2
+    ws.page_margins.right = 0.2
+    ws.page_margins.top = 0.2
+    ws.page_margins.bottom = 0.2
     
     history = []
     if LABEL_HISTORY_FILE.exists():
         try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f:
-                history = json.load(f)
-        except:
-            pass
+            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
+        except: pass
             
-    col_widths = {}
-    rows_per_col = 5
-    col_multiplier = 2
-    row_multiplier = 2
+    rows_per_page = 5
+    label_w = 350
+    label_h = 200
 
     for count, item in enumerate(history):
         img_path = TEMP_LABEL_DIR / item["img_filename"]
-        if not img_path.exists():
-            continue
+        if not img_path.exists(): continue
             
-        with Image.open(img_path) as tmp_img:
-            target_w = tmp_img.width
-            target_h = tmp_img.height
-            
-        col_group = count // rows_per_col
-        row_in_group = count % rows_per_col
+        col_idx = count // rows_per_page
+        row_idx = count % rows_per_page
 
-        cell_col = 1 + (col_group * col_multiplier)
-        cell_row = 1 + (row_in_group * row_multiplier)
+        # 列と行を 1, 2, 3... と隙間なく指定
+        cell_col = col_idx + 1
+        cell_row = row_idx + 1
         
         col_letter = get_column_letter(cell_col)
         cell_ref = f"{col_letter}{cell_row}"
 
-        req_col_width = target_w / 7.2
-        col_widths[col_letter] = max(col_widths.get(col_letter, 10), req_col_width)
-        ws.row_dimensions[cell_row].height = target_h * 0.75
-        
-        ws.row_dimensions[cell_row + 1].height = (target_h * 0.75) * 0.8 
-        empty_col_letter = get_column_letter(cell_col + 1)
-        col_widths[empty_col_letter] = req_col_width * 0.5 
+        # 0.5mm程度の隙間を作るための微調整（Excelの幅単位 1=約7.5px / 高さ単位 1=約1.3px）
+        ws.column_dimensions[col_letter].width = (label_w / 7) + 0.5
+        ws.row_dimensions[cell_row].height = (label_h * 0.75) + 2
 
         xl_img = XLImage(str(img_path))
-        xl_img.width = target_w
-        xl_img.height = target_h
+        xl_img.width = label_w
+        xl_img.height = label_h
         xl_img.anchor = cell_ref
         ws.add_image(xl_img)
-
-    for col, width in col_widths.items():
-        ws.column_dimensions[col].width = width
 
     wb.save(EXCEL_LABEL_PATH)
 
@@ -682,4 +656,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
