@@ -145,23 +145,22 @@ def create_manual_image(data, output_path):
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（QR右下レイアウト版） ---
+# --- 印刷用ラベル生成関数（3.5x2cm最適化版） ---
 # ==========================================
 def create_label_image(data):
     scale = 4  
     
-    # 印刷実寸 3.5cm x 2.0cm
     target_w_px = 350 * scale
     target_h_px = 200 * scale
     
     font_path = cloud_font_path
     try:
-        font_title = ImageFont.truetype(font_path, 16 * scale) 
-        font_md = ImageFont.truetype(font_path, 30 * scale)    # 機器名称と電源（大きく統一）
+        font_title = ImageFont.truetype(font_path, 19 * scale) # ヘッダー拡大
+        font_main = ImageFont.truetype(font_path, 28 * scale)  # 名称と電源の共通サイズ
         font_sm = ImageFont.truetype(font_path, 12 * scale)    
-        font_footer = ImageFont.truetype(font_path, 15 * scale) # フッター文言（拡大）
+        font_footer = ImageFont.truetype(font_path, 13 * scale) # フッター微調整
     except Exception as e:
-        font_title = font_md = font_sm = font_footer = ImageFont.load_default()
+        font_title = font_main = font_sm = font_footer = ImageFont.load_default()
         
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
@@ -174,49 +173,60 @@ def create_label_image(data):
     border_width = 12 * scale
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
     
-    # 1段目：タイトルと記号（回 マークに変更）
-    title_y = 18 * scale
-    draw.text((20 * scale, title_y), "回", fill="black", font=font_title)
-    draw.text((45 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
+    # 1段目：タイトル（黄色枠に被らないギリギリまで拡大）
+    title_y = 16 * scale
+    draw.text((18 * scale, title_y), "回", fill="black", font=font_title)
+    draw.text((42 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # --- 【メイン情報エリア】左側 ---
-    x_margin = 20 * scale
-    max_text_w = target_w_px - (110 * scale) # QRコードの場所を空ける
-    
-    # 2段目：機器名称（自動縮小機能付きで大きく表示）
-    draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
-    
-    current_font_size = 30 * scale
-    temp_font = font_md
-    bbox = draw.textbbox((0, 0), device_name, font=temp_font)
-    while (bbox[2] - bbox[0]) > max_text_w and current_font_size > 12 * scale:
-        current_font_size -= 1 * scale
-        temp_font = ImageFont.truetype(font_path, current_font_size)
-        bbox = draw.textbbox((0, 0), device_name, font=temp_font)
-    
-    draw.text((x_margin, 68 * scale), device_name, fill="black", font=temp_font)
-    
-    # 3段目：使用電源
-    draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((x_margin, 124 * scale), f"AC {device_power}", fill="black", font=font_md)
-    
-    # --- 【QRコード】右下へ移動 ---
+    # QRコード（右側中央に配置、サイズを固定してテキストエリアを確保）
+    qr_size = 90 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
-            # 視認性を損なわない範囲で小型化
-            qr_size = 95 * scale
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            # 右下隅に配置
-            label_img.paste(qr_pil_img, (target_w_px - qr_size - 15 * scale, target_h_px - qr_size - 25 * scale))
+            # 縦方向の中央付近に配置
+            label_img.paste(qr_pil_img, (target_w_px - qr_size - 18 * scale, 50 * scale))
         except Exception as e:
             pass
     
-    # 4段目：フッター（文言変更と拡大）
-    y_footer = 175 * scale
-    draw.text((x_margin, y_footer), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
+    # テキストエリア（左側）
+    x_margin = 18 * scale
+    max_text_w = target_w_px - qr_size - (40 * scale) # QRに絶対に重ならない幅
+    
+    # 名称と電源のサイズを揃えて自動縮小
+    current_size = 28 * scale
+    temp_font = font_main
+    # どちらか長い方に合わせる
+    longest_text = device_name if len(device_name) > len(f"AC {device_power}") else f"AC {device_power}"
+    bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
+    while (bbox[2] - bbox[0]) > max_text_w and current_size > 12 * scale:
+        current_size -= 1 * scale
+        temp_font = ImageFont.truetype(font_path, current_size)
+        bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
+
+    # 2段目：機器名称
+    draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
+    draw.text((x_margin, 66 * scale), device_name, fill="black", font=temp_font)
+    
+    # 3段目：使用電源
+    draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((x_margin, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
+    
+    # 4段目：フッター（見切れないように微調整）
+    footer_text = "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）"
+    y_footer = 172 * scale
+    # フッターも見切れチェック
+    f_bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
+    f_font = font_footer
+    f_size = 13 * scale
+    while (f_bbox[2] - f_bbox[0]) > (target_w_px - 36 * scale):
+        f_size -= 1 * scale
+        f_font = ImageFont.truetype(font_path, f_size)
+        f_bbox = draw.textbbox((0, 0), footer_text, font=f_font)
+
+    draw.text((x_margin, y_footer), footer_text, fill="black", font=f_font)
     
     # 最終的な縮小 (350x200)
     final_img = label_img.resize((350, 200), Image.Resampling.LANCZOS)
