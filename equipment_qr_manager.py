@@ -145,7 +145,7 @@ def create_manual_image(data, output_path):
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（QR最小・右下配置版） ---
+# --- 印刷用ラベル生成関数（QR最終微調整版） ---
 # ==========================================
 def create_label_image(data):
     scale = 4  
@@ -174,28 +174,28 @@ def create_label_image(data):
     border_width = 12 * scale
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
     
-    # 1段目：タイトル（記号を ■ に変更）
+    # 1段目：タイトル（■記号）
     title_y = 16 * scale
     draw.text((18 * scale, title_y), "■", fill="black", font=font_title)
     draw.text((42 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # --- 【QRコード】最小化して最下段の右側に配置 ---
-    # 読み取り可能な最小限のサイズ（約8mm角）に設定
-    qr_size = 80 * scale
+    # --- 【QRコード】90%に縮小し、さらに少し下へ移動 ---
+    # 前回の80scaleから72scale（90%）へ縮小
+    qr_size = 72 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            # フッターの少し上に配置
-            label_img.paste(qr_pil_img, (target_w_px - qr_size - 18 * scale, target_h_px - qr_size - 32 * scale))
+            # 位置を少し下げて、機器名称との隙間を確保 (y位置を+2scale)
+            label_img.paste(qr_pil_img, (target_w_px - qr_size - 18 * scale, target_h_px - qr_size - 30 * scale))
         except Exception as e:
             pass
     
     # --- 【メイン情報エリア】 ---
     x_margin = 18 * scale
-    # QRコードを下げたため、上部〜中部の横幅を最大限利用可能
+    # QRを縮小・移動させたことで、名称エリアの安全マージンが拡大
     max_text_w = target_w_px - (36 * scale) 
     
     # 名称と電源のサイズを揃えて自動縮小
@@ -216,7 +216,7 @@ def create_label_image(data):
     draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
     draw.text((x_margin, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
     
-    # 4段目：フッター（文言は見切れないよう自動調整）
+    # 4段目：フッター（見切れチェック付き）
     footer_text = "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）"
     y_footer = 172 * scale
     f_bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
@@ -682,3 +682,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
