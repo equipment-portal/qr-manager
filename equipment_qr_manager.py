@@ -585,18 +585,29 @@ def main():
                     
         elif save_mode == "2. システム専用データベースへ自動保存":
             if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
-                if did and name and power:
+                # 画像が選択されているかチェック
+                if not (img_exterior or img_outlet or img_label):
+                    st.error("❌ 画像が一つも指定されていません。プレビューで確認してから登録してください。")
+                elif did and name and power:
                     with st.spinner("🔄 データベースへ登録中..."):
                         try:
+                            # 1. 機器情報ページの画像を生成
                             data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto}
                             safe_id = safe_filename(did)
                             manual_path = MANUAL_DIR / f"{safe_id}.png"
                             create_manual_image(data, manual_path)
+                            
+                            # 2. 画像をバイナリ化
                             with open(manual_path, "rb") as f:
                                 encoded_content = base64.b64encode(f.read()).decode("utf-8")
+                            
                             file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                             encoded_file_name = urllib.parse.quote(file_name_for_github)
+                            
+                            # フォルダ名を含めたパス（manuals/ を確実に指定）
                             api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
+                            
+                            # 3. 既存ファイルの確認（SHAの取得）
                             sha = None
                             try:
                                 req_check = urllib.request.Request(api_url)
@@ -604,34 +615,58 @@ def main():
                                 with urllib.request.urlopen(req_check) as response:
                                     res_data = json.loads(response.read().decode("utf-8"))
                                     sha = res_data["sha"]
-                            except: pass
-                            payload = {"message": f"Auto upload {file_name_for_github}", "content": encoded_content, "branch": "main"}
-                            if sha: payload["sha"] = sha
+                            except Exception:
+                                pass # 新規作成の場合はSHA不要
+                                
+                            # 4. アップロード実行
+                            payload = {
+                                "message": f"Update/Add {file_name_for_github} via System",
+                                "content": encoded_content,
+                                "branch": "main"
+                            }
+                            if sha:
+                                payload["sha"] = sha
+                                
                             req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
                             req.add_header("Authorization", f"token {github_token}")
                             req.add_header("Content-Type", "application/json")
+                            
                             with urllib.request.urlopen(req) as response:
                                 res_data = json.loads(response.read().decode("utf-8"))
                                 github_img_url = res_data["content"]["html_url"]
+                            
+                            # 高速配信URLに変換
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                            
+                            # 5. ローカルDBとラベル履歴の更新
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             img_qr = qrcode.make(img_cdn_url)
                             img_qr.save(qr_path)
+                            
                             if DB_CSV.exists():
                                 df = pd.read_csv(DB_CSV)
                                 df = df[df["ID"].astype(str) != str(did)]
                             else:
                                 df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
-                            new_data = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                                
+                            new_row = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                             df.to_csv(DB_CSV, index=False)
+                            
                             label_data = {"name": name, "power": power, "img_qr": img_qr}
                             label_img = create_label_image(label_data)
                             add_label_to_history(name, label_img)
+                            
                             st.success(f"✅ 登録完了！ URL: {img_cdn_url}")
                             st.image(label_img, caption="印刷用ラベル（3.5x2cm固定版）", width=300)
+                            
+                        except urllib.error.HTTPError as e:
+                            st.error(f"❌ データベース通信エラー({e.code}): {e.reason}")
+                            st.info("💡 ヒント: 保管先リポジトリに 'manuals' フォルダが存在するか、トークンの権限が正しいか確認してください。")
                         except Exception as e:
-                            st.error(f"エラー: {str(e)}")
+                            st.error(f"❌ 予期せぬエラー: {str(e)}")
+                else:
+                    st.error("❌ 管理番号、機器名称、使用電源は全て必須です。")
 
         st.markdown("---")
         st.header("5. 次の作業")
@@ -691,4 +726,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
