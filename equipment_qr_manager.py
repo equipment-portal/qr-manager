@@ -56,7 +56,6 @@ def create_manual_image(data, output_path):
         font_title = font_sub = font_text = ImageFont.load_default()
 
     sections = []
-    # ヘッダー
     h_img = Image.new('RGB', (W, 380), 'white')
     draw = ImageDraw.Draw(h_img)
     draw.rectangle([0, 0, W, 100], fill=(255, 215, 0))
@@ -152,11 +151,9 @@ def create_label_image(data):
     draw.text((18*scale, 16*scale), "■", fill="black", font=ft)
     draw.text((42*scale, 16*scale), "機器情報・LOTO確認ラベル", fill="black", font=ft)
     
-    # QRサイズを90%縮小 (72px)
     qs = 72 * scale
     if data.get('img_qr'):
         qr = data['img_qr'].convert('RGB').resize((qs, qs))
-        # 位置を少し下げて左へ寄せる (キャプチャー③の再現)
         img.paste(qr, (tw - qs - 22*scale, th - qs - 32*scale))
     
     xm = 18 * scale; mw = tw - 40*scale
@@ -182,12 +179,10 @@ def rebuild_excel():
     if LABEL_HISTORY_FILE.exists():
         with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
     
-    # 縦並び方式へ復旧 (5枚並んだら右列へ)
     rows_per_col = 5; lw = 350; lh = 200
     for i, item in enumerate(h):
         ip = TEMP_LABEL_DIR / item["img_filename"]
         if not ip.exists(): continue
-        # 縦(下)へ進むインデックス計算
         c_idx = i // rows_per_col
         r_idx = i % rows_per_col
         cell_col = c_idx + 1
@@ -196,7 +191,7 @@ def rebuild_excel():
         cl = get_column_letter(cell_col)
         ws.column_dimensions[cl].width = (lw / 7) + 0.5
         ws.row_dimensions[cell_row].height = (lh * 0.75) + 2
-        xi = XLImage(str(ip)); xi.width, xi.height = lw, lh; xi.anchor = f"{cl}{r_idx + 1}"
+        xi = XLImage(str(ip)); xi.width, xi.height = lw, lh; xi.anchor = f"{cl}{cell_row}"
         ws.add_image(xi)
     wb.save(EXCEL_LABEL_PATH)
 
@@ -263,8 +258,12 @@ def main():
                     if s == "✨ 新規登録 (クリア)":
                         st.session_state[f"d_{rk}"] = ""; st.session_state[f"n_{rk}"] = ""; st.session_state[f"p_{rk}"] = None
                     else:
-                        r = df[df["ID"].astype(str) == s.split(" : ")[0]].iloc[-1]
-                        st.session_state[f"d_{rk}"] = str(r["ID"]); st.session_state[f"n_{rk}"] = str(r["Name"]); st.session_state[f"p_{rk}"] = str(r["Power"])
+                        match_row = df[df["ID"].astype(str) == s.split(" : ")[0]]
+                        if not match_row.empty:
+                            r = match_row.iloc[-1]
+                            st.session_state[f"d_{rk}"] = str(r["ID"])
+                            st.session_state[f"n_{rk}"] = str(r["Name"])
+                            st.session_state[f"p_{rk}"] = str(r["Power"])
                 st.sidebar.selectbox("編集する機器を選択:", opts, key="db_select", on_change=ld)
                 if st.sidebar.button("🗑️ 選択中の機器を削除"):
                     df[df["ID"].astype(str) != st.session_state.db_select.split(" : ")[0]].to_csv(DB_CSV, index=False)
@@ -333,68 +332,78 @@ def main():
                     try:
                         fn = f"{safe_filename(did)}_{safe_filename(nm)}.png"
                         pt = MANUAL_DIR / f"{safe_filename(did)}.png"
-                        dt = {"id":did,"name":nm,"power":pw,"img_exterior":f_ext,"img_outlet":f_out,"img_label":f_lab,"img_loto1":f_l1,"img_loto2":f_l2,"memo":memo if memo.strip() else "なし"}
-                        create_manual_image_extended(dt, ex_imgs, pt)
+                        dt_gen = {"id":did,"name":nm,"power":pw,"img_exterior":f_ext,"img_outlet":f_out,"img_label":f_lab,"img_loto1":f_l1,"img_loto2":f_l2,"memo":memo if memo.strip() else "なし"}
+                        create_manual_image_extended(dt_gen, ex_imgs, pt)
                         
                         if sm == "2. 全自動（GitHub保存）":
-                            with open(pt, "rb") as f: b64 = base64.b64encode(f.read()).decode()
-                            url = f"https://api.github.com/repos/{repo}/contents/manuals/{urllib.parse.quote(fn)}"
-                            sha = None
+                            with open(pt, "rb") as f: b64_data = base64.b64encode(f.read()).decode()
+                            url_api = f"https://api.github.com/repos/{repo}/contents/manuals/{urllib.parse.quote(fn)}"
+                            sha_val = None
                             try:
-                                rq = urllib.request.Request(url); rq.add_header("Authorization", f"token {tok}")
-                                with urllib.request.urlopen(rq) as r: sha = json.loads(r.read())["sha"]
+                                rq_check = urllib.request.Request(url_api); rq_check.add_header("Authorization", f"token {tok}")
+                                with urllib.request.urlopen(rq_check) as r_res: sha_val = json.loads(r_res.read())["sha"]
                             except: pass
-                            pl = {"message":"Update","content":b64,"branch":"main"}
-                            if sha: pl["sha"] = sha
-                            rq = urllib.request.Request(url, data=json.dumps(pl).encode(), method="PUT"); rq.add_header("Authorization", f"token {tok}")
-                            with urllib.request.urlopen(req) as r: gurl = json.loads(r.read())["content"]["html_url"]
-                            furl = gurl.replace("github.com", "cdn.jsdelivr.net/gh").replace("/blob/", "@")
+                            
+                            payload_data = {"message":"Update","content":b64_data,"branch":"main"}
+                            if sha_val: payload_data["sha"] = sha_val
+                            
+                            # ここで変数名を統一 (rq -> rq_final)
+                            rq_final = urllib.request.Request(url_api, data=json.dumps(payload_data).encode(), method="PUT")
+                            rq_final.add_header("Authorization", f"token {tok}")
+                            with urllib.request.urlopen(rq_final) as r_final:
+                                gurl_raw = json.loads(r_final.read())["content"]["html_url"]
+                            
+                            furl = gurl_raw.replace("github.com", "cdn.jsdelivr.net/gh").replace("/blob/", "@")
                         else: furl = f"http://dummy-url.com/{did}"
 
-                        df = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID","Name","Power","URL","Updated"])
-                        df = df[df["ID"].astype(str) != str(did)]
-                        pd.concat([df, pd.DataFrame([{"ID":did,"Name":nm,"Power":pw,"URL":furl,"Updated":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])]).to_csv(DB_CSV, index=False)
-                        limg = create_label_image({"name":nm,"power":pw,"img_qr":qrcode.make(furl)})
-                        add_label_to_history(nm, limg)
-                        st.success(f"✅ 登録に成功しました！ URL: {furl}"); st.image(limg, caption="発行されたラベル", width=300)
+                        df_save = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID","Name","Power","URL","Updated"])
+                        df_save = df_save[df_save["ID"].astype(str) != str(did)]
+                        new_data_row = pd.DataFrame([{"ID":did,"Name":nm,"Power":pw,"URL":furl,"Updated":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])
+                        pd.concat([df_save, new_data_row], ignore_index=True).to_csv(DB_CSV, index=False)
+                        
+                        limg_final = create_label_image({"name":nm,"power":pw,"img_qr":qrcode.make(furl)})
+                        add_label_to_history(nm, limg_final)
+                        
+                        st.success(f"✅ 登録に成功しました！ URL: {furl}")
+                        st.image(limg_final, caption="発行されたラベル", width=300)
                     except Exception as e: st.error(f"エラーが発生しました: {e}")
 
         st.markdown("---")
-        def rst():
+        def rst_action():
             st.session_state["form_reset_key"] += 1
             st.session_state["extra_images_count"] = 0
             st.session_state["scroll_to_top"] = True
-        st.button("🔄 次の機器を登録する（入力をクリア）", type="primary", on_click=rst)
+        st.button("🔄 次の機器を登録する（入力をクリア）", type="primary", on_click=rst_action)
 
-        # サイドバー：Excel台帳 (縦並びマップ復旧)
+        # サイドバー：Excel台帳
         st.sidebar.markdown("---")
         st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
-        h = []
+        h_list = []
         if LABEL_HISTORY_FILE.exists():
-            with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
-        if len(h) > 0:
-            st.sidebar.success(f"✅ 合計 {len(h)} 枚のラベルを配置済み")
-            rows_per_col = 5; total = len(h)
-            num_cols = ((total - 1) // rows_per_col) + 1
-            grid_html = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:14px;line-height:1.2;text-align:left;'>"
-            for r in range(rows_per_col):
-                row_str = ""
-                for c in range(num_cols):
-                    idx = c * rows_per_col + r
-                    if idx < total:
-                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
-                        row_str += f"<span style='display:inline-block;width:28px;font-weight:bold;color:#d4af37;'>{num_char}</span>"
+            with open(LABEL_HISTORY_FILE, "r") as f: h_list = json.load(f)
+        if len(h_list) > 0:
+            st.sidebar.success(f"✅ 合計 {len(h_list)} 枚のラベルを配置済み")
+            rows_p_col = 5; total_cnt = len(h_list)
+            n_cols = ((total_cnt - 1) // rows_p_col) + 1
+            grid_html_view = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:14px;line-height:1.2;text-align:left;'>"
+            for r in range(rows_p_col):
+                row_str_line = ""
+                for c in range(n_cols):
+                    idx_val = c * rows_p_col + r
+                    if idx_val < total_cnt:
+                        num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
+                        row_str_line += f"<span style='display:inline-block;width:28px;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
                     else:
-                        row_str += "<span style='display:inline-block;width:28px;color:#ccc;'>⬜</span>"
-                grid_html += row_str + "<br>"
-            st.sidebar.markdown(grid_html + "</div>", unsafe_allow_html=True)
-            for i, itm in enumerate(h):
-                c1, c2 = st.sidebar.columns([5, 1])
-                c1.write(f"**{i+1}** {itm['name']}")
-                if c2.button("❌", key=f"d{i}"): delete_label_from_history(i); st.rerun()
+                        row_str_line += "<span style='display:inline-block;width:28px;color:#ccc;'>⬜</span>"
+                grid_html_view += row_str_line + "<br>"
+            st.sidebar.markdown(grid_html_view + "</div>", unsafe_allow_html=True)
+            for i_idx, itm_obj in enumerate(h_list):
+                cb1, cb2 = st.sidebar.columns([5, 1])
+                cb1.write(f"**{i_idx+1}** {itm_obj['name']}")
+                if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
         
         if EXCEL_LABEL_PATH.exists():
-            with open(EXCEL_LABEL_PATH, "rb") as f: st.sidebar.download_button("📥 最新のExcelをダウンロード", f, "labels.xlsx")
+            with open(EXCEL_LABEL_PATH, "rb") as f_excel: st.sidebar.download_button("📥 最新のExcelをダウンロード", f_excel, "labels.xlsx")
             if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
 
 if __name__ == "__main__":
