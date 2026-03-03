@@ -473,21 +473,26 @@ def main():
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l1_{rk}")
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l2_{rk}")
             
-            # --- 【新規】追加画像セクション ---
+            # --- 追加画像セクション ---
             st.markdown("---")
-            st.subheader("➕ 追加情報の登録（点検表・マニュアル等）")
+            st.subheader("➕ 追加画像の登録（点検表・マニュアル等）")
             
             extra_images = []
             for i in range(st.session_state["extra_images_count"]):
                 st.markdown(f"**追加項目 {i+1}**")
-                ex_title = st.text_input(f"タイトルの入力 (例: 点検チェックリスト)", key=f"ex_title_{rk}_{i}")
+                ex_title = st.text_input(f"タイトルの入力", key=f"ex_title_{rk}_{i}")
                 ex_img = st.file_uploader(f"画像の選択", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
                 if ex_img:
-                    extra_images.append((ex_img, ex_title if ex_title else f"追加情報 {i+1}"))
+                    extra_images.append((ex_img, ex_title if ex_title else f"追加画像 {i+1}"))
             
             if st.button("➕ 画像を追加する"):
                 st.session_state["extra_images_count"] += 1
                 st.rerun()
+
+            # --- 【新規】メモ・備考セクション ---
+            st.markdown("---")
+            st.subheader("📝 その他情報の入力")
+            memo_text = st.text_area("メモ・備考", placeholder="例：チラー設定温度 25℃厳守 / 特殊プラグのため予備在庫あり", key=f"memo_{rk}")
 
         st.markdown("---")
         st.header("3. プレビュー確認")
@@ -497,17 +502,12 @@ def main():
                     data = {
                         "id": did, "name": name, "power": power, 
                         "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label,
-                        "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto
+                        "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto,
+                        "memo": memo_text if memo_text.strip() else "なし"
                     }
-                    # 追加画像を統合
-                    for ex_img, ex_title in extra_images:
-                        data[f"extra_{ex_title}"] = ex_img # 内部処理用
-                        
-                    # 画像生成ロジック側で extra_images を扱えるように修正（簡易化のため直接合成）
                     safe_id = safe_filename(did)
                     manual_path = MANUAL_DIR / f"{safe_id}.png"
                     
-                    # 拡張対応版の画像生成を呼び出し（本回答の最後に定義を追加）
                     create_manual_image_extended(data, extra_images, manual_path)
                     
                     if manual_path.exists():
@@ -525,11 +525,14 @@ def main():
                     try:
                         safe_id = safe_filename(did)
                         manual_path = MANUAL_DIR / f"{safe_id}.png"
-                        # 画像生成
-                        data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto}
+                        data = {
+                            "id": did, "name": name, "power": power, 
+                            "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label,
+                            "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto,
+                            "memo": memo_text if memo_text.strip() else "なし"
+                        }
                         create_manual_image_extended(data, extra_images, manual_path)
                         
-                        # GitHubへアップロード
                         with open(manual_path, "rb") as f:
                             encoded_content = base64.b64encode(f.read()).decode("utf-8")
                         file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
@@ -553,7 +556,6 @@ def main():
                         
                         img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                         
-                        # QR・DB・Excel更新
                         img_qr = qrcode.make(img_cdn_url)
                         if DB_CSV.exists():
                             df = pd.read_csv(DB_CSV)
@@ -589,7 +591,7 @@ def main():
                 clear_history()
                 st.rerun()
 
-# --- 追加画像に対応した画像生成関数 ---
+# --- メモと追加画像に対応した拡張画像生成関数 ---
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600  
     margin = 80
@@ -600,16 +602,14 @@ def create_manual_image_extended(data, extra_images, output_path):
     except:
         font_sub = font_text = ImageFont.load_default()
 
-    # 基本の5枚を生成
-    # ※既存の create_manual_image のロジックを流用するが、ここでは簡易的に結合処理を行う
+    # 1. 基本の5枚をまず生成
     create_manual_image(data, output_path)
     base_img = Image.open(output_path)
     
-    if not extra_images:
-        return
+    # 2. セクション追加用のリスト
+    added_sections = []
 
-    # 追加画像セクションの作成
-    extra_sections = []
+    # 追加画像の処理
     for ex_img_file, ex_title in extra_images:
         try:
             pil_img = Image.open(ex_img_file)
@@ -620,24 +620,38 @@ def create_manual_image_extended(data, extra_images, output_path):
             sec_h = 90 + new_h + 50
             sec_img = Image.new('RGB', (W, sec_h), 'white')
             draw = ImageDraw.Draw(sec_img)
-            draw.text((margin, 20), f"【追加情報】{ex_title}", fill="black", font=font_sub)
+            draw.text((margin, 20), ex_title, fill="black", font=font_sub) # 【追加情報】を削除
             sec_img.paste(pil_img, (margin, 90))
             draw.rectangle([margin, 90, margin + content_w, 90 + new_h], outline="gray", width=3)
-            extra_sections.append(sec_img)
+            added_sections.append(sec_img)
         except: continue
 
-    if extra_sections:
-        total_h = base_img.height + sum(s.height for s in extra_sections)
-        final_img = Image.new('RGB', (W, total_h), 'white')
-        final_img.paste(base_img, (0, 0))
-        curr_y = base_img.height
-        for s in extra_sections:
-            final_img.paste(s, (0, curr_y))
-            curr_y += s.height
-        final_img.save(output_path)
+    # メモ・備考の処理
+    memo_val = data.get("memo", "なし")
+    # 文字列の改行処理
+    import textwrap
+    lines = textwrap.wrap(memo_val, width=40) # 1行約40文字で折り返し
+    line_h = 60
+    memo_box_h = 100 + (len(lines) * line_h) + 40
+    
+    memo_sec = Image.new('RGB', (W, memo_box_h), 'white')
+    m_draw = ImageDraw.Draw(memo_sec)
+    m_draw.text((margin, 20), "■ メモ・備考", fill="black", font=font_sub)
+    m_draw.rectangle([margin, 90, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=5)
+    
+    for i, line in enumerate(lines):
+        m_draw.text((margin + 30, 110 + (i * line_h)), line, fill="black", font=font_text)
+    added_sections.append(memo_sec)
+
+    # 3. 全てを合成
+    total_h = base_img.height + sum(s.height for s in added_sections) + 50
+    final_img = Image.new('RGB', (W, total_h), 'white')
+    final_img.paste(base_img, (0, 0))
+    curr_y = base_img.height
+    for s in added_sections:
+        final_img.paste(s, (0, curr_y))
+        curr_y += s.height
+    final_img.save(output_path)
 
 if __name__ == "__main__":
     main()
-
-
-
