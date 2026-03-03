@@ -116,14 +116,25 @@ def create_manual_image_extended(data, extra_images, output_path):
             added.append(si)
         except: continue
 
+    # 【修正】メモ欄の動的高さ計算
     lines = textwrap.wrap(data.get("memo", "なし"), width=32)
-    lh = 80; mh = 180 + (len(lines) * lh)
-    ms = Image.new('RGB', (W, mh), 'white')
+    line_height = 80
+    header_space = 110  # タイトル部分
+    footer_space = 60   # 下部余白
+    box_padding = 40
+    
+    # 必要高さを算出
+    content_height = (len(lines) * line_height) + header_space + footer_space + box_padding
+    
+    ms = Image.new('RGB', (W, content_height), 'white')
     md = ImageDraw.Draw(ms)
     md.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
-    md.rectangle([margin, 110, W - margin, mh - 30], outline=(242, 155, 33), width=6)
+    
+    # オレンジ枠を内容に合わせて描画
+    md.rectangle([margin, 110, W - margin, content_height - 30], outline=(242, 155, 33), width=6)
+    
     for i, line in enumerate(lines):
-        md.text((margin + 40, 130 + (i * lh)), line, fill="black", font=font_text)
+        md.text((margin + 40, 140 + (i * line_height)), line, fill="black", font=font_text)
     added.append(ms)
 
     final = Image.new('RGB', (W, base.height + sum(s.height for s in added) + 50), 'white')
@@ -347,7 +358,6 @@ def main():
                             payload_data = {"message":"Update","content":b64_data,"branch":"main"}
                             if sha_val: payload_data["sha"] = sha_val
                             
-                            # ここで変数名を統一 (rq -> rq_final)
                             rq_final = urllib.request.Request(url_api, data=json.dumps(payload_data).encode(), method="PUT")
                             rq_final.add_header("Authorization", f"token {tok}")
                             with urllib.request.urlopen(rq_final) as r_final:
