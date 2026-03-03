@@ -485,7 +485,11 @@ def main():
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
-        
+
+        # リセット用のユニークキーを生成（これが変わると全入力欄が強制初期化される）
+        if "form_reset_key" not in st.session_state:
+            st.session_state["form_reset_key"] = 0
+
         # --- 【最終奥義】フラグを検知して一番上の目印へ強制ジャンプさせる魔法 ---
         if st.session_state.get("scroll_to_top"):
             import streamlit.components.v1 as components
@@ -507,24 +511,28 @@ def main():
             
         col1, col2 = st.columns(2)
         
+        # 各ウィジェットにリセットキーを組み合わせた独自のKeyを付与
+        rk = st.session_state["form_reset_key"]
+
         with col1:
             st.header("1. 基本情報入力")
-            did = st.text_input("管理番号 (例: 2699)", key="input_did")
-            name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
-            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください", key="input_power")
+            did = st.text_input("管理番号 (例: 2699)", key=f"input_did_{rk}")
+            name = st.text_input("機器名称 (例: 5t金型反転機)", key=f"input_name_{rk}")
+            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください", key=f"input_power_{rk}")
             
         with col2:
             st.header("2. 画像の指定")
-            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key="img_exterior")
-            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key="img_outlet")
-            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key="img_label")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
-            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key="img_loto1")
-            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key="img_loto2")
+            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key=f"img_ext_{rk}")
+            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key=f"img_out_{rk}")
+            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key=f"img_lab_{rk}")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key=f"is_loto_{rk}")
+            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l1_{rk}")
+            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l2_{rk}")
             
         st.markdown("---")
         st.header("3. 機器情報ページ プレビュー確認")
         
+        # プレビューボタン
         if st.button("🔍 機器情報ページを生成してプレビュー", type="secondary"):
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
@@ -552,7 +560,7 @@ def main():
         st.header("4. データ登録 ＆ 印刷用ラベル発行")
         
         if save_mode == "1. 手動ダウンロードのみ":
-            long_url = st.text_input("保管先等のURLを貼り付け")
+            long_url = st.text_input("保管先等のURLを貼り付け", key=f"manual_url_{rk}")
             if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
                 if long_url and did and name and power:
                     try:
@@ -627,15 +635,19 @@ def main():
 
         st.markdown("---")
         st.header("5. 次の作業")
-        def reset_form_callback():
-            st.session_state.input_did = ""
-            st.session_state.input_name = ""
-            st.session_state.input_power = None
-            if "db_select" in st.session_state: del st.session_state["db_select"]
-            for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
-                if k in st.session_state: del st.session_state[k]
+        
+        # 強力なリセット用コールバック
+        def reset_everything_callback():
+            # フォームのKeyを更新することで、関連する全てのウィジェットを強制リセット
+            st.session_state["form_reset_key"] += 1
+            # スクロールフラグを立てる
             st.session_state["scroll_to_top"] = True
-        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
+            # 古いセッションステートの値を掃除
+            keys_to_clear = [k for k in st.session_state.keys() if "input_" in k or "img_" in k]
+            for k in keys_to_clear:
+                del st.session_state[k]
+
+        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_everything_callback)
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("🖨️ 印刷用Excel台帳")
@@ -679,3 +691,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
