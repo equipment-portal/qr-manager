@@ -389,7 +389,6 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
         
-        # --- 記憶領域（セッションステート）の初期化 ---
         if "form_reset_key" not in st.session_state:
             st.session_state["form_reset_key"] = 0
         if "extra_images_count" not in st.session_state:
@@ -447,10 +446,8 @@ def main():
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
         st.title("📱 機器情報ページ＆QR管理システム")
 
-        # 自動スクロール発動
         if st.session_state.get("scroll_to_top"):
             import streamlit.components.v1 as components
-            import time
             js = f"""<script>var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1');
             if (target) {{ target.scrollIntoView(true); }} else {{ window.parent.scrollTo(0, 0); }}</script>"""
             components.html(js, height=0)
@@ -473,15 +470,13 @@ def main():
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l1_{rk}")
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_l2_{rk}")
             
-            # --- 追加画像セクション ---
             st.markdown("---")
-            st.subheader("➕ 追加画像の登録（点検表・マニュアル等）")
-            
+            st.subheader("➕ 追加画像の登録")
             extra_images = []
             for i in range(st.session_state["extra_images_count"]):
                 st.markdown(f"**追加項目 {i+1}**")
-                ex_title = st.text_input(f"タイトルの入力", key=f"ex_title_{rk}_{i}")
-                ex_img = st.file_uploader(f"画像の選択", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
+                ex_title = st.text_input(f"タイトル", key=f"ex_title_{rk}_{i}")
+                ex_img = st.file_uploader(f"画像", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
                 if ex_img:
                     extra_images.append((ex_img, ex_title if ex_title else f"追加画像 {i+1}"))
             
@@ -489,10 +484,9 @@ def main():
                 st.session_state["extra_images_count"] += 1
                 st.rerun()
 
-            # --- 【新規】メモ・備考セクション ---
             st.markdown("---")
             st.subheader("📝 その他情報の入力")
-            memo_text = st.text_area("メモ・備考", placeholder="例：チラー設定温度 25℃厳守 / 特殊プラグのため予備在庫あり", key=f"memo_{rk}")
+            memo_text = st.text_area("メモ・備考", placeholder="補足情報を入力...", key=f"memo_{rk}")
 
         st.markdown("---")
         st.header("3. プレビュー確認")
@@ -507,9 +501,7 @@ def main():
                     }
                     safe_id = safe_filename(did)
                     manual_path = MANUAL_DIR / f"{safe_id}.png"
-                    
                     create_manual_image_extended(data, extra_images, manual_path)
-                    
                     if manual_path.exists():
                         st.success("✨ プレビュー完成！")
                         import streamlit.components.v1 as components
@@ -532,13 +524,11 @@ def main():
                             "memo": memo_text if memo_text.strip() else "なし"
                         }
                         create_manual_image_extended(data, extra_images, manual_path)
-                        
                         with open(manual_path, "rb") as f:
                             encoded_content = base64.b64encode(f.read()).decode("utf-8")
                         file_name_for_github = f"{safe_id}_{safe_filename(name)}.png" if include_equip_name else f"{safe_id}.png"
                         encoded_file_name = urllib.parse.quote(file_name_for_github)
                         api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
-                        
                         sha = None
                         try:
                             req_check = urllib.request.Request(api_url)
@@ -546,16 +536,13 @@ def main():
                             with urllib.request.urlopen(req_check) as response:
                                 sha = json.loads(response.read().decode("utf-8"))["sha"]
                         except: pass
-                            
                         payload = {"message": f"Upload {file_name_for_github}", "content": encoded_content, "branch": "main"}
                         if sha: payload["sha"] = sha
                         req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
                         req.add_header("Authorization", f"token {github_token}")
                         with urllib.request.urlopen(req) as response:
                             github_img_url = json.loads(response.read().decode("utf-8"))["content"]["html_url"]
-                        
                         img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                        
                         img_qr = qrcode.make(img_cdn_url)
                         if DB_CSV.exists():
                             df = pd.read_csv(DB_CSV)
@@ -564,10 +551,8 @@ def main():
                             df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
                         new_row = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                         pd.concat([df, pd.DataFrame([new_row])], ignore_index=True).to_csv(DB_CSV, index=False)
-                        
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                         add_label_to_history(name, label_img)
-                        
                         st.success(f"✅ 登録完了！ URL: {img_cdn_url}")
                         st.image(label_img, caption="発行されたラベル", width=300)
                     except Exception as e:
@@ -581,9 +566,44 @@ def main():
             st.session_state["scroll_to_top"] = True
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_callback)
 
-        # サイドバー：Excel台帳
+        # --- サイドバー：Excel台帳（修正版：配置マップ復旧） ---
         st.sidebar.markdown("---")
         st.sidebar.subheader("🖨️ 印刷用Excel台帳")
+        history = []
+        if LABEL_HISTORY_FILE.exists():
+            try:
+                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
+            except: pass
+        current_count = len(history)
+        if current_count == 0:
+            st.sidebar.info("🈳 現在、台帳は白紙です。")
+        else:
+            st.sidebar.success(f"✅ 現在 **{current_count}枚** 配置中！")
+            
+            # --- 配置マップ表示ロジック ---
+            rows_per_page = 5 
+            actual_cols = ((current_count - 1) // rows_per_page) + 1
+            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:16px; line-height:1.2; text-align:center;'>"
+            for r in range(rows_per_page):
+                row_str = ""
+                for c in range(actual_cols):
+                    idx = c * rows_per_page + r
+                    if idx < current_count:
+                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
+                        row_str += f"<span style='display:inline-block; width:28px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
+                    else:
+                        row_str += "<span style='display:inline-block; width:28px; color:#ccc;'>⬜</span>"
+                grid_html += f"{row_str}<br>"
+            grid_html += "</div>"
+            st.sidebar.markdown(grid_html, unsafe_allow_html=True)
+            
+            for i, item in enumerate(history):
+                col1, col2 = st.sidebar.columns([4, 1])
+                col1.write(f"**{i+1}** {item['name']}")
+                if col2.button("❌", key=f"del_label_{i}"):
+                    delete_label_from_history(i)
+                    st.rerun()
+                    
         if EXCEL_LABEL_PATH.exists():
             with open(EXCEL_LABEL_PATH, "rb") as f:
                 st.sidebar.download_button("📥 Excel台帳をダウンロード", data=f, file_name="print_labels.xlsx")
@@ -591,59 +611,50 @@ def main():
                 clear_history()
                 st.rerun()
 
-# --- メモと追加画像に対応した拡張画像生成関数 ---
+# --- 【修正版】メモ拡大と追加画像に対応した拡張画像生成関数 ---
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600  
     margin = 80
     content_w = W - margin * 2
     try:
-        font_sub = ImageFont.truetype(cloud_font_path, 55)
-        font_text = ImageFont.truetype(cloud_font_path, 45)
+        font_sub = ImageFont.truetype(cloud_font_path, 65) # セクションタイトル拡大
+        font_text = ImageFont.truetype(cloud_font_path, 55) # メモ本文拡大
     except:
         font_sub = font_text = ImageFont.load_default()
 
-    # 1. 基本の5枚をまず生成
     create_manual_image(data, output_path)
     base_img = Image.open(output_path)
-    
-    # 2. セクション追加用のリスト
     added_sections = []
 
-    # 追加画像の処理
     for ex_img_file, ex_title in extra_images:
         try:
             pil_img = Image.open(ex_img_file)
             pil_img = ImageOps.exif_transpose(pil_img).convert('RGB')
             new_h = int(content_w * (pil_img.height / pil_img.width))
             pil_img = pil_img.resize((content_w, new_h), Image.Resampling.LANCZOS)
-            
-            sec_h = 90 + new_h + 50
+            sec_h = 100 + new_h + 60
             sec_img = Image.new('RGB', (W, sec_h), 'white')
             draw = ImageDraw.Draw(sec_img)
-            draw.text((margin, 20), ex_title, fill="black", font=font_sub) # 【追加情報】を削除
-            sec_img.paste(pil_img, (margin, 90))
-            draw.rectangle([margin, 90, margin + content_w, 90 + new_h], outline="gray", width=3)
+            draw.text((margin, 25), ex_title, fill="black", font=font_sub)
+            sec_img.paste(pil_img, (margin, 100))
+            draw.rectangle([margin, 100, margin + content_w, 100 + new_h], outline="gray", width=3)
             added_sections.append(sec_img)
         except: continue
 
-    # メモ・備考の処理
     memo_val = data.get("memo", "なし")
-    # 文字列の改行処理
     import textwrap
-    lines = textwrap.wrap(memo_val, width=40) # 1行約40文字で折り返し
-    line_h = 60
-    memo_box_h = 100 + (len(lines) * line_h) + 40
+    lines = textwrap.wrap(memo_val, width=32) # 文字を大きくしたので折り返し幅を短く
+    line_h = 80 # 行間を広く
+    memo_box_h = 120 + (len(lines) * line_h) + 60
     
     memo_sec = Image.new('RGB', (W, memo_box_h), 'white')
     m_draw = ImageDraw.Draw(memo_sec)
-    m_draw.text((margin, 20), "■ メモ・備考", fill="black", font=font_sub)
-    m_draw.rectangle([margin, 90, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=5)
-    
+    m_draw.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
+    m_draw.rectangle([margin, 110, W - margin, memo_box_h - 30], outline=(242, 155, 33), width=6)
     for i, line in enumerate(lines):
-        m_draw.text((margin + 30, 110 + (i * line_h)), line, fill="black", font=font_text)
+        m_draw.text((margin + 40, 130 + (i * line_h)), line, fill="black", font=font_text)
     added_sections.append(memo_sec)
 
-    # 3. 全てを合成
     total_h = base_img.height + sum(s.height for s in added_sections) + 50
     final_img = Image.new('RGB', (W, total_h), 'white')
     final_img.paste(base_img, (0, 0))
@@ -655,3 +666,4 @@ def create_manual_image_extended(data, extra_images, output_path):
 
 if __name__ == "__main__":
     main()
+
