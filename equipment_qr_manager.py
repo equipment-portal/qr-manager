@@ -47,16 +47,28 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【爆速化】ダイレクトQRコード生成関数 ---
+# --- 【復旧・強化】URL短縮 ＆ 爆速QR生成 ---
 # ==========================================
-def make_direct_qr(url):
+def make_short_url(long_url):
+    """長いURLを短縮サービス(is.gd)で極限まで短くし、QRのドットを太くする"""
+    try:
+        api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
+        req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as res:
+            return res.read().decode('utf-8')
+    except:
+        return long_url # 失敗時は元のURLを返す
+
+def make_optimized_qr(url):
+    """短いURLから、ドットが太く読み取りやすいQRを生成"""
+    short_url = make_short_url(url)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=1, 
+        border=1, # 余白を極限まで削る
     )
-    qr.add_data(url)
+    qr.add_data(short_url)
     qr.make(fit=True)
     return qr.make_image(fill_color="black", back_color="white")
 
@@ -180,21 +192,19 @@ def create_manual_image_extended(data, extra_images, output_path):
             added.append(si)
         except: continue
 
-    # 【改修】ピクセル計算による鉄壁のメモ改行ロジック
+    # 【改修済】ピクセル計算による鉄壁のメモ改行ロジック
     memo_val = data.get("memo", "なし")
     
-    # 計算用のダミーキャンバス
     dummy_img = Image.new('RGB', (1, 1))
     dummy_draw = ImageDraw.Draw(dummy_img)
 
-    max_text_w = content_w - 60 # 枠内の余裕を持たせた最大幅
+    max_text_w = content_w - 60 
     lines = []
     
     for paragraph in memo_val.split('\n'):
         line = ""
         for char in paragraph:
             test_line = line + char
-            # Pillowのtextbboxで1文字追加ごとの実際の横幅を測定
             w = dummy_draw.textbbox((0, 0), test_line, font=font_text)[2]
             if w <= max_text_w:
                 line = test_line
@@ -316,7 +326,6 @@ def create_label_image(data):
 def rebuild_excel():
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "印刷用ラベルシート"
     
-    # 【修正】A4縦（PORTRAIT）に変更し、余白を最小化
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_margins.left = 0.2
@@ -331,7 +340,6 @@ def rebuild_excel():
                 history = json.load(f)
         except: pass
             
-    # 【修正】縦に13個並べて（A4縦の限界）、隙間なく次の列（右）へ移動
     rows_per_col = 13
     target_w_px = 132  
     target_h_px = 76   
@@ -340,15 +348,13 @@ def rebuild_excel():
         img_path = TEMP_LABEL_DIR / item["img_filename"]
         if not img_path.exists(): continue
             
-        # 縦（下）優先の計算式
-        c_idx = count // rows_per_col # 列（13個で次の列へ）
-        r_idx = count % rows_per_col  # 行（下に向かって進む）
+        c_idx = count // rows_per_col 
+        r_idx = count % rows_per_col  
 
         cell_col = c_idx + 1
         cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
 
-        # 隙間を開けず（間隔ゼロ）、ピッタリくっつけるための実寸サイズ設定
         ws.column_dimensions[col_letter].width = 19.5
         ws.row_dimensions[cell_row].height = 60.0
 
@@ -412,8 +418,8 @@ def clear_history():
 # --- メインアプリ ---
 # ==========================================
 def main():
-    query_params = st.query_params
-    is_redirect_mode = "id" in query_params
+    qp = st.query_params
+    is_redirect_mode = "id" in qp
     
     if is_redirect_mode:
         st.set_page_config(page_title="機器情報ページ", layout="centered")
@@ -427,7 +433,7 @@ def main():
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-        target_id = query_params["id"]
+        target_id = qp["id"]
         
         if DB_CSV.exists():
             try:
@@ -436,7 +442,6 @@ def main():
                 
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
-                    
                     img_cdn_url = target_url
                     if "github.com" in target_url and "/blob/" in target_url:
                         img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
@@ -469,11 +474,34 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="機器情報ページ＆QR管理システム", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
         
-        if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
-        # 【追加】画像枠を強制リセットするための管理キー
+        # --- 【UI改善】サイドバーの要素間隔とボタン位置を調整するCSS ---
+        st.markdown("""
+        <style>
+        .stButton button { width: 100%; border-radius: 5px; }
+        .stTextArea textarea { font-size: 16px; }
+        [data-testid="stSidebar"] { min-width: 320px; }
+        
+        /* サイドバー内の要素の行間をギュッと詰める */
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.3rem !important; 
+        }
+        
+        /* ❌ボタンを枠の中心に配置し、余白を削る */
+        [data-testid="stSidebar"] button {
+            padding: 0 !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
         if "form_reset_key" not in st.session_state: st.session_state["form_reset_key"] = 0
+        if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
         rk = st.session_state["form_reset_key"]
         
         def load_data_callback():
@@ -492,13 +520,7 @@ def main():
                     st.session_state.input_name = str(row["Name"])
                     st.session_state.input_power = str(row["Power"]) if pd.notna(row["Power"]) else None
 
-        hide_streamlit_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        </style>
-        """
+        hide_streamlit_style = """<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>"""
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
         
         st.sidebar.header("🗄️ 登録済み機器データベース")
@@ -517,14 +539,12 @@ def main():
                         st.session_state.input_did = ""
                         st.session_state.input_name = ""
                         st.session_state.input_power = None
-                        if "db_select" in st.session_state:
-                            del st.session_state["db_select"]
+                        if "db_select" in st.session_state: del st.session_state["db_select"]
                         st.rerun()
         
         st.sidebar.markdown("---")
         st.sidebar.header("⚙️ システム詳細設定")
         
-        st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
             "機器情報ページとQRコードの保存方式を選択:",
             ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"],
@@ -543,7 +563,6 @@ def main():
             local_path = st.sidebar.text_input("共有フォルダのパス", value=r"C:\Equipment_Manuals")
 
         st.sidebar.markdown("---")
-        st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
@@ -553,12 +572,8 @@ def main():
         import streamlit.components.v1 as components
         js_code = ""
         if st.session_state.get("scroll_to_top"):
-            js_code = """
-                var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1');
-                if (target) { target.scrollIntoView(true); } else { window.parent.scrollTo(0, 0); }
-            """
+            js_code = "var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1'); if (target) { target.scrollIntoView(true); } else { window.parent.scrollTo(0, 0); }"
             st.session_state["scroll_to_top"] = False
-            
         components.html(f"<script>{js_code}</script>", height=0)
             
         col1, col2 = st.columns(2)
@@ -575,11 +590,10 @@ def main():
 
         with col2:
             st.header("2. 画像の指定")
-            # 【変更】それぞれの画像のkeyに `rk`（リセットキー）を付与し、ボタンでリセット可能にする
             img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key=f"img_exterior_{rk}")
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key=f"img_outlet_{rk}")
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key=f"img_label_{rk}")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key=f"is_related_loto_{rk}")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto1_{rk}")
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto2_{rk}")
             
@@ -608,11 +622,9 @@ def main():
                         
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！")
-                            with open(manual_path, "rb") as f:
-                                img_base64 = base64.b64encode(f.read()).decode("utf-8")
+                            with open(manual_path, "rb") as f: img_base64 = base64.b64encode(f.read()).decode("utf-8")
                             img_html = f'<div style="max-height: 500px; overflow-y: scroll; border: 2px solid #ddd; padding: 10px; border-radius: 5px;"><img src="data:image/jpeg;base64,{img_base64}" style="width: 100%; height: auto;"></div>'
                             components.html(img_html, height=520)
-                            
                             dl_file_name = f"{safe_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{safe_id}.jpg"
                             with open(manual_path, "rb") as img_file:
                                 st.download_button(label="📥 (手動用) プレビュー画像をダウンロード", data=img_file, file_name=dl_file_name, mime="image/jpeg")
@@ -631,8 +643,10 @@ def main():
                     try:
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
-                        img_qr = make_direct_qr(long_url)
+                        # 【強化】URL短縮サービスを経由して太いQRを作る
+                        img_qr = make_optimized_qr(long_url)
                         img_qr.save(qr_path)
+                        
                         if DB_CSV.exists():
                             df = pd.read_csv(DB_CSV)
                             df = df[df["ID"].astype(str) != str(did)]
@@ -686,7 +700,8 @@ def main():
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             
-                            img_qr = make_direct_qr(img_cdn_url)
+                            # 【強化】URL短縮サービスを経由して太いQRを作る
+                            img_qr = make_optimized_qr(img_cdn_url)
                             img_qr.save(qr_path)
                             
                             if DB_CSV.exists():
@@ -710,17 +725,13 @@ def main():
         st.markdown("---")
         st.header("5. 次の作業")
         def reset_form_callback():
-            # 1. テキスト入力のクリア
             st.session_state.input_did = ""
             st.session_state.input_name = ""
             st.session_state.input_power = None
             st.session_state.input_memo = ""
             st.session_state["extra_images_count"] = 0
             if "db_select" in st.session_state: del st.session_state["db_select"]
-            
-            # 2. 【変更】画像アップロード枠の強制クリア（キーの更新）
             st.session_state["form_reset_key"] += 1
-            
             st.session_state["scroll_to_top"] = True
             
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
@@ -747,15 +758,17 @@ def main():
                     idx_val = c * rows_per_col + r
                     if idx_val < current_count:
                         num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
-                        row_str_line += f"<span style='display:inline-block;width:26px;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
+                        # 【修正①】text-align: center; を入れて丸と四角の中心をピタッと合わせる
+                        row_str_line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
                     else:
-                        row_str_line += "<span style='display:inline-block;width:26px;color:#ccc;'>⬜</span>"
+                        row_str_line += "<span style='display:inline-block;width:26px;text-align:center;color:#ccc;'>⬜</span>"
                 grid_html_view += row_str_line + "<br>"
             st.sidebar.markdown(grid_html_view + "</div>", unsafe_allow_html=True)
             
             for i_idx, itm_obj in enumerate(h_list):
                 cb1, cb2 = st.sidebar.columns([5, 1])
-                cb1.write(f"**{i_idx+1}** {itm_obj['name']}")
+                # 【修正②】文字の高さを固定して、横のボタンと高さを完璧に合わせる
+                cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>**{i_idx+1}** {itm_obj['name']}</div>", unsafe_allow_html=True)
                 if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
         
         if EXCEL_LABEL_PATH.exists():
@@ -764,4 +777,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
