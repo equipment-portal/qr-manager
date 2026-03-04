@@ -9,7 +9,6 @@ from datetime import datetime
 import io
 import base64
 import json
-import textwrap
 
 # --- Excel操作用ライブラリ ---
 import openpyxl
@@ -181,13 +180,38 @@ def create_manual_image_extended(data, extra_images, output_path):
             added.append(si)
         except: continue
 
+    # 【改修】ピクセル計算による鉄壁のメモ改行ロジック
     memo_val = data.get("memo", "なし")
-    lines = textwrap.wrap(memo_val, width=32)
+    
+    # 計算用のダミーキャンバス
+    dummy_img = Image.new('RGB', (1, 1))
+    dummy_draw = ImageDraw.Draw(dummy_img)
+
+    max_text_w = content_w - 60 # 枠内の余裕を持たせた最大幅
+    lines = []
+    
+    for paragraph in memo_val.split('\n'):
+        line = ""
+        for char in paragraph:
+            test_line = line + char
+            # Pillowのtextbboxで1文字追加ごとの実際の横幅を測定
+            w = dummy_draw.textbbox((0, 0), test_line, font=font_text)[2]
+            if w <= max_text_w:
+                line = test_line
+            else:
+                lines.append(line)
+                line = char
+        if line:
+            lines.append(line)
+    if not lines:
+        lines = ["なし"]
+
     line_spacing = 25
     if hasattr(font_text, 'getbbox'):
-        _, _, _, char_h = font_text.getbbox("あ")
+        char_h = font_text.getbbox("あ")[3] - font_text.getbbox("あ")[1]
     else:
-        _, char_h = font_text.getsize("あ")
+        char_h = font_text.getsize("あ")[1]
+        
     line_step = char_h + line_spacing
     memo_box_h = 110 + (len(lines) * line_step) + 60
     
@@ -195,6 +219,7 @@ def create_manual_image_extended(data, extra_images, output_path):
     md = ImageDraw.Draw(ms)
     md.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
     md.rectangle([margin, 110, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=6)
+    
     for i, line in enumerate(lines):
         md.text((margin + 40, 140 + (i * line_step)), line, fill="black", font=font_text)
     added.append(ms)
@@ -210,7 +235,7 @@ def create_manual_image_extended(data, extra_images, output_path):
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（3.5cm x 2cm固定・カスタム版） ---
+# --- 印刷用ラベル生成関数（QR右下・■マーク版） ---
 # ==========================================
 def create_label_image(data):
     scale = 4  
@@ -219,12 +244,12 @@ def create_label_image(data):
     
     font_path = cloud_font_path
     try:
-        font_title = ImageFont.truetype(font_path, 16 * scale) 
-        font_md = ImageFont.truetype(font_path, 28 * scale)    
+        font_title = ImageFont.truetype(font_path, 19 * scale) 
+        font_main = ImageFont.truetype(font_path, 30 * scale)  
         font_sm = ImageFont.truetype(font_path, 12 * scale)    
-        font_footer = ImageFont.truetype(font_path, 12 * scale) 
-    except Exception as e:
-        font_title = font_md = font_sm = font_footer = ImageFont.load_default()
+        font_footer = ImageFont.truetype(font_path, 13 * scale) 
+    except:
+        font_title = font_main = font_sm = font_footer = ImageFont.load_default()
         
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
@@ -232,63 +257,72 @@ def create_label_image(data):
     label_img = Image.new('RGB', (target_w_px, target_h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
+    # 黄色い外枠
     border_color = (255, 255, 0)
     border_width = 12 * scale
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
     
-    title_y = 18 * scale
-    draw.text((20 * scale, title_y), "🔍", fill="black", font=font_title)
-    draw.text((45 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
+    # 1段目：タイトル（■記号）
+    title_y = 16 * scale
+    draw.text((18 * scale, title_y), "■", fill="black", font=font_title)
+    draw.text((42 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
+    # --- 【QRコード】右下配置 ---
+    qr_size = 72 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
-            if hasattr(qr_pil_img, 'convert'):
-                qr_pil_img = qr_pil_img.convert('RGB')
-            qr_size = 130 * scale
+            if hasattr(qr_pil_img, 'convert'): qr_pil_img = qr_pil_img.convert('RGB')
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            label_img.paste(qr_pil_img, (15 * scale, 50 * scale))
-        except Exception as e:
-            pass
+            label_img.paste(qr_pil_img, (target_w_px - qr_size - 22 * scale, target_h_px - qr_size - 30 * scale))
+        except: pass
     
-    x_text = 155 * scale
-    max_text_w = target_w_px - x_text - (20 * scale) 
+    # --- 【メイン情報エリア】 ---
+    x_margin = 18 * scale
+    max_text_w = target_w_px - (40 * scale) 
     
-    draw.text((x_text, 55 * scale), "機器名称:", fill="black", font=font_sm)
+    current_size = 30 * scale
+    temp_font = font_main
+    longest_text = device_name if len(device_name) > len(f"AC {device_power}") else f"AC {device_power}"
+    bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
+    while (bbox[2] - bbox[0]) > max_text_w and current_size > 12 * scale:
+        current_size -= 1 * scale
+        temp_font = ImageFont.truetype(font_path, current_size)
+        bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
+
+    draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
+    draw.text((x_margin, 66 * scale), device_name, fill="black", font=temp_font)
+    draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((x_margin, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
     
-    current_font_size = 28 * scale
-    temp_font = font_md
-    bbox = draw.textbbox((0, 0), device_name, font=temp_font)
-    while (bbox[2] - bbox[0]) > max_text_w and current_font_size > 10 * scale:
-        current_font_size -= 1 * scale
-        temp_font = ImageFont.truetype(font_path, current_font_size)
-        bbox = draw.textbbox((0, 0), device_name, font=temp_font)
+    # 4段目：フッター
+    footer_text = "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）"
+    y_footer = 172 * scale
+    f_bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
+    f_font = font_footer
+    f_size = 13 * scale
+    while (f_bbox[2] - f_bbox[0]) > (target_w_px - 36 * scale):
+        f_size -= 1 * scale
+        f_font = ImageFont.truetype(font_path, f_size)
+        f_bbox = draw.textbbox((0, 0), footer_text, font=f_font)
+
+    draw.text((x_margin, y_footer), footer_text, fill="black", font=f_font)
     
-    draw.text((x_text, 72 * scale), device_name, fill="black", font=temp_font)
-    draw.text((x_text, 112 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((x_text, 128 * scale), f"AC {device_power}", fill="black", font=font_md)
-    
-    y_line = 168 * scale
-    draw.line((x_text, y_line, target_w_px - 15 * scale, y_line), fill="gray", width=1 * scale)
-    draw.text((x_text, y_line + 8 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_footer)
-    
-    final_img = label_img.resize((350, 200), Image.Resampling.LANCZOS)
-    return final_img
+    return label_img.resize((350, 200), Image.Resampling.LANCZOS)
 
 # ==========================================
-# --- 高度なExcel履歴管理・再構築システム ---
+# --- 高度なExcel履歴管理（A4縦・間隔ゼロ・下優先配置） ---
 # ==========================================
 def rebuild_excel():
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "印刷用ラベルシート"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "印刷用ラベルシート"
     
-    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    # 【修正】A4縦（PORTRAIT）に変更し、余白を最小化
+    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_margins.left = 0.5
-    ws.page_margins.right = 0.5
-    ws.page_margins.top = 0.5
-    ws.page_margins.bottom = 0.5
+    ws.page_margins.left = 0.2
+    ws.page_margins.right = 0.2
+    ws.page_margins.top = 0.2
+    ws.page_margins.bottom = 0.2
     
     history = []
     if LABEL_HISTORY_FILE.exists():
@@ -297,43 +331,32 @@ def rebuild_excel():
                 history = json.load(f)
         except: pass
             
-    col_widths = {}
-    rows_per_col = 5
-    col_multiplier = 2
-    row_multiplier = 2
-
+    # 【修正】縦に13個並べて（A4縦の限界）、隙間なく次の列（右）へ移動
+    rows_per_col = 13
     target_w_px = 132  
     target_h_px = 76   
-    target_col_width = 19.5
-    target_row_height = 60.0
 
     for count, item in enumerate(history):
         img_path = TEMP_LABEL_DIR / item["img_filename"]
         if not img_path.exists(): continue
             
-        col_group = count // rows_per_col
-        row_in_group = count % rows_per_col
+        # 縦（下）優先の計算式
+        c_idx = count // rows_per_col # 列（13個で次の列へ）
+        r_idx = count % rows_per_col  # 行（下に向かって進む）
 
-        cell_col = 1 + (col_group * col_multiplier)
-        cell_row = 1 + (row_in_group * row_multiplier)
+        cell_col = c_idx + 1
+        cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
-        cell_ref = f"{col_letter}{cell_row}"
 
-        col_widths[col_letter] = target_col_width
-        ws.row_dimensions[cell_row].height = target_row_height
-        
-        ws.row_dimensions[cell_row + 1].height = target_row_height * 0.8 
-        empty_col_letter = get_column_letter(cell_col + 1)
-        col_widths[empty_col_letter] = target_col_width * 0.5 
+        # 隙間を開けず（間隔ゼロ）、ピッタリくっつけるための実寸サイズ設定
+        ws.column_dimensions[col_letter].width = 19.5
+        ws.row_dimensions[cell_row].height = 60.0
 
         xl_img = XLImage(str(img_path))
         xl_img.width = target_w_px
         xl_img.height = target_h_px
-        xl_img.anchor = cell_ref
+        xl_img.anchor = f"{col_letter}{cell_row}"
         ws.add_image(xl_img)
-
-    for col, width in col_widths.items():
-        ws.column_dimensions[col].width = width
 
     wb.save(EXCEL_LABEL_PATH)
 
@@ -446,7 +469,7 @@ def main():
             st.error("エラー: データベースが見つかりません。")
             
     else:
-        st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="機器情報ページ＆QR管理システム", layout="wide", initial_sidebar_state="expanded")
         
         if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
         
@@ -501,12 +524,12 @@ def main():
         st.sidebar.subheader("💾 自動保存モード設定")
         save_mode = st.sidebar.radio(
             "機器情報ページとQRコードの保存方式を選択:",
-            ["1. 手動ダウンロードのみ", "2. システム専用データベースへ自動保存", "3. 社内共有フォルダへ自動保存"],
+            ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"],
             index=1,
             key="save_mode_radio"
         )
         
-        if save_mode == "2. システム専用データベースへ自動保存":
+        if save_mode == "2. 全自動（データベース保存）":
             st.sidebar.info("💡 データベースの接続キーを設定すると全自動化されます。")
             github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
             default_token = st.secrets.get("github_token", "")
@@ -520,9 +543,8 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        # --- 【修正】カーソル弾きの原因となっていたスクロール魔法を安定化 ---
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-        st.title("📱 機器情報ページ＆QR管理システム")
+        st.title("📱 機器情報ページ ＆ QRラベル管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
         import streamlit.components.v1 as components
@@ -534,7 +556,6 @@ def main():
             """
             st.session_state["scroll_to_top"] = False
             
-        # 透明な枠を常に置いておくことで、入力欄でのフォーカス外れを防ぎます
         components.html(f"<script>{js_code}</script>", height=0)
             
         col1, col2 = st.columns(2)
@@ -624,7 +645,7 @@ def main():
                     except Exception as e:
                         st.error(f"エラー: {str(e)}")
                     
-        elif save_mode == "2. システム専用データベースへ自動保存":
+        elif save_mode == "2. 全自動（データベース保存）":
             if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
                 if did and name and power:
                     with st.spinner("🔄 データベースへ登録中..."):
@@ -698,45 +719,42 @@ def main():
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
 
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🖨️ 印刷用Excel台帳")
-        history = []
+        st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
+        h_list = []
         if LABEL_HISTORY_FILE.exists():
             try:
-                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
+                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: h_list = json.load(f)
             except: pass
-        current_count = len(history)
+        current_count = len(h_list)
         if current_count == 0:
             st.sidebar.info("🈳 現在、台帳は白紙です。")
         else:
-            st.sidebar.success(f"✅ 現在 **{current_count}枚** 配置中！")
-            rows_per_col = 5 
-            actual_excel_cols = ((current_count - 1) // rows_per_col) + 1
-            grid_html = "<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; font-size:16px; line-height:1.2; text-align:center;'>"
+            st.sidebar.success(f"✅ 合計 {current_count} 枚のラベルを配置済み")
+            
+            # --- 【修正】サイドバーのMap表示を「A4縦・下優先」に合わせた表示 ---
+            rows_per_col = 13 
+            actual_cols = ((current_count - 1) // rows_per_col) + 1
+            grid_html_view = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:13px;line-height:1.2;text-align:left;'>"
             for r in range(rows_per_col):
-                row_str = ""
-                for c_set in range(actual_excel_cols):
-                    idx = c_set * rows_per_col + r
-                    if idx < current_count:
-                        num_char = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
-                        row_str += f"<span style='display:inline-block; width:25px; font-weight:bold; color:#d4af37;'>{num_char}</span>"
-                    else: row_str += "<span style='display:inline-block; width:25px; color:#ccc;'>⬜</span>"
-                    row_str += "<span style='display:inline-block; width:25px; color:#ddd;'>⬜</span>"
-                grid_html += f"{row_str}<br>"
-            grid_html += "</div>"
-            st.sidebar.markdown(grid_html, unsafe_allow_html=True)
-            for i, item in enumerate(history):
-                col1, col2 = st.sidebar.columns([4, 1])
-                col1.write(f"**{i+1}** {item['name']}")
-                if col2.button("❌", key=f"del_label_{i}"):
-                    delete_label_from_history(i)
-                    st.rerun()
-                    
+                row_str_line = ""
+                for c in range(actual_cols):
+                    idx_val = c * rows_per_col + r
+                    if idx_val < current_count:
+                        num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
+                        row_str_line += f"<span style='display:inline-block;width:26px;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
+                    else:
+                        row_str_line += "<span style='display:inline-block;width:26px;color:#ccc;'>⬜</span>"
+                grid_html_view += row_str_line + "<br>"
+            st.sidebar.markdown(grid_html_view + "</div>", unsafe_allow_html=True)
+            
+            for i_idx, itm_obj in enumerate(h_list):
+                cb1, cb2 = st.sidebar.columns([5, 1])
+                cb1.write(f"**{i_idx+1}** {itm_obj['name']}")
+                if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
+        
         if EXCEL_LABEL_PATH.exists():
-            with open(EXCEL_LABEL_PATH, "rb") as f:
-                st.sidebar.download_button(label="📥 最新のExcel台帳をダウンロード", data=f, file_name="print_labels.xlsx")
-            if st.sidebar.button("🗑️ 台帳をリセット"):
-                clear_history()
-                st.rerun()
+            with open(EXCEL_LABEL_PATH, "rb") as f_excel: st.sidebar.download_button("📥 最新のExcelをダウンロード", f_excel, "labels.xlsx")
+            if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
 
 if __name__ == "__main__":
     main()
