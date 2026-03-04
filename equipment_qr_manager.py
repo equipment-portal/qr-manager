@@ -44,6 +44,30 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keep).rstrip()
 
 # ==========================================
+# --- 【新規】超高感度QRコード生成関数 ---
+# ==========================================
+def make_optimized_qr(long_url):
+    # 1. 無料APIを使って長いURLを極限まで短縮
+    try:
+        api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
+        req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as res:
+            short_url = res.read().decode('utf-8')
+    except Exception as e:
+        short_url = long_url # 万が一失敗した時はそのまま
+
+    # 2. 余白を削り、ドットを巨大化させる設定
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L, # 誤り訂正を下げてシンプルに
+        box_size=10,
+        border=1, # デフォルトの「4」から「1」へ余白を最小化
+    )
+    qr.add_data(short_url)
+    qr.make(fit=True)
+    return qr.make_image(fill_color="black", back_color="white")
+
+# ==========================================
 # --- 画像生成ロジック ---
 # ==========================================
 def create_manual_image(data, output_path):
@@ -116,28 +140,26 @@ def create_manual_image_extended(data, extra_images, output_path):
             added.append(si)
         except: continue
 
-    # 【修正】メモ欄の動的高さ計算
-    lines = textwrap.wrap(data.get("memo", "なし"), width=32)
-    line_height = 80
-    header_space = 110  # タイトル部分
-    footer_space = 60   # 下部余白
-    box_padding = 40
+    memo_val = data.get("memo", "なし")
+    lines = textwrap.wrap(memo_val, width=32)
+    line_spacing = 25
+    if hasattr(font_text, 'getbbox'):
+        _, _, _, char_h = font_text.getbbox("あ")
+    else:
+        _, char_h = font_text.getsize("あ")
+    line_step = char_h + line_spacing
+    memo_box_h = 110 + (len(lines) * line_step) + 60
     
-    # 必要高さを算出
-    content_height = (len(lines) * line_height) + header_space + footer_space + box_padding
-    
-    ms = Image.new('RGB', (W, content_height), 'white')
+    ms = Image.new('RGB', (W, memo_box_h), 'white')
     md = ImageDraw.Draw(ms)
     md.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
-    
-    # オレンジ枠を内容に合わせて描画
-    md.rectangle([margin, 110, W - margin, content_height - 30], outline=(242, 155, 33), width=6)
-    
+    md.rectangle([margin, 110, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=6)
     for i, line in enumerate(lines):
-        md.text((margin + 40, 140 + (i * line_height)), line, fill="black", font=font_text)
+        md.text((margin + 40, 140 + (i * line_step)), line, fill="black", font=font_text)
     added.append(ms)
 
-    final = Image.new('RGB', (W, base.height + sum(s.height for s in added) + 50), 'white')
+    final_h = base.height + sum(s.height for s in added) + 100
+    final = Image.new('RGB', (W, final_h), 'white')
     final.paste(base, (0, 0))
     cy = base.height
     for s in added:
@@ -183,29 +205,20 @@ def create_label_image(data):
 
 def rebuild_excel():
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Labels"
-    
-    # ページ設定
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    # 余白を最小化（0.1インチ ≒ 約2.5mm）
-    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.1
+    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.2
     
     h = []
     if LABEL_HISTORY_FILE.exists():
         with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
     
-    # --- 実寸サイズ調整 (A4横) ---
-    # エクセルの高さ単位: 1ポイント = 1/72インチ (約0.35mm)
-    # エクセルの幅単位: 標準フォントの文字数ベース (1単位 = 約2.1mm)
-    
     rows_per_col = 5
-    label_w_px = 350
-    label_h_px = 200
-
-    # 縦2.0cm、横3.5cmに近づけるためのエクセル設定値
-    target_row_height = 58.0  # 約2.0cm相当
-    target_col_width = 12.5   # 約3.5cm相当
-
+    
+    # 【改修】物理サイズを直接指定（100%印刷で 縦2cm×横3.5cm になる設定値）
+    target_w_px = 132  # 3.5cm ≒ 約132ピクセル
+    target_h_px = 76   # 2.0cm ≒ 約76ピクセル
+    
     for i, item in enumerate(h):
         ip = TEMP_LABEL_DIR / item["img_filename"]
         if not ip.exists(): continue
@@ -217,18 +230,15 @@ def rebuild_excel():
         
         cl = get_column_letter(cell_col)
         
-        # 列の幅と行の高さを物理サイズに合わせて固定
-        ws.column_dimensions[cl].width = target_col_width
-        ws.row_dimensions[cell_row].height = target_row_height
+        # エクセルのセル枠も物理サイズに合わせて固定
+        ws.column_dimensions[cl].width = 19.5
+        ws.row_dimensions[cell_row].height = 60.0
         
         xi = XLImage(str(ip))
-        # 画像そのもののサイズもエクセル内で縦2cm/横3.5cm相当(ポイント指定)にリサイズ
-        xi.width = 99.2    # 35mm ≒ 99.2 points
-        xi.height = 56.7   # 20mm ≒ 56.7 points
-        
+        xi.width = target_w_px
+        xi.height = target_h_px
         xi.anchor = f"{cl}{cell_row}"
         ws.add_image(xi)
-        
     wb.save(EXCEL_LABEL_PATH)
 
 def add_label_to_history(n, img):
@@ -373,17 +383,17 @@ def main():
                         
                         if sm == "2. 全自動（GitHub保存）":
                             with open(pt, "rb") as f: b64_data = base64.b64encode(f.read()).decode()
-                            url_api = f"https://api.github.com/repos/{repo}/contents/manuals/{urllib.parse.quote(fn)}"
-                            sha_val = None
+                            u_api = f"https://api.github.com/repos/{repo}/contents/manuals/{urllib.parse.quote(fn)}"
+                            s_val = None
                             try:
-                                rq_check = urllib.request.Request(url_api); rq_check.add_header("Authorization", f"token {tok}")
-                                with urllib.request.urlopen(rq_check) as r_res: sha_val = json.loads(r_res.read())["sha"]
+                                rq_c = urllib.request.Request(u_api); rq_c.add_header("Authorization", f"token {tok}")
+                                with urllib.request.urlopen(rq_c) as r_s: s_val = json.loads(r_s.read())["sha"]
                             except: pass
                             
                             payload_data = {"message":"Update","content":b64_data,"branch":"main"}
-                            if sha_val: payload_data["sha"] = sha_val
+                            if s_val: payload_data["sha"] = s_val
                             
-                            rq_final = urllib.request.Request(url_api, data=json.dumps(payload_data).encode(), method="PUT")
+                            rq_final = urllib.request.Request(u_api, data=json.dumps(payload_data).encode(), method="PUT")
                             rq_final.add_header("Authorization", f"token {tok}")
                             with urllib.request.urlopen(rq_final) as r_final:
                                 gurl_raw = json.loads(r_final.read())["content"]["html_url"]
@@ -391,12 +401,13 @@ def main():
                             furl = gurl_raw.replace("github.com", "cdn.jsdelivr.net/gh").replace("/blob/", "@")
                         else: furl = f"http://dummy-url.com/{did}"
 
-                        df_save = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID","Name","Power","URL","Updated"])
-                        df_save = df_save[df_save["ID"].astype(str) != str(did)]
+                        df_s = pd.read_csv(DB_CSV) if DB_CSV.exists() else pd.DataFrame(columns=["ID","Name","Power","URL","Updated"])
+                        df_s = df_s[df_s["ID"].astype(str) != str(did)]
                         new_data_row = pd.DataFrame([{"ID":did,"Name":nm,"Power":pw,"URL":furl,"Updated":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])
-                        pd.concat([df_save, new_data_row], ignore_index=True).to_csv(DB_CSV, index=False)
+                        pd.concat([df_s, new_data_row], ignore_index=True).to_csv(DB_CSV, index=False)
                         
-                        limg_final = create_label_image({"name":nm,"power":pw,"img_qr":qrcode.make(furl)})
+                        # 【変更】最適化されたQR生成関数を使用
+                        limg_final = create_label_image({"name":nm,"power":pw,"img_qr":make_optimized_qr(furl)})
                         add_label_to_history(nm, limg_final)
                         
                         st.success(f"✅ 登録に成功しました！ URL: {furl}")
@@ -443,4 +454,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
