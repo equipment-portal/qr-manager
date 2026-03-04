@@ -474,11 +474,11 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
         
+        # --- 【UI改善】サイドバーの要素間隔とボタン位置を調整するCSS ---
         st.markdown("""
         <style>
         .stButton button { width: 100%; border-radius: 5px; }
         .stTextArea textarea { font-size: 16px; }
-        [data-testid="stSidebar"] { min-width: 320px; }
         
         /* サイドバー内の要素の行間をギュッと詰める */
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
@@ -791,5 +791,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
