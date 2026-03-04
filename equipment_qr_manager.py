@@ -322,7 +322,7 @@ def main():
 
         # メイン
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-        st.title("📱 機器情報ページ ＆ QRラベル管理")
+        st.title("📱 機器情報ページ ＆ QRラベル管理システム")
         
         if st.session_state.get("scroll_to_top"):
             st.components.v1.html("<script>var t=window.parent.document.getElementById('top_anchor');if(t)t.scrollIntoView(true);</script>", height=0)
@@ -454,3 +454,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
