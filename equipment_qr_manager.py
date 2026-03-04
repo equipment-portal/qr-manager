@@ -472,6 +472,9 @@ def main():
         st.set_page_config(page_title="機器情報ページ＆QR管理システム", layout="wide", initial_sidebar_state="expanded")
         
         if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
+        # 【追加】画像枠を強制リセットするための管理キー
+        if "form_reset_key" not in st.session_state: st.session_state["form_reset_key"] = 0
+        rk = st.session_state["form_reset_key"]
         
         def load_data_callback():
             selected = st.session_state.db_select
@@ -572,19 +575,20 @@ def main():
 
         with col2:
             st.header("2. 画像の指定")
-            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key="img_exterior")
-            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key="img_outlet")
-            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key="img_label")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
-            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key="img_loto1")
-            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key="img_loto2")
+            # 【変更】それぞれの画像のkeyに `rk`（リセットキー）を付与し、ボタンでリセット可能にする
+            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key=f"img_exterior_{rk}")
+            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key=f"img_outlet_{rk}")
+            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key=f"img_label_{rk}")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key=f"is_related_loto_{rk}")
+            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto1_{rk}")
+            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto2_{rk}")
             
             st.markdown("---")
             st.subheader("➕ 追加情報の画像（点検表など）")
             ex_imgs = []
             for i in range(st.session_state["extra_images_count"]):
-                et = st.text_input(f"タイトルの入力 {i+1}", key=f"ex_title_{i}")
-                ef = st.file_uploader(f"画像の選択 {i+1}", type=["png", "jpg", "jpeg"], key=f"ex_img_{i}")
+                et = st.text_input(f"タイトルの入力 {i+1}", key=f"ex_title_{rk}_{i}")
+                ef = st.file_uploader(f"画像の選択 {i+1}", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
                 if ef: ex_imgs.append((ef, et if et else f"追加画像 {i+1}"))
             if st.button("➕ 項目を追加する"):
                 st.session_state["extra_images_count"] += 1
@@ -706,14 +710,17 @@ def main():
         st.markdown("---")
         st.header("5. 次の作業")
         def reset_form_callback():
+            # 1. テキスト入力のクリア
             st.session_state.input_did = ""
             st.session_state.input_name = ""
             st.session_state.input_power = None
             st.session_state.input_memo = ""
             st.session_state["extra_images_count"] = 0
             if "db_select" in st.session_state: del st.session_state["db_select"]
-            for k in ["img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]:
-                if k in st.session_state: del st.session_state[k]
+            
+            # 2. 【変更】画像アップロード枠の強制クリア（キーの更新）
+            st.session_state["form_reset_key"] += 1
+            
             st.session_state["scroll_to_top"] = True
             
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
@@ -731,7 +738,6 @@ def main():
         else:
             st.sidebar.success(f"✅ 合計 {current_count} 枚のラベルを配置済み")
             
-            # --- 【修正】サイドバーのMap表示を「A4縦・下優先」に合わせた表示 ---
             rows_per_col = 13 
             actual_cols = ((current_count - 1) // rows_per_col) + 1
             grid_html_view = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:13px;line-height:1.2;text-align:left;'>"
