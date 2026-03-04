@@ -480,6 +480,11 @@ def main():
         .stButton button { width: 100%; border-radius: 5px; }
         .stTextArea textarea { font-size: 16px; }
         
+        /* 【追加】メイン画面上部の無駄な空白を極限まで詰める */
+        .block-container {
+            padding-top: 1.5rem !important;
+        }
+        
         /* サイドバー内の要素の行間をギュッと詰める */
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
             gap: 0.3rem !important; 
@@ -791,6 +796,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
