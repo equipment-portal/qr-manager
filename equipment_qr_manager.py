@@ -44,31 +44,23 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keep).rstrip()
 
 # ==========================================
-# --- 【新規】超高感度QRコード生成関数 ---
+# --- 【爆速化】ダイレクトQRコード生成関数 ---
 # ==========================================
-def make_optimized_qr(long_url):
-    # 1. 無料APIを使って長いURLを極限まで短縮
-    try:
-        api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
-        req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as res:
-            short_url = res.read().decode('utf-8')
-    except Exception as e:
-        short_url = long_url # 万が一失敗した時はそのまま
-
-    # 2. 余白を削り、ドットを巨大化させる設定
+def make_direct_qr(url):
+    # 短縮URL(is.gd)を廃止し、直接アクセスさせる。
+    # 余白(border)を「1」にし、エラー訂正(L)でドットを最大化して読みやすくする
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L, # 誤り訂正を下げてシンプルに
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=1, # デフォルトの「4」から「1」へ余白を最小化
+        border=1, 
     )
-    qr.add_data(short_url)
+    qr.add_data(url)
     qr.make(fit=True)
     return qr.make_image(fill_color="black", back_color="white")
 
 # ==========================================
-# --- 画像生成ロジック ---
+# --- 画像生成ロジック (JPEG軽量化対応) ---
 # ==========================================
 def create_manual_image(data, output_path):
     W = 1600; margin = 80; content_w = W - margin * 2
@@ -114,7 +106,9 @@ def create_manual_image(data, output_path):
     cy = 0
     for s in sections:
         final.paste(s, (0, cy)); cy += s.height
-    final.save(output_path)
+    
+    # 【変更】JPEG形式で保存し、容量を激減させる
+    final.convert('RGB').save(output_path, format="JPEG", quality=85)
 
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600; margin = 80; content_w = W - margin * 2
@@ -164,7 +158,9 @@ def create_manual_image_extended(data, extra_images, output_path):
     cy = base.height
     for s in added:
         final.paste(s, (0, cy)); cy += s.height
-    final.save(output_path)
+        
+    # 【変更】JPEG形式で保存し、容量を激減させる
+    final.convert('RGB').save(output_path, format="JPEG", quality=85)
 
 # ==========================================
 # --- ラベル・Excel・履歴管理 ---
@@ -207,17 +203,14 @@ def rebuild_excel():
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Labels"
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.2
-    
+    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.1
     h = []
     if LABEL_HISTORY_FILE.exists():
         with open(LABEL_HISTORY_FILE, "r") as f: h = json.load(f)
     
     rows_per_col = 5
-    
-    # 【改修】物理サイズを直接指定（100%印刷で 縦2cm×横3.5cm になる設定値）
-    target_w_px = 132  # 3.5cm ≒ 約132ピクセル
-    target_h_px = 76   # 2.0cm ≒ 約76ピクセル
+    target_w_px = 132  # 3.5cm
+    target_h_px = 76   # 2.0cm
     
     for i, item in enumerate(h):
         ip = TEMP_LABEL_DIR / item["img_filename"]
@@ -229,8 +222,6 @@ def rebuild_excel():
         cell_row = r_idx + 1
         
         cl = get_column_letter(cell_col)
-        
-        # エクセルのセル枠も物理サイズに合わせて固定
         ws.column_dimensions[cl].width = 19.5
         ws.row_dimensions[cell_row].height = 60.0
         
@@ -322,7 +313,7 @@ def main():
 
         # メイン
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-        st.title("📱 機器情報ページ ＆ QRラベル管理システム")
+        st.title("📱 機器情報ページ ＆ QRラベル管理")
         
         if st.session_state.get("scroll_to_top"):
             st.components.v1.html("<script>var t=window.parent.document.getElementById('top_anchor');if(t)t.scrollIntoView(true);</script>", height=0)
@@ -364,20 +355,23 @@ def main():
         st.header("3. ページ生成 ＆ プレビュー")
         if st.button("🔍 機器情報ページをプレビュー", type="secondary"):
             if did and nm and pw:
+                # 【変更】拡張子を.jpgにして軽量化
                 dt = {"id":did,"name":nm,"power":pw,"img_exterior":f_ext,"img_outlet":f_out,"img_label":f_lab,"img_loto1":f_l1,"img_loto2":f_l2,"memo":memo if memo.strip() else "なし"}
-                pt = MANUAL_DIR / f"{safe_filename(did)}.png"
+                pt = MANUAL_DIR / f"{safe_filename(did)}.jpg"
                 create_manual_image_extended(dt, ex_imgs, pt)
                 with open(pt, "rb") as f: b = base64.b64encode(f.read()).decode()
-                st.components.v1.html(f'<div style="max-height:600px;overflow-y:scroll;border:2px solid #ddd;padding:10px;"><img src="data:image/png;base64,{b}" style="width:100%;"></div>', height=620)
+                # MIMEタイプも jpeg に変更
+                st.components.v1.html(f'<div style="max-height:600px;overflow-y:scroll;border:2px solid #ddd;padding:10px;"><img src="data:image/jpeg;base64,{b}" style="width:100%;"></div>', height=620)
             else: st.warning("管理番号、名称、電源を先に入力してください。")
 
         st.header("4. 最終登録 ＆ QRラベル発行")
         if st.button("🖨️ サーバーへ保存してQRラベルを発行", type="primary"):
             if did and nm and pw:
-                with st.spinner("サーバー通信中..."):
+                with st.spinner("サーバー通信中...（軽量化処理を含む）"):
                     try:
-                        fn = f"{safe_filename(did)}_{safe_filename(nm)}.png"
-                        pt = MANUAL_DIR / f"{safe_filename(did)}.png"
+                        # 【重要】ファイル名から日本語（nm）を外し「管理番号.jpg」だけに固定してURLを極限まで短くする
+                        fn = f"{safe_filename(did)}.jpg"
+                        pt = MANUAL_DIR / fn
                         dt_gen = {"id":did,"name":nm,"power":pw,"img_exterior":f_ext,"img_outlet":f_out,"img_label":f_lab,"img_loto1":f_l1,"img_loto2":f_l2,"memo":memo if memo.strip() else "なし"}
                         create_manual_image_extended(dt_gen, ex_imgs, pt)
                         
@@ -406,8 +400,8 @@ def main():
                         new_data_row = pd.DataFrame([{"ID":did,"Name":nm,"Power":pw,"URL":furl,"Updated":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}])
                         pd.concat([df_s, new_data_row], ignore_index=True).to_csv(DB_CSV, index=False)
                         
-                        # 【変更】最適化されたQR生成関数を使用
-                        limg_final = create_label_image({"name":nm,"power":pw,"img_qr":make_optimized_qr(furl)})
+                        # 【変更】ダイレクトQR生成関数を使用（寄り道なしで高速）
+                        limg_final = create_label_image({"name":nm,"power":pw,"img_qr":make_direct_qr(furl)})
                         add_label_to_history(nm, limg_final)
                         
                         st.success(f"✅ 登録に成功しました！ URL: {furl}")
@@ -454,4 +448,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
