@@ -270,7 +270,7 @@ def main():
                 u = m.iloc[-1]["URL"].replace("github.com", "cdn.jsdelivr.net/gh").replace("/blob/", "@")
                 st.markdown(f'<div style="text-align:center;margin-top:60px;"><a href="{u}" style="padding:20px 40px;background:#28a745;color:white;font-size:22px;text-decoration:none;border-radius:8px;font-weight:bold;">📱 機器情報ページを開く</a></div>', unsafe_allow_html=True)
     else:
-        st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
+        st.set_page_config(page_title="機器情報ページ ＆ QRラベル管理システム", layout="wide", initial_sidebar_state="expanded")
         
         st.markdown("""
         <style>
@@ -307,9 +307,9 @@ def main():
                     st.session_state["form_reset_key"] += 1; st.rerun()
         
         st.sidebar.markdown("---")
-        sm = st.sidebar.radio("保存モード:", ["1. 手動（テスト用）", "2. 全自動（GitHub保存）"], index=1)
-        repo = st.sidebar.text_input("リポジトリ名", value="equipment-portal/qr-manager") if sm=="2. 全自動（GitHub保存）" else ""
-        tok = st.sidebar.text_input("トークン", value=st.secrets.get("github_token",""), type="password") if sm=="2. 全自動（GitHub保存）" else ""
+        sm = st.sidebar.radio("保存モード:", ["1. 手動（テスト用）", "2. 全自動（データベース保存）"], index=1)
+        repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager") if sm=="2. 全自動（データベース保存）" else ""
+        tok = st.sidebar.text_input("接続キー(トークン)", value=st.secrets.get("github_token",""), type="password") if sm=="2. 全自動（データベース保存）" else ""
 
         # メイン
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
@@ -375,7 +375,7 @@ def main():
                         dt_gen = {"id":did,"name":nm,"power":pw,"img_exterior":f_ext,"img_outlet":f_out,"img_label":f_lab,"img_loto1":f_l1,"img_loto2":f_l2,"memo":memo if memo.strip() else "なし"}
                         create_manual_image_extended(dt_gen, ex_imgs, pt)
                         
-                        if sm == "2. 全自動（GitHub保存）":
+                        if sm == "2. 全自動（データベース保存）":
                             with open(pt, "rb") as f: b64_data = base64.b64encode(f.read()).decode()
                             u_api = f"https://api.github.com/repos/{repo}/contents/manuals/{urllib.parse.quote(fn)}"
                             s_val = None
@@ -448,4 +448,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
