@@ -214,17 +214,15 @@ def create_manual_image_extended(data, extra_images, output_path):
 # ==========================================
 def create_label_image(data):
     scale = 4  
-    
-    # --- サイズ設計 (実測3.5cm x 2.0cmに合わせる) ---
     target_w_px = 350 * scale
     target_h_px = 200 * scale
     
     font_path = cloud_font_path
     try:
-        font_title = ImageFont.truetype(font_path, 16 * scale) # 🔍 機器情報・LOTO確認ラベル
-        font_md = ImageFont.truetype(font_path, 28 * scale)    # 機器名称 (基本サイズ)
-        font_sm = ImageFont.truetype(font_path, 12 * scale)    # 「機器名称:」
-        font_footer = ImageFont.truetype(font_path, 12 * scale) # 下部説明 (少し大きく)
+        font_title = ImageFont.truetype(font_path, 16 * scale) 
+        font_md = ImageFont.truetype(font_path, 28 * scale)    
+        font_sm = ImageFont.truetype(font_path, 12 * scale)    
+        font_footer = ImageFont.truetype(font_path, 12 * scale) 
     except Exception as e:
         font_title = font_md = font_sm = font_footer = ImageFont.load_default()
         
@@ -234,37 +232,30 @@ def create_label_image(data):
     label_img = Image.new('RGB', (target_w_px, target_h_px), 'white')
     draw = ImageDraw.Draw(label_img)
     
-    # 黄色い外枠
     border_color = (255, 255, 0)
     border_width = 12 * scale
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
     
-    # 1段目：タイトルと記号（🔍 に変更）
     title_y = 18 * scale
     draw.text((20 * scale, title_y), "🔍", fill="black", font=font_title)
     draw.text((45 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # QRコード（少し小さくして左側に配置）
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil_img = data['img_qr']
             if hasattr(qr_pil_img, 'convert'):
                 qr_pil_img = qr_pil_img.convert('RGB')
-            # 130pxサイズに小型化
             qr_size = 130 * scale
             qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
             label_img.paste(qr_pil_img, (15 * scale, 50 * scale))
         except Exception as e:
             pass
     
-    # テキストエリア開始位置 (QRの右側)
     x_text = 155 * scale
-    max_text_w = target_w_px - x_text - (20 * scale) # 右端までの幅
+    max_text_w = target_w_px - x_text - (20 * scale) 
     
-    # 2段目：機器名称（長い場合は自動縮小して3.5cmに収める）
     draw.text((x_text, 55 * scale), "機器名称:", fill="black", font=font_sm)
     
-    # --- 名称の自動縮小ロジック ---
     current_font_size = 28 * scale
     temp_font = font_md
     bbox = draw.textbbox((0, 0), device_name, font=temp_font)
@@ -274,17 +265,13 @@ def create_label_image(data):
         bbox = draw.textbbox((0, 0), device_name, font=temp_font)
     
     draw.text((x_text, 72 * scale), device_name, fill="black", font=temp_font)
-    
-    # 3段目：使用電源
     draw.text((x_text, 112 * scale), "使用電源:", fill="black", font=font_sm)
     draw.text((x_text, 128 * scale), f"AC {device_power}", fill="black", font=font_md)
     
-    # 4段目：フッター（境界線と説明文を少し大きく）
     y_line = 168 * scale
     draw.line((x_text, y_line, target_w_px - 15 * scale, y_line), fill="gray", width=1 * scale)
     draw.text((x_text, y_line + 8 * scale), "[QR] 詳細スキャン (LOTO･外観･ｺﾝｾﾝﾄ)", fill="black", font=font_footer)
     
-    # 最終的な縮小 (Excelに貼るための実寸ピクセル 350x200 へ)
     final_img = label_img.resize((350, 200), Image.Resampling.LANCZOS)
     return final_img
 
@@ -296,7 +283,6 @@ def rebuild_excel():
     ws = wb.active
     ws.title = "印刷用ラベルシート"
     
-    # A4横向きの印刷設定
     ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_margins.left = 0.5
@@ -312,15 +298,12 @@ def rebuild_excel():
         except: pass
             
     col_widths = {}
-    
-    # A4横設定のため、縦には5個並べる
     rows_per_col = 5
     col_multiplier = 2
     row_multiplier = 2
 
-    # 【実寸印刷用100%スケール設定】
-    target_w_px = 132  # 約3.5cm
-    target_h_px = 76   # 約2.0cm
+    target_w_px = 132  
+    target_h_px = 76   
     target_col_width = 19.5
     target_row_height = 60.0
 
@@ -336,11 +319,9 @@ def rebuild_excel():
         col_letter = get_column_letter(cell_col)
         cell_ref = f"{col_letter}{cell_row}"
 
-        # セルの幅と高さを実寸合わせで設定
         col_widths[col_letter] = target_col_width
         ws.row_dimensions[cell_row].height = target_row_height
         
-        # 間隔（空白セル）の設定
         ws.row_dimensions[cell_row + 1].height = target_row_height * 0.8 
         empty_col_letter = get_column_letter(cell_col + 1)
         col_widths[empty_col_letter] = target_col_width * 0.5 
@@ -467,7 +448,6 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ＆QR管理", layout="wide", initial_sidebar_state="expanded")
         
-        # 記憶領域の初期化
         if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
         
         def load_data_callback():
@@ -540,22 +520,22 @@ def main():
         st.sidebar.subheader("📄 ファイル名出力設定")
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
-        # --- 【最終奥義】一番上に戻るための「透明な目印」を設置 ---
+        # --- 【修正】カーソル弾きの原因となっていたスクロール魔法を安定化 ---
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
         st.title("📱 機器情報ページ＆QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
-        # --- 【最終奥義】フラグを検知して一番上の目印へ強制ジャンプさせる魔法 ---
+        import streamlit.components.v1 as components
+        js_code = ""
         if st.session_state.get("scroll_to_top"):
-            import streamlit.components.v1 as components
-            js = """
-            <script>
+            js_code = """
                 var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1');
                 if (target) { target.scrollIntoView(true); } else { window.parent.scrollTo(0, 0); }
-            </script>
             """
-            components.html(js, height=0)
             st.session_state["scroll_to_top"] = False
+            
+        # 透明な枠を常に置いておくことで、入力欄でのフォーカス外れを防ぎます
+        components.html(f"<script>{js_code}</script>", height=0)
             
         col1, col2 = st.columns(2)
         
@@ -565,7 +545,6 @@ def main():
             name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
             power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください", key="input_power")
             
-            # --- メモ機能のUI統合 ---
             st.markdown("---")
             st.header("📝 メモ・備考欄")
             memo = st.text_area("現場へ伝える補足情報", height=150, placeholder="例: 設定温度は25℃を維持すること。", key="input_memo")
@@ -575,11 +554,10 @@ def main():
             img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key="img_exterior")
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key="img_outlet")
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key="img_label")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key="is_related_loto")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key="img_loto1")
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key="img_loto2")
             
-            # --- 追加画像機能のUI統合 ---
             st.markdown("---")
             st.subheader("➕ 追加情報の画像（点検表など）")
             ex_imgs = []
@@ -600,13 +578,11 @@ def main():
                     try:
                         data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
                         safe_id = safe_filename(did)
-                        # 【軽量化】拡張子を jpg に
                         manual_path = MANUAL_DIR / f"{safe_id}.jpg"
                         create_manual_image_extended(data, ex_imgs, manual_path)
                         
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！")
-                            import streamlit.components.v1 as components
                             with open(manual_path, "rb") as f:
                                 img_base64 = base64.b64encode(f.read()).decode("utf-8")
                             img_html = f'<div style="max-height: 500px; overflow-y: scroll; border: 2px solid #ddd; padding: 10px; border-radius: 5px;"><img src="data:image/jpeg;base64,{img_base64}" style="width: 100%; height: auto;"></div>'
@@ -630,7 +606,6 @@ def main():
                     try:
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
-                        # 手動でもダイレクトQRを使用
                         img_qr = make_direct_qr(long_url)
                         img_qr.save(qr_path)
                         if DB_CSV.exists():
@@ -656,7 +631,6 @@ def main():
                         try:
                             data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
                             safe_id = safe_filename(did)
-                            # 【爆速化】URL短縮のため、ファイル名をIDのみに固定しJPEG化
                             file_name_for_github = f"{safe_id}.jpg" 
                             manual_path = MANUAL_DIR / file_name_for_github
                             create_manual_image_extended(data, ex_imgs, manual_path)
@@ -687,7 +661,6 @@ def main():
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             
-                            # 【爆速化】ダイレクトQRで太く見やすく
                             img_qr = make_direct_qr(img_cdn_url)
                             img_qr.save(qr_path)
                             
