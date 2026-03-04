@@ -427,7 +427,6 @@ def main():
         <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
         </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -522,7 +521,7 @@ def main():
                     st.session_state.input_memo = "" 
                     st.session_state["form_reset_key"] += 1
 
-        hide_streamlit_style = """<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>"""
+        hide_streamlit_style = """<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>"""
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
         
         st.sidebar.header("🗄️ 登録済み機器データベース")
@@ -792,4 +791,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
