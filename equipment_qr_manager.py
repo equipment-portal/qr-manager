@@ -47,26 +47,24 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【復旧・強化】URL短縮 ＆ 爆速QR生成 ---
+# --- 【爆速化】URL短縮 ＆ QR生成 ---
 # ==========================================
 def make_short_url(long_url):
-    """長いURLを短縮サービス(is.gd)で極限まで短くし、QRのドットを太くする"""
     try:
         api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
         req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req) as res:
             return res.read().decode('utf-8')
     except:
-        return long_url # 失敗時は元のURLを返す
+        return long_url
 
 def make_optimized_qr(url):
-    """短いURLから、ドットが太く読み取りやすいQRを生成"""
     short_url = make_short_url(url)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=1, # 余白を極限まで削る
+        border=1,
     )
     qr.add_data(short_url)
     qr.make(fit=True)
@@ -137,7 +135,6 @@ def create_manual_image(data, output_path):
             
             return sec_img
         except Exception as e:
-            print(f"画像エラー: {e}")
             return None
 
     img_list = [
@@ -510,6 +507,9 @@ def main():
                 st.session_state.input_did = ""
                 st.session_state.input_name = ""
                 st.session_state.input_power = None
+                # 【重要修正】クリア時にメモ欄と画像枠も確実に空っぽにする
+                st.session_state.input_memo = "" 
+                st.session_state["form_reset_key"] += 1
             else:
                 did_str = selected.split(" : ")[0]
                 df = pd.read_csv(DB_CSV)
@@ -519,6 +519,9 @@ def main():
                     st.session_state.input_did = str(row["ID"])
                     st.session_state.input_name = str(row["Name"])
                     st.session_state.input_power = str(row["Power"]) if pd.notna(row["Power"]) else None
+                    # 【重要修正】別の機器を読み込んだ時もメモ欄と画像枠をクリアする
+                    st.session_state.input_memo = "" 
+                    st.session_state["form_reset_key"] += 1
 
         hide_streamlit_style = """<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>"""
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -539,6 +542,8 @@ def main():
                         st.session_state.input_did = ""
                         st.session_state.input_name = ""
                         st.session_state.input_power = None
+                        st.session_state.input_memo = ""
+                        st.session_state["form_reset_key"] += 1
                         if "db_select" in st.session_state: del st.session_state["db_select"]
                         st.rerun()
         
@@ -593,7 +598,7 @@ def main():
             img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key=f"img_exterior_{rk}")
             img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key=f"img_outlet_{rk}")
             img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key=f"img_label_{rk}")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する")
+            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key=f"is_related_loto_{rk}")
             img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto1_{rk}")
             img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto2_{rk}")
             
@@ -643,7 +648,6 @@ def main():
                     try:
                         safe_id = safe_filename(did)
                         qr_path = QR_DIR / f"{safe_id}_qr.png"
-                        # 【強化】URL短縮サービスを経由して太いQRを作る
                         img_qr = make_optimized_qr(long_url)
                         img_qr.save(qr_path)
                         
@@ -700,7 +704,6 @@ def main():
                             img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                             qr_path = QR_DIR / f"{safe_id}_qr.png"
                             
-                            # 【強化】URL短縮サービスを経由して太いQRを作る
                             img_qr = make_optimized_qr(img_cdn_url)
                             img_qr.save(qr_path)
                             
@@ -757,8 +760,8 @@ def main():
                 for c in range(actual_cols):
                     idx_val = c * rows_per_col + r
                     if idx_val < current_count:
+                        # 【修正③】〇付き数字に変更
                         num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
-                        # 【修正①】text-align: center; を入れて丸と四角の中心をピタッと合わせる
                         row_str_line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
                     else:
                         row_str_line += "<span style='display:inline-block;width:26px;text-align:center;color:#ccc;'>⬜</span>"
@@ -767,8 +770,9 @@ def main():
             
             for i_idx, itm_obj in enumerate(h_list):
                 cb1, cb2 = st.sidebar.columns([5, 1])
-                # 【修正②】文字の高さを固定して、横のボタンと高さを完璧に合わせる
-                cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>**{i_idx+1}** {itm_obj['name']}</div>", unsafe_allow_html=True)
+                # 【修正④】リスト番号を〇付きに変更し、文字サイズと高さを完璧に合わせる
+                list_num_icon = chr(9311 + i_idx + 1) if i_idx < 20 else f"({i_idx+1})"
+                cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>{list_num_icon} {itm_obj['name']}</div>", unsafe_allow_html=True)
                 if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
         
         if EXCEL_LABEL_PATH.exists():
