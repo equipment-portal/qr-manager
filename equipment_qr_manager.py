@@ -9,6 +9,7 @@ from datetime import datetime
 import io
 import base64
 import json
+import shutil
 
 # --- Excel操作用ライブラリ ---
 import openpyxl
@@ -26,9 +27,8 @@ EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 LABEL_HISTORY_FILE = Path("label_history.json")
 TEMP_LABEL_DIR = Path("temp_labels")
 
-QR_DIR.mkdir(exist_ok=True)
-MANUAL_DIR.mkdir(exist_ok=True)
-TEMP_LABEL_DIR.mkdir(exist_ok=True)
+for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR]:
+    d.mkdir(exist_ok=True)
 
 cloud_font_path = "BIZUDGothic-Regular.ttf"
 
@@ -47,39 +47,57 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【復旧・強化】URL短縮 ＆ 爆速QR生成 ---
+# --- 【新規追加】画像自動圧縮＆最適化エンジン ---
+# ==========================================
+def compress_image(uploaded_file, max_size=1000):
+    """文字が読める画質を保ちつつ、ファイルサイズを劇的に軽くする"""
+    try:
+        if hasattr(uploaded_file, 'read'):
+            file_bytes = uploaded_file.read()
+            img = Image.open(io.BytesIO(file_bytes))
+            uploaded_file.seek(0)
+        else:
+            img = Image.open(uploaded_file)
+            
+        img = ImageOps.exif_transpose(img)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+            
+        # 長辺がmax_sizeに収まるようにリサイズ
+        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        
+        output = io.BytesIO()
+        # 画質75で保存（容量と画質のベストバランス）
+        img.save(output, format="JPEG", quality=75, optimize=True)
+        return output.getvalue()
+    except Exception as e:
+        print(f"圧縮エラー: {e}")
+        return None
+
+# ==========================================
+# --- URL短縮 ＆ 爆速QR生成 ---
 # ==========================================
 def make_short_url(long_url):
-    """長いURLを短縮サービス(is.gd)で極限まで短くし、QRのドットを太くする"""
     try:
         api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
         req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req) as res:
             return res.read().decode('utf-8')
     except:
-        return long_url # 失敗時は元のURLを返す
+        return long_url
 
 def make_optimized_qr(url):
-    """短いURLから、ドットが太く読み取りやすいQRを生成"""
     short_url = make_short_url(url)
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=1, # 余白を極限まで削る
-    )
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=1)
     qr.add_data(short_url)
     qr.make(fit=True)
     return qr.make_image(fill_color="black", back_color="white")
 
 # ==========================================
-# --- 縦長「機器情報ページ」画像 生成関数 ---
+# --- マニュアル画像 生成関数 ---
 # ==========================================
 def create_manual_image(data, output_path):
-    W = 1600  
-    margin = 80
-    content_w = W - margin * 2
-
+    W = 1600; margin = 80; content_w = W - margin * 2
     try:
         font_title = ImageFont.truetype(cloud_font_path, 80)
         font_sub = ImageFont.truetype(cloud_font_path, 55)
@@ -88,85 +106,70 @@ def create_manual_image(data, output_path):
         font_title = font_sub = font_text = ImageFont.load_default()
 
     sections = []
-    
-    header_h = 380
-    header_img = Image.new('RGB', (W, header_h), 'white')
+    header_img = Image.new('RGB', (W, 380), 'white')
     draw = ImageDraw.Draw(header_img)
-    
     draw.rectangle([0, 0, W, 100], fill=(255, 215, 0))
     draw.text((W - margin, 25), f"管理番号: {data['id']}", fill="black", font=font_text, anchor="ra")
     draw.text((margin, 150), data['name'], fill="black", font=font_title)
     draw.rectangle([margin, 280, W - margin, 340], fill=(242, 155, 33))
-    power_text = data['power'] if data['power'] else "未設定"
-    draw.text((margin + 20, 285), f"■ 使用電源: AC {power_text}", fill="white", font=font_text)
-    
+    draw.text((margin + 20, 285), f"■ 使用電源: AC {data['power'] or '未設定'}", fill="white", font=font_text)
     sections.append(header_img)
 
     def process_img_section(img_file, title):
-        if img_file is None:
-            box_h = 200
-            sec_img = Image.new('RGB', (W, box_h), 'white')
+        if not img_file:
+            sec_img = Image.new('RGB', (W, 200), 'white')
             s_draw = ImageDraw.Draw(sec_img)
             s_draw.text((margin, 20), title, fill="black", font=font_sub)
-            s_draw.rectangle([margin, 90, W - margin, box_h - 10], outline="gray", width=3)
+            s_draw.rectangle([margin, 90, W - margin, 190], outline="gray", width=3)
             s_draw.text((W // 2, 145), "画像なし", fill="gray", font=font_text, anchor="mm")
             return sec_img
         
         try:
-            if hasattr(img_file, 'read'):
-                img_data = img_file.read()
-                pil_img = Image.open(io.BytesIO(img_data))
+            # URLやローカルパスの文字列が渡された場合の対応
+            if isinstance(img_file, str):
+                if img_file.startswith("http"):
+                    req = urllib.request.Request(img_file, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req) as res:
+                        pil_img = Image.open(io.BytesIO(res.read()))
+                else:
+                    pil_img = Image.open(img_file)
+            elif hasattr(img_file, 'read'):
+                pil_img = Image.open(io.BytesIO(img_file.read()))
+                img_file.seek(0)
             else:
                 pil_img = Image.open(img_file)
             
-            pil_img = ImageOps.exif_transpose(pil_img)
-            if pil_img.mode in ('RGBA', 'P'):
-                pil_img = pil_img.convert('RGB')
-            
-            img_ratio = pil_img.height / pil_img.width
-            new_h = int(content_w * img_ratio)
+            pil_img = ImageOps.exif_transpose(pil_img).convert('RGB')
+            new_h = int(content_w * (pil_img.height / pil_img.width))
             pil_img = pil_img.resize((content_w, new_h), Image.Resampling.LANCZOS)
             
-            sec_h = 90 + new_h + 50 
-            sec_img = Image.new('RGB', (W, sec_h), 'white')
+            sec_img = Image.new('RGB', (W, 90 + new_h + 50), 'white')
             s_draw = ImageDraw.Draw(sec_img)
-            
             s_draw.text((margin, 20), title, fill="black", font=font_sub)
             sec_img.paste(pil_img, (margin, 90))
             s_draw.rectangle([margin, 90, margin + content_w, 90 + new_h], outline="gray", width=3)
-            
             return sec_img
-        except Exception as e:
-            return None
+        except: return None
 
     img_list = [
         (data.get('img_exterior'), "機器外観"),
         (data.get('img_outlet'), "コンセント位置"),
-        (data.get('img_label'), "資産管理ラベル")
+        (data.get('img_label'), "資産管理ラベル"),
+        (data.get('img_loto1'), "LOTO手順書 Page 1"),
+        (data.get('img_loto2'), "LOTO手順書 Page 2")
     ]
-    
-    loto_title1 = "LOTO手順書（関連機器）Page 1" if data.get('is_related_loto') else "LOTO手順書 Page 1"
-    loto_title2 = "LOTO手順書（関連機器）Page 2" if data.get('is_related_loto') else "LOTO手順書 Page 2"
-    
-    img_list.append((data.get('img_loto1'), loto_title1))
-    img_list.append((data.get('img_loto2'), loto_title2))
-
     for f, t in img_list:
         sec = process_img_section(f, t)
-        if sec:
-            sections.append(sec)
+        if sec: sections.append(sec)
 
     total_h = sum(s.height for s in sections) + 100
     final_img = Image.new('RGB', (W, total_h), 'white')
-    
     curr_y = 0
     for s in sections:
         final_img.paste(s, (0, curr_y))
         curr_y += s.height
-        
     final_img.convert('RGB').save(output_path, format="JPEG", quality=85)
 
-# --- 拡張版（メモ・追加画像対応） ---
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600; margin = 80; content_w = W - margin * 2
     try:
@@ -191,178 +194,103 @@ def create_manual_image_extended(data, extra_images, output_path):
             added.append(si)
         except: continue
 
-    # 【改修済】ピクセル計算による鉄壁のメモ改行ロジック
     memo_val = data.get("memo", "なし")
-    
-    dummy_img = Image.new('RGB', (1, 1))
-    dummy_draw = ImageDraw.Draw(dummy_img)
-
-    max_text_w = content_w - 60 
+    dummy_draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
     lines = []
-    
+    line = ""
     for paragraph in memo_val.split('\n'):
-        line = ""
         for char in paragraph:
-            test_line = line + char
-            w = dummy_draw.textbbox((0, 0), test_line, font=font_text)[2]
-            if w <= max_text_w:
-                line = test_line
+            if dummy_draw.textbbox((0, 0), line + char, font=font_text)[2] <= (content_w - 60):
+                line += char
             else:
                 lines.append(line)
                 line = char
-        if line:
-            lines.append(line)
-    if not lines:
-        lines = ["なし"]
+        if line: lines.append(line); line = ""
+    if not lines: lines = ["なし"]
 
-    line_spacing = 25
-    if hasattr(font_text, 'getbbox'):
-        char_h = font_text.getbbox("あ")[3] - font_text.getbbox("あ")[1]
-    else:
-        char_h = font_text.getsize("あ")[1]
-        
-    line_step = char_h + line_spacing
+    char_h = font_text.getbbox("あ")[3] - font_text.getbbox("あ")[1] if hasattr(font_text, 'getbbox') else font_text.getsize("あ")[1]
+    line_step = char_h + 25
     memo_box_h = 110 + (len(lines) * line_step) + 60
-    
     ms = Image.new('RGB', (W, memo_box_h), 'white')
     md = ImageDraw.Draw(ms)
     md.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
     md.rectangle([margin, 110, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=6)
-    
-    for i, line in enumerate(lines):
-        md.text((margin + 40, 140 + (i * line_step)), line, fill="black", font=font_text)
+    for i, l in enumerate(lines): md.text((margin + 40, 140 + (i * line_step)), l, fill="black", font=font_text)
     added.append(ms)
 
-    final_h = base.height + sum(s.height for s in added) + 100
-    final = Image.new('RGB', (W, final_h), 'white')
+    final = Image.new('RGB', (W, base.height + sum(s.height for s in added) + 100), 'white')
     final.paste(base, (0, 0))
     cy = base.height
-    for s in added:
-        final.paste(s, (0, cy)); cy += s.height
-        
+    for s in added: final.paste(s, (0, cy)); cy += s.height
     final.convert('RGB').save(output_path, format="JPEG", quality=85)
 
 
 # ==========================================
-# --- 印刷用ラベル生成関数（QR右下・■マーク版） ---
+# --- 印刷用ラベル ＆ Excel台帳 処理 ---
 # ==========================================
 def create_label_image(data):
-    scale = 4  
-    target_w_px = 350 * scale
-    target_h_px = 200 * scale
-    
-    font_path = cloud_font_path
+    scale = 4; target_w_px = 350 * scale; target_h_px = 200 * scale
     try:
-        font_title = ImageFont.truetype(font_path, 19 * scale) 
-        font_main = ImageFont.truetype(font_path, 30 * scale)  
-        font_sm = ImageFont.truetype(font_path, 12 * scale)    
-        font_footer = ImageFont.truetype(font_path, 13 * scale) 
-    except:
-        font_title = font_main = font_sm = font_footer = ImageFont.load_default()
+        font_title = ImageFont.truetype(cloud_font_path, 19 * scale) 
+        font_main = ImageFont.truetype(cloud_font_path, 30 * scale)  
+        font_sm = ImageFont.truetype(cloud_font_path, 12 * scale)    
+        font_footer = ImageFont.truetype(cloud_font_path, 13 * scale) 
+    except: font_title = font_main = font_sm = font_footer = ImageFont.load_default()
         
     device_name = data.get('name', '不明')
     device_power = data.get('power', '不明')
-    
     label_img = Image.new('RGB', (target_w_px, target_h_px), 'white')
     draw = ImageDraw.Draw(label_img)
+    draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=(255, 255, 0), width=12 * scale)
     
-    # 黄色い外枠
-    border_color = (255, 255, 0)
-    border_width = 12 * scale
-    draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=border_color, width=border_width)
+    draw.text((18 * scale, 16 * scale), "■", fill="black", font=font_title)
+    draw.text((42 * scale, 16 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    # 1段目：タイトル（■記号）
-    title_y = 16 * scale
-    draw.text((18 * scale, title_y), "■", fill="black", font=font_title)
-    draw.text((42 * scale, title_y), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
-    
-    # --- 【QRコード】右下配置 ---
     qr_size = 72 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
-            qr_pil_img = data['img_qr']
-            if hasattr(qr_pil_img, 'convert'): qr_pil_img = qr_pil_img.convert('RGB')
-            qr_pil_img = qr_pil_img.resize((qr_size, qr_size))
-            label_img.paste(qr_pil_img, (target_w_px - qr_size - 22 * scale, target_h_px - qr_size - 30 * scale))
+            qr_pil = data['img_qr'].convert('RGB').resize((qr_size, qr_size))
+            label_img.paste(qr_pil, (target_w_px - qr_size - 22 * scale, target_h_px - qr_size - 30 * scale))
         except: pass
-    
-    # --- 【メイン情報エリア】 ---
-    x_margin = 18 * scale
-    max_text_w = target_w_px - (40 * scale) 
     
     current_size = 30 * scale
     temp_font = font_main
-    longest_text = device_name if len(device_name) > len(f"AC {device_power}") else f"AC {device_power}"
-    bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
-    while (bbox[2] - bbox[0]) > max_text_w and current_size > 12 * scale:
+    while (draw.textbbox((0, 0), device_name, font=temp_font)[2]) > (target_w_px - 40 * scale) and current_size > 12 * scale:
         current_size -= 1 * scale
-        temp_font = ImageFont.truetype(font_path, current_size)
-        bbox = draw.textbbox((0, 0), longest_text, font=temp_font)
+        temp_font = ImageFont.truetype(cloud_font_path, current_size)
 
-    draw.text((x_margin, 52 * scale), "機器名称:", fill="black", font=font_sm)
-    draw.text((x_margin, 66 * scale), device_name, fill="black", font=temp_font)
-    draw.text((x_margin, 108 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((x_margin, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
-    
-    # 4段目：フッター
-    footer_text = "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）"
-    y_footer = 172 * scale
-    f_bbox = draw.textbbox((0, 0), footer_text, font=font_footer)
-    f_font = font_footer
-    f_size = 13 * scale
-    while (f_bbox[2] - f_bbox[0]) > (target_w_px - 36 * scale):
-        f_size -= 1 * scale
-        f_font = ImageFont.truetype(font_path, f_size)
-        f_bbox = draw.textbbox((0, 0), footer_text, font=f_font)
-
-    draw.text((x_margin, y_footer), footer_text, fill="black", font=f_font)
+    draw.text((18 * scale, 52 * scale), "機器名称:", fill="black", font=font_sm)
+    draw.text((18 * scale, 66 * scale), device_name, fill="black", font=temp_font)
+    draw.text((18 * scale, 108 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((18 * scale, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
+    draw.text((18 * scale, 172 * scale), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
     
     return label_img.resize((350, 200), Image.Resampling.LANCZOS)
 
-# ==========================================
-# --- 高度なExcel履歴管理（A4縦・間隔ゼロ・下優先配置） ---
-# ==========================================
 def rebuild_excel():
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "印刷用ラベルシート"
-    
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_margins.left = 0.2
-    ws.page_margins.right = 0.2
-    ws.page_margins.top = 0.2
-    ws.page_margins.bottom = 0.2
+    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.2
     
     history = []
     if LABEL_HISTORY_FILE.exists():
         try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f:
-                history = json.load(f)
+            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
         except: pass
-            
-    rows_per_col = 13
-    target_w_px = 132  
-    target_h_px = 76   
 
     for count, item in enumerate(history):
         img_path = TEMP_LABEL_DIR / item["img_filename"]
         if not img_path.exists(): continue
-            
-        c_idx = count // rows_per_col 
-        r_idx = count % rows_per_col  
-
-        cell_col = c_idx + 1
-        cell_row = r_idx + 1
+        c_idx = count // 13; r_idx = count % 13  
+        cell_col = c_idx + 1; cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
-
         ws.column_dimensions[col_letter].width = 19.5
         ws.row_dimensions[cell_row].height = 60.0
-
         xl_img = XLImage(str(img_path))
-        xl_img.width = target_w_px
-        xl_img.height = target_h_px
+        xl_img.width = 132; xl_img.height = 76
         xl_img.anchor = f"{col_letter}{cell_row}"
         ws.add_image(xl_img)
-
     wb.save(EXCEL_LABEL_PATH)
 
 def add_label_to_history(name, label_img):
@@ -371,16 +299,10 @@ def add_label_to_history(name, label_img):
         try:
             with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
         except: pass
-    
-    filename = f"label_{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
-    img_path = TEMP_LABEL_DIR / filename
-    
-    label_img.save(img_path, format='PNG')
-    history.append({"name": name, "img_filename": filename})
-    
-    with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
-        
+    fname = f"label_{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
+    label_img.save(TEMP_LABEL_DIR / fname, format='PNG')
+    history.append({"name": name, "img_filename": fname})
+    with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f: json.dump(history, f, ensure_ascii=False, indent=2)
     rebuild_excel()
 
 def delete_label_from_history(index):
@@ -389,29 +311,57 @@ def delete_label_from_history(index):
         try:
             with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
         except: pass
-            
     if 0 <= index < len(history):
-        img_path = TEMP_LABEL_DIR / history[index]["img_filename"]
-        if img_path.exists():
-            try: img_path.unlink()
-            except: pass
+        try: (TEMP_LABEL_DIR / history[index]["img_filename"]).unlink()
+        except: pass
         history.pop(index)
-        
-        with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
-            
+        with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f: json.dump(history, f, ensure_ascii=False, indent=2)
         rebuild_excel()
 
 def clear_history():
-    if EXCEL_LABEL_PATH.exists():
-        try: EXCEL_LABEL_PATH.unlink()
-        except: pass
-    if LABEL_HISTORY_FILE.exists():
-        try: LABEL_HISTORY_FILE.unlink()
-        except: pass
+    try: EXCEL_LABEL_PATH.unlink()
+    except: pass
+    try: LABEL_HISTORY_FILE.unlink()
+    except: pass
     for f in TEMP_LABEL_DIR.glob("*.png"):
         try: f.unlink()
         except: pass
+
+# ==========================================
+# --- ストレージ保存処理（個別画像用） ---
+# ==========================================
+def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
+    """アップロードされた画像を圧縮して指定先に保存し、パス/URLを返す"""
+    if not file_obj: return ""
+    comp_data = compress_image(file_obj)
+    if not comp_data: return ""
+    
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    fname = f"{safe_filename(did)}_{suffix}_{timestamp}.jpg"
+    
+    if mode == "2. 全自動（データベース保存）":
+        encoded = base64.b64encode(comp_data).decode("utf-8")
+        api_url = f"https://api.github.com/repos/{repo}/contents/images/{fname}"
+        payload = {"message": f"Upload {fname}", "content": encoded, "branch": "main"}
+        req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
+        req.add_header("Authorization", f"token {token}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req) as res:
+                res_data = json.loads(res.read().decode("utf-8"))
+                raw_url = res_data["content"]["html_url"]
+                return raw_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+        except: return ""
+        
+    elif mode == "3. 社内共有フォルダへ自動保存":
+        base_dir = Path(local_path) / "images"
+        base_dir.mkdir(parents=True, exist_ok=True)
+        out_path = base_dir / fname
+        with open(out_path, "wb") as f: f.write(comp_data)
+        return str(out_path).replace("\\", "/")
+    
+    return ""
+
 
 # ==========================================
 # --- メインアプリ ---
@@ -422,381 +372,366 @@ def main():
     
     if is_redirect_mode:
         st.set_page_config(page_title="機器情報ページ", layout="centered")
-        
-        hide_streamlit_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        </style>
-        """
-        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+        st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>", unsafe_allow_html=True)
 
         target_id = qp["id"]
-        
         if DB_CSV.exists():
             try:
                 df = pd.read_csv(DB_CSV)
                 match = df[df["ID"].astype(str) == str(target_id)]
-                
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
-                    img_cdn_url = target_url
-                    if "github.com" in target_url and "/blob/" in target_url:
-                        img_cdn_url = target_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                        
                     link_html = f"""
                     <div style="text-align: center; margin-top: 60px;">
                         <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 機器情報ページの準備ができました</p>
-                        <a href="{img_cdn_url}" style="
-                            display: inline-block;
-                            margin-top: 15px;
-                            padding: 20px 40px;
-                            background-color: #28a745;
-                            color: white;
-                            font-size: 22px;
-                            font-weight: bold;
-                            text-decoration: none;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-                        ">
+                        <a href="{target_url}" style="display:inline-block; margin-top:15px; padding:20px 40px; background:#28a745; color:white; font-size:22px; font-weight:bold; text-decoration:none; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.2);">
                             📱 機器情報ページを開く
                         </a>
                     </div>
                     """
                     st.markdown(link_html, unsafe_allow_html=True)
-                else:
-                    st.error(f"エラー: 管理番号 '{target_id}' は見つかりませんでした。")
-            except Exception as e:
-                st.error(f"データベース読み込みエラー: {str(e)}")
-        else:
-            st.error("エラー: データベースが見つかりません。")
-            
+                else: st.error("エラー: 管理番号が見つかりません。")
+            except: st.error("データベース読み込みエラー")
+        else: st.error("データベースが見つかりません。")
+        return
+
+    # --- 登録・管理画面 ---
+    st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
+    st.markdown("""
+    <style>
+    .stButton button { width: 100%; border-radius: 5px; }
+    .block-container { padding-top: 1.5rem !important; }
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
+    [data-testid="stSidebar"] button { padding: 0 !important; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; justify-content: center; }
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- データベースの初期化と拡張 ---
+    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]
+    if not DB_CSV.exists():
+        pd.DataFrame(columns=db_columns).to_csv(DB_CSV, index=False)
     else:
-        st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
-        
-        # --- 【UI改善】サイドバーの要素間隔とボタン位置を調整するCSS ---
-        st.markdown("""
-        <style>
-        .stButton button { width: 100%; border-radius: 5px; }
-        .stTextArea textarea { font-size: 16px; }
-        
-        /* 【追加】メイン画面上部の無駄な空白を極限まで詰める */
-        .block-container {
-            padding-top: 1.5rem !important;
-        }
-        
-        /* サイドバー内の要素の行間をギュッと詰める */
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: 0.3rem !important; 
-        }
-        
-        /* ❌ボタンを枠の中心に配置し、余白を削る */
-        [data-testid="stSidebar"] button {
-            padding: 0 !important;
-            height: 32px !important;
-            min-height: 32px !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        df_init = pd.read_csv(DB_CSV)
+        needs_save = False
+        for col in db_columns:
+            if col not in df_init.columns:
+                df_init[col] = ""
+                needs_save = True
+        if needs_save: df_init.to_csv(DB_CSV, index=False)
 
-        if "form_reset_key" not in st.session_state: st.session_state["form_reset_key"] = 0
-        if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
-        rk = st.session_state["form_reset_key"]
-        
-        def load_data_callback():
-            selected = st.session_state.db_select
-            if selected == "✨ 新規登録 (クリア)":
-                st.session_state.input_did = ""
-                st.session_state.input_name = ""
-                st.session_state.input_power = None
-                st.session_state.input_memo = "" 
-                st.session_state["form_reset_key"] += 1
-            else:
-                did_str = selected.split(" : ")[0]
-                df = pd.read_csv(DB_CSV)
-                match = df[df["ID"].astype(str) == did_str]
-                if not match.empty:
-                    row = match.iloc[-1]
-                    st.session_state.input_did = str(row["ID"])
-                    st.session_state.input_name = str(row["Name"])
-                    st.session_state.input_power = str(row["Power"]) if pd.notna(row["Power"]) else None
-                    st.session_state.input_memo = "" 
-                    st.session_state["form_reset_key"] += 1
+    if "form_reset_key" not in st.session_state: st.session_state["form_reset_key"] = 0
+    if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
+    rk = st.session_state["form_reset_key"]
 
-        hide_streamlit_style = """<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>"""
-        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-        
-        st.sidebar.header("🗄️ 登録済み機器データベース")
-        if DB_CSV.exists():
-            df = pd.read_csv(DB_CSV)
-            if not df.empty:
-                options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
-                selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select", on_change=load_data_callback)
-                if selected_edit != "✨ 新規登録 (クリア)":
-                    st.sidebar.warning("⚠️ 過去の写真は保存されていないため、再発行時は画像の再選択が必要です。")
-                    if st.sidebar.button("🗑️ この機器をデータベースから削除"):
-                        did_to_del = selected_edit.split(" : ")[0]
-                        df = df[df["ID"].astype(str) != did_to_del]
-                        df.to_csv(DB_CSV, index=False)
-                        st.sidebar.success("削除しました！")
-                        st.session_state.input_did = ""
-                        st.session_state.input_name = ""
-                        st.session_state.input_power = None
-                        st.session_state.input_memo = ""
-                        st.session_state["form_reset_key"] += 1
-                        if "db_select" in st.session_state: del st.session_state["db_select"]
-                        st.rerun()
-        
-        st.sidebar.markdown("---")
-        st.sidebar.header("⚙️ システム詳細設定")
-        
-        save_mode = st.sidebar.radio(
-            "機器情報ページとQRコードの保存方式を選択:",
-            ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"],
-            index=1,
-            key="save_mode_radio"
-        )
-        
-        if save_mode == "2. 全自動（データベース保存）":
-            st.sidebar.info("💡 データベースの接続キーを設定すると全自動化されます。")
-            github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
-            default_token = st.secrets.get("github_token", "")
-            github_token = st.sidebar.text_input("システム接続キー (トークン)", value=default_token, type="password", key="github_token_input")
-            
-        elif save_mode == "3. 社内共有フォルダへ自動保存":
-            st.sidebar.warning("※機能実装準備中※\n会社のPCで直接アプリを動かす環境への移行が必要です。")
-            local_path = st.sidebar.text_input("共有フォルダのパス", value=r"C:\Equipment_Manuals")
-
-        st.sidebar.markdown("---")
-        include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
-        
-        st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-        st.title("📱 機器情報ページ ＆ QR管理システム")
-        st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
-        
-        import streamlit.components.v1 as components
-        js_code = ""
-        if st.session_state.get("scroll_to_top"):
-            js_code = "var target = window.parent.document.getElementById('top_anchor') || window.parent.document.querySelector('h1'); if (target) { target.scrollIntoView(true); } else { window.parent.scrollTo(0, 0); }"
-            st.session_state["scroll_to_top"] = False
-        components.html(f"<script>{js_code}</script>", height=0)
-            
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.header("1. 基本情報入力")
-            did = st.text_input("管理番号 (例: 2699)", key="input_did")
-            name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
-            power = st.selectbox("使用電源", ["100V", "200V"], index=None, placeholder="選択してください", key="input_power")
-            
-            st.markdown("---")
-            st.header("📝 メモ・備考欄")
-            memo = st.text_area("現場へ伝える補足情報", height=150, placeholder="例: 設定温度は25℃を維持すること。", key="input_memo")
-
-        with col2:
-            st.header("2. 画像の指定")
-            img_exterior = st.file_uploader("機器外観", type=["png", "jpg", "jpeg"], key=f"img_exterior_{rk}")
-            img_outlet = st.file_uploader("コンセント位置", type=["png", "jpg", "jpeg"], key=f"img_outlet_{rk}")
-            img_label = st.file_uploader("資産管理ラベル", type=["png", "jpg", "jpeg"], key=f"img_label_{rk}")
-            is_related_loto = st.checkbox("関連機器・付帯設備のLOTO手順書として登録する", key=f"is_related_loto_{rk}")
-            img_loto1 = st.file_uploader("LOTO手順書（1ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto1_{rk}")
-            img_loto2 = st.file_uploader("LOTO手順書（2ページ目）", type=["png", "jpg", "jpeg"], key=f"img_loto2_{rk}")
-            
-            st.markdown("---")
-            st.subheader("➕ 追加情報の画像（点検表など）")
-            ex_imgs = []
-            for i in range(st.session_state["extra_images_count"]):
-                et = st.text_input(f"タイトルの入力 {i+1}", key=f"ex_title_{rk}_{i}")
-                ef = st.file_uploader(f"画像の選択 {i+1}", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
-                if ef: ex_imgs.append((ef, et if et else f"追加画像 {i+1}"))
-            if st.button("➕ 項目を追加する"):
-                st.session_state["extra_images_count"] += 1
-                st.rerun()
-            
-        st.markdown("---")
-        st.header("3. 機器情報ページ プレビュー確認")
-        
-        if st.button("🔍 機器情報ページを生成してプレビュー", type="secondary"):
-            if did and name and power:
-                with st.spinner("プレビューを作成中..."):
-                    try:
-                        data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
-                        safe_id = safe_filename(did)
-                        manual_path = MANUAL_DIR / f"{safe_id}.jpg"
-                        create_manual_image_extended(data, ex_imgs, manual_path)
-                        
-                        if manual_path.exists():
-                            st.success("✨ プレビューの作成に成功しました！")
-                            with open(manual_path, "rb") as f: img_base64 = base64.b64encode(f.read()).decode("utf-8")
-                            img_html = f'<div style="max-height: 500px; overflow-y: scroll; border: 2px solid #ddd; padding: 10px; border-radius: 5px;"><img src="data:image/jpeg;base64,{img_base64}" style="width: 100%; height: auto;"></div>'
-                            components.html(img_html, height=520)
-                            dl_file_name = f"{safe_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{safe_id}.jpg"
-                            with open(manual_path, "rb") as img_file:
-                                st.download_button(label="📥 (手動用) プレビュー画像をダウンロード", data=img_file, file_name=dl_file_name, mime="image/jpeg")
-                    except Exception as e:
-                        st.error(f"プレビュー生成エラー: {str(e)}")
-            else:
-                st.error("管理番号、機器名称、使用電源は全て必須です。")
-
-        st.markdown("---")
-        st.header("4. データ登録 ＆ 印刷用ラベル発行")
-        
-        if save_mode == "1. 手動ダウンロードのみ":
-            long_url = st.text_input("保管先等のURLを貼り付け")
-            if st.button("🖨️ 手動設定で印刷用QRラベルを発行する", type="primary"):
-                if long_url and did and name and power:
-                    try:
-                        safe_id = safe_filename(did)
-                        qr_path = QR_DIR / f"{safe_id}_qr.png"
-                        img_qr = make_optimized_qr(long_url)
-                        img_qr.save(qr_path)
-                        
-                        if DB_CSV.exists():
-                            df = pd.read_csv(DB_CSV)
-                            df = df[df["ID"].astype(str) != str(did)]
-                        else:
-                            df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
-                        new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                        df.to_csv(DB_CSV, index=False)
-                        
-                        label_data = {"name": name, "power": power, "img_qr": img_qr}
-                        label_img = create_label_image(label_data)
-                        add_label_to_history(name, label_img)
-                        st.image(label_img, caption="印刷用ラベル（3.5x2cm固定版）", width=300)
-                    except Exception as e:
-                        st.error(f"エラー: {str(e)}")
-                    
-        elif save_mode == "2. 全自動（データベース保存）":
-            if st.button("🖨️ 【全自動】機器情報ページを登録し、印刷用QRラベルを発行する", type="primary"):
-                if did and name and power:
-                    with st.spinner("🔄 データベースへ登録中..."):
-                        try:
-                            data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
-                            safe_id = safe_filename(did)
-                            
-                            # 【修正】キャッシュ回避のため、ファイル名に日時(タイムスタンプ)を追加
-                            timestamp_str = datetime.now().strftime("%Y%m%d%H%M%S")
-                            file_name_for_github = f"{safe_id}_{timestamp_str}.jpg" 
-                            
-                            manual_path = MANUAL_DIR / file_name_for_github
-                            create_manual_image_extended(data, ex_imgs, manual_path)
-                            
-                            with open(manual_path, "rb") as f:
-                                encoded_content = base64.b64encode(f.read()).decode("utf-8")
-                            
-                            encoded_file_name = urllib.parse.quote(file_name_for_github)
-                            api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{encoded_file_name}"
-                            sha = None
-                            try:
-                                req_check = urllib.request.Request(api_url)
-                                req_check.add_header("Authorization", f"token {github_token}")
-                                with urllib.request.urlopen(req_check) as response:
-                                    res_data = json.loads(response.read().decode("utf-8"))
-                                    sha = res_data["sha"]
-                            except: pass
-                            
-                            payload = {"message": f"Auto upload {file_name_for_github}", "content": encoded_content, "branch": "main"}
-                            if sha: payload["sha"] = sha
-                            req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
-                            req.add_header("Authorization", f"token {github_token}")
-                            req.add_header("Content-Type", "application/json")
-                            with urllib.request.urlopen(req) as response:
-                                res_data = json.loads(response.read().decode("utf-8"))
-                                github_img_url = res_data["content"]["html_url"]
-                                
-                            img_cdn_url = github_img_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                            qr_path = QR_DIR / f"{safe_id}_qr.png"
-                            
-                            img_qr = make_optimized_qr(img_cdn_url)
-                            img_qr.save(qr_path)
-                            
-                            if DB_CSV.exists():
-                                df = pd.read_csv(DB_CSV)
-                                df = df[df["ID"].astype(str) != str(did)]
-                            else:
-                                df = pd.DataFrame(columns=["ID", "Name", "Power", "URL", "Updated"])
-                            new_data = {"ID": did, "Name": name, "Power": power, "URL": img_cdn_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                            df.to_csv(DB_CSV, index=False)
-                            
-                            label_data = {"name": name, "power": power, "img_qr": img_qr}
-                            label_img = create_label_image(label_data)
-                            add_label_to_history(name, label_img)
-                            
-                            st.success(f"✅ 登録完了！ URL: {img_cdn_url}")
-                            st.image(label_img, caption="印刷用ラベル（3.5x2cm固定版）", width=300)
-                        except Exception as e:
-                            st.error(f"エラー: {str(e)}")
-
-        st.markdown("---")
-        st.header("5. 次の作業")
-        
-        # 【追加】次のアクションを案内するメッセージ
-        st.info(
-            "💡 **登録完了後のステップ**\n\n"
-            "▶ **続けて別の機器を登録する場合**\n"
-            "下の「🔄 次の機器を入力する」ボタンを押すと、入力欄がクリアされて一番上に戻ります。\n\n"
-            "▶ **ラベルを印刷する場合**\n"
-            "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
-        )
-        
-        def reset_form_callback():
+    # 既存データの保持領域
+    if "existing_imgs" not in st.session_state: st.session_state["existing_imgs"] = {}
+    
+    def load_data_callback():
+        selected = st.session_state.db_select
+        st.session_state["form_reset_key"] += 1
+        if selected == "✨ 新規登録 (クリア)":
             st.session_state.input_did = ""
             st.session_state.input_name = ""
             st.session_state.input_power = None
-            st.session_state.input_memo = ""
-            st.session_state["extra_images_count"] = 0
-            if "db_select" in st.session_state: del st.session_state["db_select"]
-            st.session_state["form_reset_key"] += 1
-            st.session_state["scroll_to_top"] = True
-            
-        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
-
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
-        h_list = []
-        if LABEL_HISTORY_FILE.exists():
-            try:
-                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: h_list = json.load(f)
-            except: pass
-        current_count = len(h_list)
-        if current_count == 0:
-            st.sidebar.info("🈳 現在、台帳は白紙です。")
+            st.session_state.input_memo = "" 
+            st.session_state.existing_imgs = {}
         else:
-            st.sidebar.success(f"✅ 合計 {current_count} 枚のラベルを配置済み")
-            
-            rows_per_col = 13 
-            actual_cols = ((current_count - 1) // rows_per_col) + 1
-            grid_html_view = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:13px;line-height:1.2;text-align:left;'>"
-            for r in range(rows_per_col):
-                row_str_line = ""
-                for c in range(actual_cols):
-                    idx_val = c * rows_per_col + r
-                    if idx_val < current_count:
-                        num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
-                        row_str_line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
-                    else:
-                        row_str_line += "<span style='display:inline-block;width:26px;text-align:center;color:#ccc;'>⬜</span>"
-                grid_html_view += row_str_line + "<br>"
-            st.sidebar.markdown(grid_html_view + "</div>", unsafe_allow_html=True)
-            
-            for i_idx, itm_obj in enumerate(h_list):
-                cb1, cb2 = st.sidebar.columns([5, 1])
-                list_num_icon = chr(9311 + i_idx + 1) if i_idx < 20 else f"({i_idx+1})"
-                cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>{list_num_icon} {itm_obj['name']}</div>", unsafe_allow_html=True)
-                if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
+            did_str = selected.split(" : ")[0]
+            df = pd.read_csv(DB_CSV)
+            match = df[df["ID"].astype(str) == did_str]
+            if not match.empty:
+                row = match.iloc[-1]
+                st.session_state.input_did = str(row["ID"])
+                st.session_state.input_name = str(row["Name"])
+                st.session_state.input_power = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
+                st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+                
+                # DBから画像URL/パスを読み込んで保持
+                st.session_state.existing_imgs = {
+                    "ext": str(row.get("img_exterior", "")),
+                    "out": str(row.get("img_outlet", "")),
+                    "lab": str(row.get("img_label", "")),
+                    "lo1": str(row.get("img_loto1", "")),
+                    "lo2": str(row.get("img_loto2", ""))
+                }
+    
+    st.sidebar.header("🗄️ 登録済み機器データベース")
+    df = pd.read_csv(DB_CSV)
+    options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
+    selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select", on_change=load_data_callback)
+    
+    if selected_edit != "✨ 新規登録 (クリア)":
+        if st.sidebar.button("🗑️ この機器をデータベースから削除"):
+            did_to_del = selected_edit.split(" : ")[0]
+            df = df[df["ID"].astype(str) != did_to_del]
+            df.to_csv(DB_CSV, index=False)
+            st.sidebar.success("削除しました！")
+            st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
+            st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+            st.session_state["form_reset_key"] += 1
+            if "db_select" in st.session_state: del st.session_state["db_select"]
+            st.rerun()
+
+    st.sidebar.markdown("---")
+    st.sidebar.header("⚙️ システム詳細設定")
+    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
+    
+    github_repo = ""; github_token = ""; local_path = ""
+    if save_mode == "2. 全自動（データベース保存）":
+        github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
+        github_token = st.sidebar.text_input("システム接続キー (トークン)", value=st.secrets.get("github_token", ""), type="password")
+    elif save_mode == "3. 社内共有フォルダへ自動保存":
+        local_path = st.sidebar.text_input("共有フォルダのパス", value=r"C:\Equipment_Manuals")
+
+    st.sidebar.markdown("---")
+    include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
+    
+    st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
+    st.title("📱 機器情報ページ ＆ QR管理システム")
+    
+    if st.session_state.get("scroll_to_top"):
+        import streamlit.components.v1 as components
+        components.html("<script>var t=window.parent.document.getElementById('top_anchor');if(t){t.scrollIntoView(true);}else{window.parent.scrollTo(0,0);}</script>", height=0)
+        st.session_state["scroll_to_top"] = False
         
-        if EXCEL_LABEL_PATH.exists():
-            with open(EXCEL_LABEL_PATH, "rb") as f_excel: st.sidebar.download_button("📥 最新のExcelをダウンロード", f_excel, "labels.xlsx")
-            if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.header("1. 基本情報入力")
+        did = st.text_input("管理番号 (例: 2699)", key="input_did")
+        name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
+        power = st.selectbox("使用電源", ["100V", "200V"], index=None, key="input_power")
+        st.markdown("---")
+        st.header("📝 メモ・備考欄")
+        memo = st.text_area("現場へ伝える補足情報", height=150, key="input_memo")
+
+    # --- 画像のプレビュー＆アップロードUI作成関数 ---
+    def render_image_ui(label, key_suffix, existing_path):
+        st.markdown(f"**{label}**")
+        has_existing = pd.notna(existing_path) and str(existing_path).strip() != "" and str(existing_path) != "nan"
+        
+        del_flag = False
+        if has_existing:
+            # プレビュー表示
+            try:
+                if str(existing_path).startswith("http"): st.image(existing_path, width=180, caption="現在保存されている画像")
+                elif Path(existing_path).exists(): st.image(str(existing_path), width=180, caption="現在保存されている画像")
+                del_flag = st.checkbox(f"🗑️ この画像を削除する", key=f"del_{key_suffix}_{rk}")
+            except:
+                st.warning("※保存先の画像が見つかりません")
+                has_existing = False
+                
+        new_file = st.file_uploader("新しい画像で上書きする" if has_existing else "画像をアップロード", type=["png", "jpg", "jpeg"], key=f"up_{key_suffix}_{rk}")
+        st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+        return new_file, del_flag, existing_path if has_existing else ""
+
+    with col2:
+        st.header("2. 画像の指定・管理")
+        imgs = st.session_state.existing_imgs
+        
+        f_ext, d_ext, e_ext = render_image_ui("機器外観", "ext", imgs.get("ext", ""))
+        f_out, d_out, e_out = render_image_ui("コンセント位置", "out", imgs.get("out", ""))
+        f_lab, d_lab, e_lab = render_image_ui("資産管理ラベル", "lab", imgs.get("lab", ""))
+        
+        st.markdown("---")
+        is_related_loto = st.checkbox("関連機器のLOTO手順書として登録する")
+        f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
+        f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
+        
+        st.markdown("---")
+        st.subheader("➕ 追加情報の画像")
+        ex_imgs = []
+        for i in range(st.session_state["extra_images_count"]):
+            et = st.text_input(f"タイトル {i+1}", key=f"ex_title_{rk}_{i}")
+            ef = st.file_uploader(f"画像 {i+1}", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
+            if ef: ex_imgs.append((ef, et if et else f"追加画像 {i+1}"))
+        if st.button("➕ 追加枠を増やす"):
+            st.session_state["extra_images_count"] += 1
+            st.rerun()
+
+    # マニュアル生成用に「アップロードされたファイルか、既存のパスか」を判定する関数
+    def get_input_for_manual(file_obj, del_flag, existing_path):
+        if del_flag: return None
+        if file_obj: return file_obj
+        if existing_path: return existing_path
+        return None
+
+    # --- プレビュー機能 ---
+    st.markdown("---")
+    st.header("3. 機器情報ページ プレビュー確認")
+    if st.button("🔍 プレビューを作成", type="secondary"):
+        if did and name and power:
+            with st.spinner("プレビュー作成中..."):
+                m_data = {
+                    "id": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
+                    "img_exterior": get_input_for_manual(f_ext, d_ext, e_ext),
+                    "img_outlet": get_input_for_manual(f_out, d_out, e_out),
+                    "img_label": get_input_for_manual(f_lab, d_lab, e_lab),
+                    "img_loto1": get_input_for_manual(f_lo1, d_lo1, e_lo1),
+                    "img_loto2": get_input_for_manual(f_lo2, d_lo2, e_lo2)
+                }
+                manual_path = MANUAL_DIR / f"preview_{rk}.jpg"
+                create_manual_image_extended(m_data, ex_imgs, manual_path)
+                if manual_path.exists():
+                    st.success("プレビュー成功！")
+                    with open(manual_path, "rb") as f: img_b64 = base64.b64encode(f.read()).decode("utf-8")
+                    st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{img_b64}" width="100%"></div>', height=520)
+        else:
+            st.error("管理番号、機器名称、使用電源は必須です。")
+
+    # --- 登録・発行機能 ---
+    st.markdown("---")
+    st.header("4. データ登録 ＆ 印刷用ラベル発行")
+    
+    if save_mode == "1. 手動ダウンロードのみ":
+        long_url = st.text_input("保管先等のURLを貼り付け")
+        if st.button("🖨️ 手動設定でラベルを発行", type="primary"):
+            if long_url and did and name and power:
+                # 登録処理 (手動時は個別画像保存は行わず、QRのみ生成)
+                qr_path = QR_DIR / f"{safe_filename(did)}_qr.png"
+                img_qr = make_optimized_qr(long_url)
+                img_qr.save(qr_path)
+                
+                df = pd.read_csv(DB_CSV)
+                df = df[df["ID"].astype(str) != str(did)]
+                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "memo": memo}
+                df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                df.to_csv(DB_CSV, index=False)
+                
+                label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
+                add_label_to_history(name, label_img)
+                st.image(label_img, caption="印刷用ラベル", width=300)
+
+    elif save_mode in ["2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"]:
+        if st.button("🖨️ 【全自動】画像を保存し、台帳へ登録してラベルを発行する", type="primary"):
+            if did and name and power:
+                with st.spinner("🔄 画像の圧縮とデータベース保存を実行中..."):
+                    try:
+                        # 1. 個別画像を圧縮して保存し、新しいパス/URLを取得する
+                        def process_save(f_obj, d_flag, e_path, suffix):
+                            if d_flag: return ""
+                            if f_obj: return save_image_to_storage(f_obj, did, suffix, save_mode, github_repo, github_token, local_path)
+                            return e_path
+                            
+                        fin_ext = process_save(f_ext, d_ext, e_ext, "ext")
+                        fin_out = process_save(f_out, d_out, e_out, "out")
+                        fin_lab = process_save(f_lab, d_lab, e_lab, "lab")
+                        fin_lo1 = process_save(f_lo1, d_lo1, e_lo1, "lo1")
+                        fin_lo2 = process_save(f_lo2, d_lo2, e_lo2, "lo2")
+
+                        # 2. マニュアル画像の生成
+                        m_data = {
+                            "id": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
+                            "img_exterior": fin_ext if fin_ext else None,
+                            "img_outlet": fin_out if fin_out else None,
+                            "img_label": fin_lab if fin_lab else None,
+                            "img_loto1": fin_lo1 if fin_lo1 else None,
+                            "img_loto2": fin_lo2 if fin_lo2 else None
+                        }
+                        
+                        ts_str = datetime.now().strftime("%Y%m%d%H%M%S")
+                        s_id = safe_filename(did)
+                        file_name_manual = f"{s_id}_{ts_str}.jpg"
+                        manual_path = MANUAL_DIR / file_name_manual
+                        
+                        create_manual_image_extended(m_data, ex_imgs, manual_path)
+
+                        # 3. マニュアル画像の保存
+                        final_manual_url = ""
+                        if save_mode == "2. 全自動（データベース保存）":
+                            with open(manual_path, "rb") as f:
+                                payload = {"message": f"Upload Manual {file_name_manual}", "content": base64.b64encode(f.read()).decode("utf-8"), "branch": "main"}
+                                req = urllib.request.Request(f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}", data=json.dumps(payload).encode("utf-8"), method="PUT")
+                                req.add_header("Authorization", f"token {github_token}"); req.add_header("Content-Type", "application/json")
+                                with urllib.request.urlopen(req) as res:
+                                    final_manual_url = json.loads(res.read().decode("utf-8"))["content"]["html_url"].replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                        
+                        elif save_mode == "3. 社内共有フォルダへ自動保存":
+                            target_dir = Path(local_path) / "manuals"
+                            target_dir.mkdir(parents=True, exist_ok=True)
+                            out_manual = target_dir / file_name_manual
+                            shutil.copy(manual_path, out_manual)
+                            final_manual_url = str(out_manual).replace("\\", "/") # WindowsパスをURL形式に
+
+                        # 4. QRコードとラベルの生成
+                        qr_path = QR_DIR / f"{s_id}_qr.png"
+                        img_qr = make_optimized_qr(final_manual_url)
+                        img_qr.save(qr_path)
+                        
+                        label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
+                        add_label_to_history(name, label_img)
+
+                        # 5. CSVデータベースの更新
+                        df = pd.read_csv(DB_CSV)
+                        df = df[df["ID"].astype(str) != str(did)]
+                        new_row = {
+                            "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "memo": memo, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2
+                        }
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                        df.to_csv(DB_CSV, index=False)
+
+                        st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
+                        st.image(label_img, caption="印刷用ラベル", width=300)
+                        
+                    except Exception as e:
+                        st.error(f"エラーが発生しました: {str(e)}")
+
+    st.markdown("---")
+    st.header("5. 次の作業")
+    st.info(
+        "💡 **登録完了後のステップ**\n\n"
+        "▶ **続けて別の機器を登録する場合**\n"
+        "下の「🔄 次の機器を入力する」ボタンを押すと、入力欄がクリアされて一番上に戻ります。\n\n"
+        "▶ **ラベルを印刷する場合**\n"
+        "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
+    )
+    def reset_form_callback():
+        st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
+        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+        st.session_state["extra_images_count"] = 0
+        if "db_select" in st.session_state: del st.session_state["db_select"]
+        st.session_state["form_reset_key"] += 1
+        st.session_state["scroll_to_top"] = True
+        
+    st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
+
+    # --- サイドバー：Excel台帳状況 ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
+    h_list = []
+    if LABEL_HISTORY_FILE.exists():
+        try:
+            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: h_list = json.load(f)
+        except: pass
+    
+    c_len = len(h_list)
+    if c_len == 0: st.sidebar.info("🈳 現在、台帳は白紙です。")
+    else:
+        st.sidebar.success(f"✅ 合計 {c_len} 枚のラベルを配置済み")
+        cols = ((c_len - 1) // 13) + 1
+        grid_html = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:13px;line-height:1.2;text-align:left;'>"
+        for r in range(13):
+            line = ""
+            for c in range(cols):
+                idx = c * 13 + r
+                if idx < c_len:
+                    num_icon = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
+                    line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
+                else: line += "<span style='display:inline-block;width:26px;text-align:center;color:#ccc;'>⬜</span>"
+            grid_html += line + "<br>"
+        st.sidebar.markdown(grid_html + "</div>", unsafe_allow_html=True)
+        
+        for i, obj in enumerate(h_list):
+            cb1, cb2 = st.sidebar.columns([5, 1])
+            icon = chr(9311 + i + 1) if i < 20 else f"({i+1})"
+            cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>{icon} {obj['name']}</div>", unsafe_allow_html=True)
+            if cb2.button("❌", key=f"d_itm_{i}"): delete_label_from_history(i); st.rerun()
+    
+    if EXCEL_LABEL_PATH.exists():
+        with open(EXCEL_LABEL_PATH, "rb") as f: st.sidebar.download_button("📥 最新のExcelをダウンロード", f, "labels.xlsx")
+        if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
 
 if __name__ == "__main__":
     main()
-
-
-
-
