@@ -547,7 +547,7 @@ def main():
         include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
         
         st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-        st.title("📱 機器情報ページ ＆ QRラベル管理システム")
+        st.title("📱 機器情報ページ ＆ QR管理システム")
         st.info("※ この画面はPCでの機器情報ページ作成・台帳登録用です。")
         
         import streamlit.components.v1 as components
@@ -764,3 +764,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
