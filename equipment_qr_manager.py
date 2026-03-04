@@ -730,6 +730,16 @@ def main():
 
         st.markdown("---")
         st.header("5. 次の作業")
+        
+        # 【追加】次のアクションを案内するメッセージ
+        st.info(
+            "💡 **登録完了後のステップ**\n\n"
+            "▶ **続けて別の機器を登録する場合**\n"
+            "下の「🔄 次の機器を入力する」ボタンを押すと、入力欄がクリアされて一番上に戻ります。\n\n"
+            "▶ **ラベルを印刷する場合**\n"
+            "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
+        )
+        
         def reset_form_callback():
             st.session_state.input_did = ""
             st.session_state.input_name = ""
@@ -782,3 +792,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
