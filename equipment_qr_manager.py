@@ -620,10 +620,15 @@ def main():
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
                     try:
-                        data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
-                        safe_id = safe_filename(did)
-                        manual_path = MANUAL_DIR / f"{safe_id}.jpg"
-                        create_manual_image_extended(data, ex_imgs, manual_path)
+                            data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
+                            safe_id = safe_filename(did)
+                            
+                            # 【キャッシュ回避】ファイル名に登録時刻を追加し、毎回確実に「最新の画像」としてサーバーに認識させる
+                            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                            file_name_for_github = f"{safe_id}_{timestamp}.jpg" 
+                            
+                            manual_path = MANUAL_DIR / file_name_for_github
+                            create_manual_image_extended(data, ex_imgs, manual_path)
                         
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！")
@@ -781,3 +786,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
