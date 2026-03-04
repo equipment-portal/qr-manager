@@ -47,24 +47,26 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【爆速化】URL短縮 ＆ QR生成 ---
+# --- 【復旧・強化】URL短縮 ＆ 爆速QR生成 ---
 # ==========================================
 def make_short_url(long_url):
+    """長いURLを短縮サービス(is.gd)で極限まで短くし、QRのドットを太くする"""
     try:
         api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
         req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req) as res:
             return res.read().decode('utf-8')
     except:
-        return long_url
+        return long_url # 失敗時は元のURLを返す
 
 def make_optimized_qr(url):
+    """短いURLから、ドットが太く読み取りやすいQRを生成"""
     short_url = make_short_url(url)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=1,
+        border=1, # 余白を極限まで削る
     )
     qr.add_data(short_url)
     qr.make(fit=True)
@@ -473,7 +475,6 @@ def main():
     else:
         st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
         
-        # --- 【UI改善】サイドバーの要素間隔とボタン位置を調整するCSS ---
         st.markdown("""
         <style>
         .stButton button { width: 100%; border-radius: 5px; }
@@ -507,7 +508,6 @@ def main():
                 st.session_state.input_did = ""
                 st.session_state.input_name = ""
                 st.session_state.input_power = None
-                # 【重要修正】クリア時にメモ欄と画像枠も確実に空っぽにする
                 st.session_state.input_memo = "" 
                 st.session_state["form_reset_key"] += 1
             else:
@@ -519,7 +519,6 @@ def main():
                     st.session_state.input_did = str(row["ID"])
                     st.session_state.input_name = str(row["Name"])
                     st.session_state.input_power = str(row["Power"]) if pd.notna(row["Power"]) else None
-                    # 【重要修正】別の機器を読み込んだ時もメモ欄と画像枠をクリアする
                     st.session_state.input_memo = "" 
                     st.session_state["form_reset_key"] += 1
 
@@ -620,15 +619,10 @@ def main():
             if did and name and power:
                 with st.spinner("プレビューを作成中..."):
                     try:
-                            data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
-                            safe_id = safe_filename(did)
-                            
-                            # 【キャッシュ回避】ファイル名に登録時刻を追加し、毎回確実に「最新の画像」としてサーバーに認識させる
-                            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                            file_name_for_github = f"{safe_id}_{timestamp}.jpg" 
-                            
-                            manual_path = MANUAL_DIR / file_name_for_github
-                            create_manual_image_extended(data, ex_imgs, manual_path)
+                        data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
+                        safe_id = safe_filename(did)
+                        manual_path = MANUAL_DIR / f"{safe_id}.jpg"
+                        create_manual_image_extended(data, ex_imgs, manual_path)
                         
                         if manual_path.exists():
                             st.success("✨ プレビューの作成に成功しました！")
@@ -679,7 +673,11 @@ def main():
                         try:
                             data = {"id": did, "name": name, "power": power, "img_exterior": img_exterior, "img_outlet": img_outlet, "img_label": img_label, "img_loto1": img_loto1, "img_loto2": img_loto2, "is_related_loto": is_related_loto, "memo": memo if memo.strip() else "なし"}
                             safe_id = safe_filename(did)
-                            file_name_for_github = f"{safe_id}.jpg" 
+                            
+                            # 【修正】キャッシュ回避のため、ファイル名に日時(タイムスタンプ)を追加
+                            timestamp_str = datetime.now().strftime("%Y%m%d%H%M%S")
+                            file_name_for_github = f"{safe_id}_{timestamp_str}.jpg" 
+                            
                             manual_path = MANUAL_DIR / file_name_for_github
                             create_manual_image_extended(data, ex_imgs, manual_path)
                             
@@ -765,7 +763,6 @@ def main():
                 for c in range(actual_cols):
                     idx_val = c * rows_per_col + r
                     if idx_val < current_count:
-                        # 【修正③】〇付き数字に変更
                         num_icon = chr(9311 + idx_val + 1) if idx_val < 20 else f"({idx_val+1})"
                         row_str_line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
                     else:
@@ -775,7 +772,6 @@ def main():
             
             for i_idx, itm_obj in enumerate(h_list):
                 cb1, cb2 = st.sidebar.columns([5, 1])
-                # 【修正④】リスト番号を〇付きに変更し、文字サイズと高さを完璧に合わせる
                 list_num_icon = chr(9311 + i_idx + 1) if i_idx < 20 else f"({i_idx+1})"
                 cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>{list_num_icon} {itm_obj['name']}</div>", unsafe_allow_html=True)
                 if cb2.button("❌", key=f"d_itm_{i_idx}"): delete_label_from_history(i_idx); st.rerun()
@@ -786,4 +782,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
