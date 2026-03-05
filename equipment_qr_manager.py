@@ -47,7 +47,7 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 【新規追加】画像自動圧縮＆最適化エンジン ---
+# --- 画像自動圧縮＆最適化エンジン ---
 # ==========================================
 def compress_image(uploaded_file, max_size=1000):
     """文字が読める画質を保ちつつ、ファイルサイズを劇的に軽くする"""
@@ -63,11 +63,8 @@ def compress_image(uploaded_file, max_size=1000):
         if img.mode in ('RGBA', 'P'):
             img = img.convert('RGB')
             
-        # 長辺がmax_sizeに収まるようにリサイズ
         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-        
         output = io.BytesIO()
-        # 画質75で保存（容量と画質のベストバランス）
         img.save(output, format="JPEG", quality=75, optimize=True)
         return output.getvalue()
     except Exception as e:
@@ -125,7 +122,6 @@ def create_manual_image(data, output_path):
             return sec_img
         
         try:
-            # URLやローカルパスの文字列が渡された場合の対応
             if isinstance(img_file, str):
                 if img_file.startswith("http"):
                     req = urllib.request.Request(img_file, headers={'User-Agent': 'Mozilla/5.0'})
@@ -134,7 +130,8 @@ def create_manual_image(data, output_path):
                 else:
                     pil_img = Image.open(img_file)
             elif hasattr(img_file, 'read'):
-                pil_img = Image.open(io.BytesIO(img_file.read()))
+                file_bytes = img_file.read()
+                pil_img = Image.open(io.BytesIO(file_bytes))
                 img_file.seek(0)
             else:
                 pil_img = Image.open(img_file)
@@ -151,7 +148,6 @@ def create_manual_image(data, output_path):
             return sec_img
         except: return None
 
-    # チェックボックスのON/OFFでタイトルに「（関連機器、付帯設備）」を自動付与する
     loto_suffix = "（関連機器、付帯設備）" if data.get('is_related_loto') else ""
     img_list = [
         (data.get('img_exterior'), "機器外観"),
@@ -172,6 +168,7 @@ def create_manual_image(data, output_path):
         curr_y += s.height
     final_img.convert('RGB').save(output_path, format="JPEG", quality=85)
 
+# 【改修】追加画像もURL/ファイル両対応にアップデート
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600; margin = 80; content_w = W - margin * 2
     try:
@@ -185,7 +182,18 @@ def create_manual_image_extended(data, extra_images, output_path):
 
     for ex_f, ex_t in extra_images:
         try:
-            pil = ImageOps.exif_transpose(Image.open(ex_f)).convert('RGB')
+            if isinstance(ex_f, str):
+                if ex_f.startswith("http"):
+                    req = urllib.request.Request(ex_f, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req) as res: pil = Image.open(io.BytesIO(res.read()))
+                else: pil = Image.open(ex_f)
+            elif hasattr(ex_f, 'read'):
+                file_bytes = ex_f.read()
+                pil = Image.open(io.BytesIO(file_bytes))
+                ex_f.seek(0)
+            else: pil = Image.open(ex_f)
+
+            pil = ImageOps.exif_transpose(pil).convert('RGB')
             nh = int(content_w * (pil.height / pil.width))
             pil = pil.resize((content_w, nh), Image.Resampling.LANCZOS)
             si = Image.new('RGB', (W, 160 + nh), 'white')
@@ -288,8 +296,7 @@ def rebuild_excel():
         cell_col = c_idx + 1; cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
         ws.column_dimensions[col_letter].width = 19.5
-        # 【修正】縦のカットを容易にするため、セルの高さを3ポイント(約1mm)広げて隙間を作る
-        ws.row_dimensions[cell_row].height = 63.0
+        ws.row_dimensions[cell_row].height = 63.0 # 【修正済】1mmのカット用隙間
         xl_img = XLImage(str(img_path))
         xl_img.width = 132; xl_img.height = 76
         xl_img.anchor = f"{col_letter}{cell_row}"
@@ -334,7 +341,6 @@ def clear_history():
 # --- ストレージ保存処理（個別画像用） ---
 # ==========================================
 def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
-    """アップロードされた画像を圧縮して指定先に保存し、パス/URLを返す"""
     if not file_obj: return ""
     comp_data = compress_image(file_obj)
     if not comp_data: return ""
@@ -398,7 +404,6 @@ def main():
         else: st.error("データベースが見つかりません。")
         return
 
-    # --- 登録・管理画面 ---
     st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
     st.markdown("""
     <style>
@@ -410,8 +415,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # --- データベースの初期化と拡張 ---
-    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2"]
+    # --- 【拡張】データベースに「追加画像保存用列」を追加 ---
+    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2", "extra_images"]
     if not DB_CSV.exists():
         pd.DataFrame(columns=db_columns).to_csv(DB_CSV, index=False)
     else:
@@ -427,7 +432,6 @@ def main():
     if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
     rk = st.session_state["form_reset_key"]
 
-    # --- ゾンビ現象を防ぐための安全な履歴管理 ---
     if "prev_db_select" not in st.session_state: 
         st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
     
@@ -438,12 +442,11 @@ def main():
             options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
             selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select")
             
-            # 選択が変更された瞬間だけ確実にデータを読み込む
             if selected_edit != st.session_state["prev_db_select"]:
                 st.session_state["prev_db_select"] = selected_edit
                 if selected_edit == "✨ 新規登録 (クリア)":
                     st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
                 else:
                     did_str = selected_edit.split(" : ")[0]
                     match = df[df["ID"].astype(str) == did_str]
@@ -457,6 +460,11 @@ def main():
                             "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
                             "lab": str(row.get("img_label", "")), "lo1": str(row.get("img_loto1", "")), "lo2": str(row.get("img_loto2", ""))
                         }
+                        # 【拡張】JSON化された追加画像リストを復元
+                        ex_str = str(row.get("extra_images", "[]"))
+                        if pd.isna(row.get("extra_images")): ex_str = "[]"
+                        try: st.session_state.existing_ex_imgs = json.loads(ex_str)
+                        except: st.session_state.existing_ex_imgs = []
                 st.session_state["form_reset_key"] += 1
                 st.rerun()
 
@@ -468,7 +476,7 @@ def main():
                     df.to_csv(DB_CSV, index=False)
                     st.sidebar.success("削除しました！")
                     st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
                     st.session_state["db_select"] = "✨ 新規登録 (クリア)"
                     st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
                     st.session_state["form_reset_key"] += 1
@@ -507,14 +515,12 @@ def main():
         st.header("📝 メモ・備考欄")
         memo = st.text_area("現場へ伝える補足情報", height=150, key="input_memo")
 
-    # --- 画像のプレビュー＆アップロードUI作成関数 ---
     def render_image_ui(label, key_suffix, existing_path):
         st.markdown(f"**{label}**")
         has_existing = pd.notna(existing_path) and str(existing_path).strip() != "" and str(existing_path) != "nan"
         
         del_flag = False
         if has_existing:
-            # プレビュー表示
             try:
                 if str(existing_path).startswith("http"): st.image(existing_path, width=180, caption="現在保存されている画像")
                 elif Path(existing_path).exists(): st.image(str(existing_path), width=180, caption="現在保存されている画像")
@@ -540,18 +546,49 @@ def main():
         f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
         f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
         
+        # --- 【究極進化】追加画像の保存・呼出・編集UI ---
         st.markdown("---")
         st.subheader("➕ 追加情報の画像")
-        ex_imgs = []
+        
+        ex_imgs_data_preview = [] # プレビュー送信用
+        ex_imgs_to_save = [] # 保存処理用
+        
+        existing_ex = st.session_state.get("existing_ex_imgs", [])
+        
+        # 1. 既存の追加画像を表示
+        for i, ex_dict in enumerate(existing_ex):
+            st.markdown(f"**既存の追加画像 {i+1}**")
+            e_path = ex_dict.get("url", "")
+            e_title = ex_dict.get("title", f"追加画像 {i+1}")
+            
+            if str(e_path).startswith("http"): st.image(e_path, width=180)
+            elif Path(e_path).exists(): st.image(str(e_path), width=180)
+            
+            del_ex = st.checkbox(f"🗑️ この追加画像を削除", key=f"del_ex_{rk}_{i}")
+            new_title = st.text_input(f"タイトル変更", value=e_title, key=f"edit_ex_t_{rk}_{i}")
+            new_f = st.file_uploader(f"画像を差し替え", type=["png", "jpg", "jpeg"], key=f"edit_ex_f_{rk}_{i}")
+            st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+            
+            if not del_ex:
+                final_f = new_f if new_f else e_path
+                ex_imgs_data_preview.append((final_f, new_title))
+                ex_imgs_to_save.append({"type": "existing", "file": new_f, "url": e_path, "title": new_title, "index": i})
+        
+        # 2. 新規の追加画像枠を表示
         for i in range(st.session_state["extra_images_count"]):
-            et = st.text_input(f"タイトル {i+1}", key=f"ex_title_{rk}_{i}")
-            ef = st.file_uploader(f"画像 {i+1}", type=["png", "jpg", "jpeg"], key=f"ex_img_{rk}_{i}")
-            if ef: ex_imgs.append((ef, et if et else f"追加画像 {i+1}"))
+            st.markdown(f"**新規の追加画像 {i+1}**")
+            et = st.text_input(f"タイトル", key=f"new_ex_title_{rk}_{i}")
+            ef = st.file_uploader(f"画像", type=["png", "jpg", "jpeg"], key=f"new_ex_img_{rk}_{i}")
+            st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+            if ef:
+                t = et if et else f"追加画像 {len(existing_ex) + i + 1}"
+                ex_imgs_data_preview.append((ef, t))
+                ex_imgs_to_save.append({"type": "new", "file": ef, "title": t, "index": i})
+
         if st.button("➕ 追加枠を増やす"):
             st.session_state["extra_images_count"] += 1
             st.rerun()
 
-    # マニュアル生成用に「アップロードされたファイルか、既存のパスか」を判定する関数
     def get_input_for_manual(file_obj, del_flag, existing_path):
         if del_flag: return None
         if file_obj: return file_obj
@@ -573,7 +610,7 @@ def main():
                     "img_loto2": get_input_for_manual(f_lo2, d_lo2, e_lo2)
                 }
                 manual_path = MANUAL_DIR / f"preview_{rk}.jpg"
-                create_manual_image_extended(m_data, ex_imgs, manual_path)
+                create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
                 if manual_path.exists():
                     st.success("プレビュー成功！")
                     with open(manual_path, "rb") as f: img_b64 = base64.b64encode(f.read()).decode("utf-8")
@@ -619,6 +656,20 @@ def main():
                         fin_lo1 = process_save(f_lo1, d_lo1, e_lo1, "lo1")
                         fin_lo2 = process_save(f_lo2, d_lo2, e_lo2, "lo2")
 
+                        # 追加画像の個別保存＆URL取得リストの作成
+                        final_extra_images_db = []
+                        for item in ex_imgs_to_save:
+                            if item["type"] == "existing":
+                                if item["file"]: # 上書きされた場合
+                                    saved_url = save_image_to_storage(item["file"], did, f"ex_{item['index']}", save_mode, github_repo, github_token, local_path)
+                                    if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
+                                else: # そのまま引き継ぐ場合
+                                    final_extra_images_db.append({"title": item["title"], "url": item["url"]})
+                            elif item["type"] == "new":
+                                if item["file"]: # 新規追加された場合
+                                    saved_url = save_image_to_storage(item["file"], did, f"ex_new_{item['index']}", save_mode, github_repo, github_token, local_path)
+                                    if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
+
                         m_data = {
                             "id": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
                             "img_exterior": fin_ext if fin_ext else None,
@@ -633,7 +684,7 @@ def main():
                         file_name_manual = f"{s_id}_{ts_str}.jpg"
                         manual_path = MANUAL_DIR / file_name_manual
                         
-                        create_manual_image_extended(m_data, ex_imgs, manual_path)
+                        create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
 
                         final_manual_url = ""
                         if save_mode == "2. 全自動（データベース保存）":
@@ -662,7 +713,8 @@ def main():
                         df = df[df["ID"].astype(str) != str(did)]
                         new_row = {
                             "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "memo": memo, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2
+                            "memo": memo, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
+                            "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) # JSON文字列としてデータベースに保存
                         }
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                         df.to_csv(DB_CSV, index=False)
@@ -684,7 +736,7 @@ def main():
     )
     def reset_form_callback():
         st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
         st.session_state["extra_images_count"] = 0
         st.session_state["db_select"] = "✨ 新規登録 (クリア)"
         st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
@@ -731,4 +783,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
