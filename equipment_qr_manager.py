@@ -151,13 +151,15 @@ def create_manual_image(data, output_path):
             return sec_img
         except: return None
 
-    img_list = [
-        (data.get('img_exterior'), "機器外観"),
-        (data.get('img_outlet'), "コンセント位置"),
-        (data.get('img_label'), "資産管理ラベル"),
-        (data.get('img_loto1'), "LOTO手順書 Page 1"),
-        (data.get('img_loto2'), "LOTO手順書 Page 2")
-    ]
+    # チェックボックスのON/OFFでタイトルに「（関連機器、付帯設備）」を自動付与する
+    loto_suffix = "（関連機器、付帯設備）" if data.get('is_related_loto') else ""
+    img_list = [
+        (data.get('img_exterior'), "機器外観"),
+        (data.get('img_outlet'), "コンセント位置"),
+        (data.get('img_label'), "資産管理ラベル"),
+        (data.get('img_loto1'), f"LOTO手順書{loto_suffix} Page 1"),
+        (data.get('img_loto2'), f"LOTO手順書{loto_suffix} Page 2")
+    ]
     for f, t in img_list:
         sec = process_img_section(f, t)
         if sec: sections.append(sec)
@@ -421,58 +423,55 @@ def main():
         if needs_save: df_init.to_csv(DB_CSV, index=False)
 
     if "form_reset_key" not in st.session_state: st.session_state["form_reset_key"] = 0
-    if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
-    rk = st.session_state["form_reset_key"]
+        if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
+        rk = st.session_state["form_reset_key"]
 
-    # 既存データの保持領域
-    if "existing_imgs" not in st.session_state: st.session_state["existing_imgs"] = {}
-    
-    def load_data_callback():
-        selected = st.session_state.db_select
-        st.session_state["form_reset_key"] += 1
-        if selected == "✨ 新規登録 (クリア)":
-            st.session_state.input_did = ""
-            st.session_state.input_name = ""
-            st.session_state.input_power = None
-            st.session_state.input_memo = "" 
-            st.session_state.existing_imgs = {}
-        else:
-            did_str = selected.split(" : ")[0]
+        # --- 【修正】ゾンビ現象を防ぐための安全な履歴管理 ---
+        if "prev_db_select" not in st.session_state: 
+            st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
+        
+        st.sidebar.header("🗄️ 登録済み機器データベース")
+        if DB_CSV.exists():
             df = pd.read_csv(DB_CSV)
-            match = df[df["ID"].astype(str) == did_str]
-            if not match.empty:
-                row = match.iloc[-1]
-                st.session_state.input_did = str(row["ID"])
-                st.session_state.input_name = str(row["Name"])
-                st.session_state.input_power = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
-                st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+            if not df.empty:
+                options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
+                selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select")
                 
-                # DBから画像URL/パスを読み込んで保持
-                st.session_state.existing_imgs = {
-                    "ext": str(row.get("img_exterior", "")),
-                    "out": str(row.get("img_outlet", "")),
-                    "lab": str(row.get("img_label", "")),
-                    "lo1": str(row.get("img_loto1", "")),
-                    "lo2": str(row.get("img_loto2", ""))
-                }
-    
-    st.sidebar.header("🗄️ 登録済み機器データベース")
-    df = pd.read_csv(DB_CSV)
-    options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
-    selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select", on_change=load_data_callback)
-    
-    if selected_edit != "✨ 新規登録 (クリア)":
-        if st.sidebar.button("🗑️ この機器をデータベースから削除"):
-            did_to_del = selected_edit.split(" : ")[0]
-            df = df[df["ID"].astype(str) != did_to_del]
-            df.to_csv(DB_CSV, index=False)
-            st.sidebar.success("削除しました！")
-            st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-            st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
-            st.session_state["form_reset_key"] += 1
-            if "db_select" in st.session_state: del st.session_state["db_select"]
-            st.rerun()
+                # 選択が変更された瞬間だけ確実にデータを読み込む
+                if selected_edit != st.session_state["prev_db_select"]:
+                    st.session_state["prev_db_select"] = selected_edit
+                    if selected_edit == "✨ 新規登録 (クリア)":
+                        st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
+                        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+                    else:
+                        did_str = selected_edit.split(" : ")[0]
+                        match = df[df["ID"].astype(str) == did_str]
+                        if not match.empty:
+                            row = match.iloc[-1]
+                            st.session_state.input_did = str(row["ID"])
+                            st.session_state.input_name = str(row["Name"])
+                            st.session_state.input_power = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
+                            st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+                            st.session_state.existing_imgs = {
+                                "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
+                                "lab": str(row.get("img_label", "")), "lo1": str(row.get("img_loto1", "")), "lo2": str(row.get("img_loto2", ""))
+                            }
+                    st.session_state["form_reset_key"] += 1
+                    st.rerun()
 
+                if selected_edit != "✨ 新規登録 (クリア)":
+                    st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
+                    if st.sidebar.button("🗑️ この機器をデータベースから削除"):
+                        did_to_del = selected_edit.split(" : ")[0]
+                        df = df[df["ID"].astype(str) != did_to_del]
+                        df.to_csv(DB_CSV, index=False)
+                        st.sidebar.success("削除しました！")
+                        st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
+                        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
+                        st.session_state["db_select"] = "✨ 新規登録 (クリア)"
+                        st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
+                        st.session_state["form_reset_key"] += 1
+                        st.rerun()
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
     save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
@@ -691,7 +690,9 @@ def main():
         st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
         st.session_state.input_memo = ""; st.session_state.existing_imgs = {}
         st.session_state["extra_images_count"] = 0
-        if "db_select" in st.session_state: del st.session_state["db_select"]
+        # 【修正】削除ではなく、明示的にクリア状態をセットしてゾンビ化を防ぐ
+        st.session_state["db_select"] = "✨ 新規登録 (クリア)"
+        st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
         st.session_state["form_reset_key"] += 1
         st.session_state["scroll_to_top"] = True
         
@@ -735,3 +736,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
