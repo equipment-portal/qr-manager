@@ -50,7 +50,6 @@ def safe_filename(name):
 # --- 画像自動圧縮＆最適化エンジン ---
 # ==========================================
 def compress_image(uploaded_file, max_size=1000):
-    """文字が読める画質を保ちつつ、ファイルサイズを劇的に軽くする"""
     try:
         if hasattr(uploaded_file, 'read'):
             file_bytes = uploaded_file.read()
@@ -370,6 +369,54 @@ def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
     
     return ""
 
+# ==========================================
+# --- 【新規追加】マスター台帳Excelの自動生成・保存 ---
+# ==========================================
+def update_master_ledger_excel(df_csv, mode, repo, token, local_path):
+    """データベース(CSV)から、監査用の見やすいExcel台帳を生成し自動保存する"""
+    try:
+        df_export = df_csv.rename(columns={
+            "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
+            "URL": "マニュアルURL", "Updated": "最終更新日時", "memo": "メモ・備考"
+        })
+        cols_to_keep = ["管理番号", "機器名称", "使用電源", "マニュアルURL", "最終更新日時", "メモ・備考"]
+        df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター")
+        excel_data = output.getvalue()
+        
+        file_name = "機器台帳マスター.xlsx"
+        
+        if mode == "2. 全自動（データベース保存）":
+            encoded = base64.b64encode(excel_data).decode("utf-8")
+            api_url = f"https://api.github.com/repos/{repo}/contents/ledger/{urllib.parse.quote(file_name)}"
+            
+            sha = None
+            try:
+                req_check = urllib.request.Request(api_url)
+                req_check.add_header("Authorization", f"token {token}")
+                with urllib.request.urlopen(req_check) as res:
+                    sha = json.loads(res.read().decode("utf-8"))["sha"]
+            except: pass
+            
+            payload = {"message": "Update Master Ledger", "content": encoded, "branch": "main"}
+            if sha: payload["sha"] = sha
+            
+            req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
+            req.add_header("Authorization", f"token {token}")
+            req.add_header("Content-Type", "application/json")
+            urllib.request.urlopen(req)
+            
+        elif mode == "3. 社内共有フォルダへ自動保存":
+            target_dir = Path(local_path)
+            target_dir.mkdir(parents=True, exist_ok=True)
+            out_path = target_dir / file_name
+            with open(out_path, "wb") as f:
+                f.write(excel_data)
+    except Exception as e:
+        print(f"Excelマスター台帳の保存エラー: {e}")
 
 # ==========================================
 # --- メインアプリ ---
@@ -430,7 +477,6 @@ def main():
     if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
     rk = st.session_state["form_reset_key"]
 
-    # --- 【完全対策】入力欄の亡霊を防ぐデータ保持 ---
     if "current_db_sel" not in st.session_state: st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
     if "val_did" not in st.session_state: st.session_state["val_did"] = ""
     if "val_name" not in st.session_state: st.session_state["val_name"] = ""
@@ -489,7 +535,7 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
-    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手 মোহンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
+    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
     github_repo = ""; github_token = ""; local_path = ""
     if save_mode == "2. 全自動（データベース保存）":
@@ -511,7 +557,6 @@ def main():
         
     col1, col2 = st.columns(2)
     
-    # --- 【重要】入力枠にキー(rk)を紐づけ、リセット時は完全に新品に交換する ---
     with col1:
         st.header("1. 基本情報入力")
         did = st.text_input("管理番号 (例: 2699)", value=st.session_state["val_did"], key=f"input_did_{rk}")
@@ -725,6 +770,9 @@ def main():
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                         df.to_csv(DB_CSV, index=False)
 
+                        # --- 【新規追加】マスター台帳Excelの自動生成と指定先への保存 ---
+                        update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
+
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
@@ -741,7 +789,6 @@ def main():
         "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
     )
     
-    # --- 【完全対策】リセット処理も確実な値に変更 ---
     def reset_form_callback():
         st.session_state.val_did = ""; st.session_state.val_name = ""; st.session_state.val_power = None
         st.session_state.val_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
