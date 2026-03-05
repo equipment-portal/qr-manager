@@ -168,7 +168,6 @@ def create_manual_image(data, output_path):
         curr_y += s.height
     final_img.convert('RGB').save(output_path, format="JPEG", quality=85)
 
-# 【改修】追加画像もURL/ファイル両対応にアップデート
 def create_manual_image_extended(data, extra_images, output_path):
     W = 1600; margin = 80; content_w = W - margin * 2
     try:
@@ -296,7 +295,7 @@ def rebuild_excel():
         cell_col = c_idx + 1; cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
         ws.column_dimensions[col_letter].width = 19.5
-        ws.row_dimensions[cell_row].height = 63.0 # 【修正済】1mmのカット用隙間
+        ws.row_dimensions[cell_row].height = 63.0 # カット用の1mm隙間
         xl_img = XLImage(str(img_path))
         xl_img.width = 132; xl_img.height = 76
         xl_img.anchor = f"{col_letter}{cell_row}"
@@ -415,7 +414,6 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # --- 【拡張】データベースに「追加画像保存用列」を追加 ---
     db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2", "extra_images"]
     if not DB_CSV.exists():
         pd.DataFrame(columns=db_columns).to_csv(DB_CSV, index=False)
@@ -432,35 +430,42 @@ def main():
     if "extra_images_count" not in st.session_state: st.session_state["extra_images_count"] = 0
     rk = st.session_state["form_reset_key"]
 
-    if "prev_db_select" not in st.session_state: 
-        st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
-    
+    # --- 【完全対策】入力欄の亡霊を防ぐデータ保持 ---
+    if "current_db_sel" not in st.session_state: st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
+    if "val_did" not in st.session_state: st.session_state["val_did"] = ""
+    if "val_name" not in st.session_state: st.session_state["val_name"] = ""
+    if "val_power" not in st.session_state: st.session_state["val_power"] = None
+    if "val_memo" not in st.session_state: st.session_state["val_memo"] = ""
+
     st.sidebar.header("🗄️ 登録済み機器データベース")
     if DB_CSV.exists():
         df = pd.read_csv(DB_CSV)
         if not df.empty:
             options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
-            selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, key="db_select")
             
-            if selected_edit != st.session_state["prev_db_select"]:
-                st.session_state["prev_db_select"] = selected_edit
+            c_sel = st.session_state["current_db_sel"]
+            sel_idx = options.index(c_sel) if c_sel in options else 0
+            selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key=f"db_select_{rk}")
+            
+            if selected_edit != c_sel:
+                st.session_state["current_db_sel"] = selected_edit
                 if selected_edit == "✨ 新規登録 (クリア)":
-                    st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
+                    st.session_state.val_did = ""; st.session_state.val_name = ""; st.session_state.val_power = None
+                    st.session_state.val_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
+                    st.session_state["extra_images_count"] = 0
                 else:
                     did_str = selected_edit.split(" : ")[0]
                     match = df[df["ID"].astype(str) == did_str]
                     if not match.empty:
                         row = match.iloc[-1]
-                        st.session_state.input_did = str(row["ID"])
-                        st.session_state.input_name = str(row["Name"])
-                        st.session_state.input_power = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
-                        st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+                        st.session_state.val_did = str(row["ID"])
+                        st.session_state.val_name = str(row["Name"])
+                        st.session_state.val_power = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
+                        st.session_state.val_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
                         st.session_state.existing_imgs = {
                             "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
                             "lab": str(row.get("img_label", "")), "lo1": str(row.get("img_loto1", "")), "lo2": str(row.get("img_loto2", ""))
                         }
-                        # 【拡張】JSON化された追加画像リストを復元
                         ex_str = str(row.get("extra_images", "[]"))
                         if pd.isna(row.get("extra_images")): ex_str = "[]"
                         try: st.session_state.existing_ex_imgs = json.loads(ex_str)
@@ -475,16 +480,16 @@ def main():
                     df = df[df["ID"].astype(str) != did_to_del]
                     df.to_csv(DB_CSV, index=False)
                     st.sidebar.success("削除しました！")
-                    st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-                    st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
-                    st.session_state["db_select"] = "✨ 新規登録 (クリア)"
-                    st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
+                    st.session_state.val_did = ""; st.session_state.val_name = ""; st.session_state.val_power = None
+                    st.session_state.val_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
+                    st.session_state["extra_images_count"] = 0
+                    st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
                     st.session_state["form_reset_key"] += 1
                     st.rerun()
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
-    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
+    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手 মোহンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
     github_repo = ""; github_token = ""; local_path = ""
     if save_mode == "2. 全自動（データベース保存）":
@@ -506,14 +511,19 @@ def main():
         
     col1, col2 = st.columns(2)
     
+    # --- 【重要】入力枠にキー(rk)を紐づけ、リセット時は完全に新品に交換する ---
     with col1:
         st.header("1. 基本情報入力")
-        did = st.text_input("管理番号 (例: 2699)", key="input_did")
-        name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
-        power = st.selectbox("使用電源", ["100V", "200V"], index=None, key="input_power")
+        did = st.text_input("管理番号 (例: 2699)", value=st.session_state["val_did"], key=f"input_did_{rk}")
+        name = st.text_input("機器名称 (例: 5t金型反転機)", value=st.session_state["val_name"], key=f"input_name_{rk}")
+        
+        p_val = st.session_state["val_power"]
+        p_idx = ["100V", "200V"].index(p_val) if p_val in ["100V", "200V"] else None
+        power = st.selectbox("使用電源", ["100V", "200V"], index=p_idx, key=f"input_power_{rk}")
+        
         st.markdown("---")
         st.header("📝 メモ・備考欄")
-        memo = st.text_area("現場へ伝える補足情報", height=150, key="input_memo")
+        memo = st.text_area("現場へ伝える補足情報", value=st.session_state["val_memo"], height=150, key=f"input_memo_{rk}")
 
     def render_image_ui(label, key_suffix, existing_path):
         st.markdown(f"**{label}**")
@@ -546,16 +556,14 @@ def main():
         f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
         f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
         
-        # --- 【究極進化】追加画像の保存・呼出・編集UI ---
         st.markdown("---")
         st.subheader("➕ 追加情報の画像")
         
-        ex_imgs_data_preview = [] # プレビュー送信用
-        ex_imgs_to_save = [] # 保存処理用
+        ex_imgs_data_preview = [] 
+        ex_imgs_to_save = [] 
         
         existing_ex = st.session_state.get("existing_ex_imgs", [])
         
-        # 1. 既存の追加画像を表示
         for i, ex_dict in enumerate(existing_ex):
             st.markdown(f"**既存の追加画像 {i+1}**")
             e_path = ex_dict.get("url", "")
@@ -574,9 +582,8 @@ def main():
                 ex_imgs_data_preview.append((final_f, new_title))
                 ex_imgs_to_save.append({"type": "existing", "file": new_f, "url": e_path, "title": new_title, "index": i})
         
-        # 2. 新規の追加画像枠を表示
         for i in range(st.session_state["extra_images_count"]):
-            st.markdown(f"**新規の追加画像 {i+1}**")
+            st.markdown(f"**新規の追加画像 {len(existing_ex) + i + 1}**")
             et = st.text_input(f"タイトル", key=f"new_ex_title_{rk}_{i}")
             ef = st.file_uploader(f"画像", type=["png", "jpg", "jpeg"], key=f"new_ex_img_{rk}_{i}")
             st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
@@ -656,17 +663,16 @@ def main():
                         fin_lo1 = process_save(f_lo1, d_lo1, e_lo1, "lo1")
                         fin_lo2 = process_save(f_lo2, d_lo2, e_lo2, "lo2")
 
-                        # 追加画像の個別保存＆URL取得リストの作成
                         final_extra_images_db = []
                         for item in ex_imgs_to_save:
                             if item["type"] == "existing":
-                                if item["file"]: # 上書きされた場合
+                                if item["file"]: 
                                     saved_url = save_image_to_storage(item["file"], did, f"ex_{item['index']}", save_mode, github_repo, github_token, local_path)
                                     if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
-                                else: # そのまま引き継ぐ場合
+                                else: 
                                     final_extra_images_db.append({"title": item["title"], "url": item["url"]})
                             elif item["type"] == "new":
-                                if item["file"]: # 新規追加された場合
+                                if item["file"]: 
                                     saved_url = save_image_to_storage(item["file"], did, f"ex_new_{item['index']}", save_mode, github_repo, github_token, local_path)
                                     if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
 
@@ -714,7 +720,7 @@ def main():
                         new_row = {
                             "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "memo": memo, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
-                            "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) # JSON文字列としてデータベースに保存
+                            "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) 
                         }
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                         df.to_csv(DB_CSV, index=False)
@@ -734,12 +740,13 @@ def main():
         "▶ **ラベルを印刷する場合**\n"
         "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
     )
+    
+    # --- 【完全対策】リセット処理も確実な値に変更 ---
     def reset_form_callback():
-        st.session_state.input_did = ""; st.session_state.input_name = ""; st.session_state.input_power = None
-        st.session_state.input_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
+        st.session_state.val_did = ""; st.session_state.val_name = ""; st.session_state.val_power = None
+        st.session_state.val_memo = ""; st.session_state.existing_imgs = {}; st.session_state.existing_ex_imgs = []
         st.session_state["extra_images_count"] = 0
-        st.session_state["db_select"] = "✨ 新規登録 (クリア)"
-        st.session_state["prev_db_select"] = "✨ 新規登録 (クリア)"
+        st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
         st.session_state["form_reset_key"] += 1
         st.session_state["scroll_to_top"] = True
         
