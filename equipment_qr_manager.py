@@ -534,8 +534,9 @@ def main():
         f_lab, d_lab, e_lab = render_image_ui("資産管理ラベル", "lab", imgs.get("lab", ""))
         
         st.markdown("---")
-        is_related_loto = st.checkbox("関連機器のLOTO手順書として登録する")
-        f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
+        # 文言を変更し、クリアボタンを押した際にチェックもリセットされるようkeyを設定
+        is_related_loto = st.checkbox("関連機器、付帯設備のLOTO手順書を登録する", key=f"is_related_loto_{rk}")
+        f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
         f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
         
         st.markdown("---")
@@ -736,4 +737,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
