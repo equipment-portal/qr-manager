@@ -288,7 +288,8 @@ def rebuild_excel():
         cell_col = c_idx + 1; cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
         ws.column_dimensions[col_letter].width = 19.5
-        ws.row_dimensions[cell_row].height = 60.0
+        # 【修正】縦のカットを容易にするため、セルの高さを3ポイント(約1mm)広げて隙間を作る
+        ws.row_dimensions[cell_row].height = 63.0
         xl_img = XLImage(str(img_path))
         xl_img.width = 132; xl_img.height = 76
         xl_img.anchor = f"{col_letter}{cell_row}"
@@ -730,3 +731,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
