@@ -545,7 +545,12 @@ def main():
         local_path = st.sidebar.text_input("共有フォルダのパス", value=r"C:\Equipment_Manuals")
 
     st.sidebar.markdown("---")
-    include_equip_name = st.sidebar.checkbox("ダウンロードファイル名に「機器名称」を含める", value=True)
+    st.sidebar.markdown("**⏬ 手動保存オプション**")
+    include_equip_name = st.sidebar.checkbox(
+        "プレビュー画像の保存名に「機器名称」を含める", 
+        value=True, 
+        help="プレビュー確認後に、手動で画像をPCへダウンロードする際のファイル名に適用されます（例: 2699_金型反転機.jpg）"
+    )
     
     st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
     st.title("📱 機器情報ページ ＆ QR管理システム")
@@ -667,6 +672,12 @@ def main():
                     st.success("プレビュー成功！")
                     with open(manual_path, "rb") as f: img_b64 = base64.b64encode(f.read()).decode("utf-8")
                     st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{img_b64}" width="100%"></div>', height=520)
+                    
+                    # 【復活】プレビュー画像の手動ダウンロードボタン
+                    s_id = safe_filename(did)
+                    dl_file_name = f"{s_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{s_id}.jpg"
+                    with open(manual_path, "rb") as img_file:
+                        st.download_button(label="📥 完成したプレビュー画像を手動でPCに保存", data=img_file, file_name=dl_file_name, mime="image/jpeg")
         else:
             st.error("管理番号、機器名称、使用電源は必須です。")
 
@@ -837,3 +848,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
