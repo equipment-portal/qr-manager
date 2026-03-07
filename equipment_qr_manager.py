@@ -232,6 +232,7 @@ def create_manual_image_extended(data, extra_images, output_path):
     for s in added: final.paste(s, (0, cy)); cy += s.height
     final.convert('RGB').save(output_path, format="JPEG", quality=85)
 
+
 # ==========================================
 # --- 印刷用ラベル ＆ Excel台帳 処理 ---
 # ==========================================
@@ -293,7 +294,7 @@ def rebuild_excel():
         cell_col = c_idx + 1; cell_row = r_idx + 1
         col_letter = get_column_letter(cell_col)
         ws.column_dimensions[col_letter].width = 19.5
-        ws.row_dimensions[cell_row].height = 63.0
+        ws.row_dimensions[cell_row].height = 63.0 
         xl_img = XLImage(str(img_path))
         xl_img.width = 132; xl_img.height = 76
         xl_img.anchor = f"{col_letter}{cell_row}"
@@ -472,22 +473,18 @@ def main():
                 needs_save = True
         if needs_save: df_init.to_csv(DB_CSV, index=False)
 
-    # --- 【完全対策】入力欄の亡霊を防ぐための状態管理 ---
-    if "form_reset_key" not in st.session_state: 
-        st.session_state["form_reset_key"] = 0
-    if "extra_images_count" not in st.session_state: 
-        st.session_state["extra_images_count"] = 0
-    rk = st.session_state["form_reset_key"]
+    # --- 【大掃除完了】入力枠のIDを完全固定し、裏側からデータを同期する最強の方式 ---
+    if "input_did" not in st.session_state: st.session_state.input_did = ""
+    if "input_name" not in st.session_state: st.session_state.input_name = ""
+    if "input_power" not in st.session_state: st.session_state.input_power = None
+    if "input_memo" not in st.session_state: st.session_state.input_memo = ""
+    if "is_related_loto" not in st.session_state: st.session_state.is_related_loto = False
+    
+    if "form_reset_key" not in st.session_state: st.session_state.form_reset_key = 0
+    if "extra_images_count" not in st.session_state: st.session_state.extra_images_count = 0
+    rk = st.session_state.form_reset_key
 
-    # 次に描画する入力枠が存在しなければ、あらかじめ「空」で用意しておく
-    if f"input_did_{rk}" not in st.session_state:
-        st.session_state[f"input_did_{rk}"] = ""
-        st.session_state[f"input_name_{rk}"] = ""
-        st.session_state[f"input_power_{rk}"] = None
-        st.session_state[f"input_memo_{rk}"] = ""
-
-    if "current_db_sel" not in st.session_state: 
-        st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
+    if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
 
     st.sidebar.header("🗄️ 登録済み機器データベース")
     if DB_CSV.exists():
@@ -495,32 +492,32 @@ def main():
         if not df.empty:
             options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
             
-            c_sel = st.session_state["current_db_sel"]
+            c_sel = st.session_state.current_db_sel
             sel_idx = options.index(c_sel) if c_sel in options else 0
-            selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key=f"db_select_{rk}")
             
-            if selected_edit != c_sel:
-                st.session_state["current_db_sel"] = selected_edit
-                next_rk = st.session_state["form_reset_key"] + 1
-                
-                if selected_edit == "✨ 新規登録 (クリア)":
-                    st.session_state[f"input_did_{next_rk}"] = ""
-                    st.session_state[f"input_name_{next_rk}"] = ""
-                    st.session_state[f"input_power_{next_rk}"] = None
-                    st.session_state[f"input_memo_{next_rk}"] = ""
+            def on_db_select_change():
+                selected = st.session_state.db_select_widget
+                st.session_state.current_db_sel = selected
+                if selected == "✨ 新規登録 (クリア)":
+                    st.session_state.input_did = ""
+                    st.session_state.input_name = ""
+                    st.session_state.input_power = None
+                    st.session_state.input_memo = ""
+                    st.session_state.is_related_loto = False
                     st.session_state.existing_imgs = {}
                     st.session_state.existing_ex_imgs = []
-                    st.session_state["extra_images_count"] = 0
+                    st.session_state.extra_images_count = 0
                 else:
-                    did_str = selected_edit.split(" : ")[0]
+                    did_str = selected.split(" : ")[0]
                     match = df[df["ID"].astype(str) == did_str]
                     if not match.empty:
                         row = match.iloc[-1]
-                        st.session_state[f"input_did_{next_rk}"] = str(row["ID"])
-                        st.session_state[f"input_name_{next_rk}"] = str(row["Name"])
+                        st.session_state.input_did = str(row["ID"])
+                        st.session_state.input_name = str(row["Name"])
                         p_val = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
-                        st.session_state[f"input_power_{next_rk}"] = p_val if p_val in ["100V", "200V"] else None
-                        st.session_state[f"input_memo_{next_rk}"] = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+                        st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
+                        st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
+                        st.session_state.is_related_loto = False
                         
                         st.session_state.existing_imgs = {
                             "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
@@ -530,28 +527,28 @@ def main():
                         if pd.isna(row.get("extra_images")): ex_str = "[]"
                         try: st.session_state.existing_ex_imgs = json.loads(ex_str)
                         except: st.session_state.existing_ex_imgs = []
-                        
-                st.session_state["form_reset_key"] = next_rk
-                st.rerun()
+                st.session_state.form_reset_key += 1
 
-            if selected_edit != "✨ 新規登録 (クリア)":
+            st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key="db_select_widget", on_change=on_db_select_change)
+
+            if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
                 if st.sidebar.button("🗑️ この機器をデータベースから削除"):
-                    did_to_del = selected_edit.split(" : ")[0]
+                    did_to_del = st.session_state.current_db_sel.split(" : ")[0]
                     df = df[df["ID"].astype(str) != did_to_del]
                     df.to_csv(DB_CSV, index=False)
                     st.sidebar.success("削除しました！")
                     
-                    next_rk = st.session_state["form_reset_key"] + 1
-                    st.session_state[f"input_did_{next_rk}"] = ""
-                    st.session_state[f"input_name_{next_rk}"] = ""
-                    st.session_state[f"input_power_{next_rk}"] = None
-                    st.session_state[f"input_memo_{next_rk}"] = ""
+                    st.session_state.input_did = ""
+                    st.session_state.input_name = ""
+                    st.session_state.input_power = None
+                    st.session_state.input_memo = ""
+                    st.session_state.is_related_loto = False
                     st.session_state.existing_imgs = {}
                     st.session_state.existing_ex_imgs = []
-                    st.session_state["extra_images_count"] = 0
-                    st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
-                    st.session_state["form_reset_key"] = next_rk
+                    st.session_state.extra_images_count = 0
+                    st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+                    st.session_state.form_reset_key += 1
                     st.rerun()
 
     st.sidebar.markdown("---")
@@ -585,14 +582,13 @@ def main():
     
     with col1:
         st.header("1. 基本情報入力")
-        # 【重要】valueを完全に排除。これでフォーカス飛び（弾き）が撲滅されます！
-        did = st.text_input("管理番号 (例: 2699)", key=f"input_did_{rk}")
-        name = st.text_input("機器名称 (例: 5t金型反転機)", key=f"input_name_{rk}")
-        power = st.selectbox("使用電源", ["100V", "200V"], index=None, key=f"input_power_{rk}")
+        did = st.text_input("管理番号 (例: 2699)", key="input_did")
+        name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
+        power = st.selectbox("使用電源", ["100V", "200V"], index=None, key="input_power")
         
         st.markdown("---")
         st.header("📝 メモ・備考欄")
-        memo = st.text_area("現場へ伝える補足情報", height=150, key=f"input_memo_{rk}")
+        memo = st.text_area("現場へ伝える補足情報", height=150, key="input_memo")
 
     def render_image_ui(label, key_suffix, existing_path):
         st.markdown(f"**{label}**")
@@ -621,7 +617,7 @@ def main():
         f_lab, d_lab, e_lab = render_image_ui("資産管理ラベル", "lab", imgs.get("lab", ""))
         
         st.markdown("---")
-        is_related_loto = st.checkbox("関連機器、付帯設備のLOTO手順書を登録する", key=f"is_related_loto_{rk}")
+        is_related_loto = st.checkbox("関連機器、付帯設備のLOTO手順書を登録する", key="is_related_loto")
         f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
         f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
         
@@ -651,7 +647,7 @@ def main():
                 ex_imgs_data_preview.append((final_f, new_title))
                 ex_imgs_to_save.append({"type": "existing", "file": new_f, "url": e_path, "title": new_title, "index": i})
         
-        for i in range(st.session_state["extra_images_count"]):
+        for i in range(st.session_state.extra_images_count):
             st.markdown(f"**新規の追加画像 {len(existing_ex) + i + 1}**")
             et = st.text_input(f"タイトル", key=f"new_ex_title_{rk}_{i}")
             ef = st.file_uploader(f"画像", type=["png", "jpg", "jpeg"], key=f"new_ex_img_{rk}_{i}")
@@ -662,7 +658,7 @@ def main():
                 ex_imgs_to_save.append({"type": "new", "file": ef, "title": t, "index": i})
 
         if st.button("➕ 追加枠を増やす"):
-            st.session_state["extra_images_count"] += 1
+            st.session_state.extra_images_count += 1
             st.rerun()
 
     def get_input_for_manual(file_obj, del_flag, existing_path):
@@ -692,7 +688,6 @@ def main():
                     with open(manual_path, "rb") as f: img_b64 = base64.b64encode(f.read()).decode("utf-8")
                     st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{img_b64}" width="100%"></div>', height=520)
                     
-                    # 【復活済】プレビュー画像の手動ダウンロードボタン
                     s_id = safe_filename(did)
                     dl_file_name = f"{s_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{s_id}.jpg"
                     with open(manual_path, "rb") as img_file:
@@ -800,7 +795,6 @@ def main():
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                         df.to_csv(DB_CSV, index=False)
 
-                        # --- 【マスター台帳の自動更新】 ---
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
@@ -820,17 +814,17 @@ def main():
     )
     
     def reset_form_callback():
-        next_rk = st.session_state["form_reset_key"] + 1
-        st.session_state[f"input_did_{next_rk}"] = ""
-        st.session_state[f"input_name_{next_rk}"] = ""
-        st.session_state[f"input_power_{next_rk}"] = None
-        st.session_state[f"input_memo_{next_rk}"] = ""
+        st.session_state.input_did = ""
+        st.session_state.input_name = ""
+        st.session_state.input_power = None
+        st.session_state.input_memo = ""
+        st.session_state.is_related_loto = False
         
         st.session_state.existing_imgs = {}
         st.session_state.existing_ex_imgs = []
-        st.session_state["extra_images_count"] = 0
-        st.session_state["current_db_sel"] = "✨ 新規登録 (クリア)"
-        st.session_state["form_reset_key"] = next_rk
+        st.session_state.extra_images_count = 0
+        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+        st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
         
     st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
