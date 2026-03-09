@@ -803,7 +803,6 @@ def main():
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
-                        # 登録完了時に下書きがあれば消去する
                         if DRAFT_FILE.exists():
                             DRAFT_FILE.unlink()
                         
