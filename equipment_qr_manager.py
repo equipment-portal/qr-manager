@@ -803,14 +803,16 @@ def main():
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
-                        # もし下書きがあったら登録完了と同時に削除する
+                        # 登録完了時に下書きがあれば消去する
                         if DRAFT_FILE.exists():
                             DRAFT_FILE.unlink()
                         
                     except Exception as e:
                         st.error(f"エラーが発生しました: {str(e)}")
 
+    # ==========================================
     # --- 【大進化】下書き保存（ワークスペース）＆ 次の作業 ---
+    # ==========================================
     st.markdown("---")
     st.header("5. ワークスペース（下書き） ＆ 次の作業")
     
@@ -826,7 +828,6 @@ def main():
                 "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
             }
             
-            # 画像を安全な場所に退避させる関数
             def cache_img(f_obj, e_path, file_name):
                 if f_obj:
                     p = DRAFT_IMG_DIR / f"{file_name}.jpg"
@@ -868,7 +869,7 @@ def main():
                     st.session_state.is_related_loto = draft.get("is_related_loto", False)
                     st.session_state.existing_imgs = draft.get("existing_imgs", {})
                     st.session_state.existing_ex_imgs = draft.get("existing_ex_imgs", [])
-                    st.session_state.extra_images_count = 0 # 復元時は既存枠に表示されるため追加枠はリセット
+                    st.session_state.extra_images_count = 0 
                     st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
                     st.session_state.form_reset_key += 1
                     st.session_state["scroll_to_top"] = True
