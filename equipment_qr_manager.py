@@ -808,6 +808,68 @@ def main():
     # ==========================================
     # --- 【大進化】下書き保存（PCへダウンロード）＆ 次の作業 ---
     # ==========================================
+    
+    # 魔法のコールバック関数たち（エラーを防ぐ盾）
+    def reset_form_callback():
+        st.session_state.input_did = ""
+        st.session_state.input_name = ""
+        st.session_state.input_power = None
+        st.session_state.input_memo = ""
+        st.session_state.is_related_loto = False
+        st.session_state.existing_imgs = {}
+        st.session_state.existing_ex_imgs = []
+        st.session_state.extra_images_count = 0
+        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+        st.session_state.form_reset_key += 1
+        st.session_state["scroll_to_top"] = True
+
+    def restore_draft_callback():
+        current_rk = st.session_state.form_reset_key
+        uploaded_file = st.session_state.get(f"draft_up_{current_rk}")
+        if uploaded_file is not None:
+            try:
+                loaded_draft = json.loads(uploaded_file.getvalue().decode("utf-8"))
+                st.session_state.input_did = loaded_draft.get("did", "")
+                st.session_state.input_name = loaded_draft.get("name", "")
+                p_val = loaded_draft.get("power", "")
+                st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
+                st.session_state.input_memo = loaded_draft.get("memo", "")
+                st.session_state.is_related_loto = loaded_draft.get("is_related_loto", False)
+                
+                def decode_img(img_dict, prefix):
+                    if not img_dict: return ""
+                    if img_dict["type"] == "path": return img_dict["data"]
+                    if img_dict["type"] == "base64":
+                        try:
+                            b_data = base64.b64decode(img_dict["data"])
+                            temp_path = DRAFT_IMG_DIR / f"restored_{prefix}_{datetime.now().strftime('%H%M%S%f')}.jpg"
+                            with open(temp_path, "wb") as f: f.write(b_data)
+                            return str(temp_path)
+                        except: return ""
+                    return ""
+
+                restored_imgs = {}
+                d_imgs = loaded_draft.get("existing_imgs", {})
+                restored_imgs["ext"] = decode_img(d_imgs.get("ext"), "ext")
+                restored_imgs["out"] = decode_img(d_imgs.get("out"), "out")
+                restored_imgs["lab"] = decode_img(d_imgs.get("lab"), "lab")
+                restored_imgs["lo1"] = decode_img(d_imgs.get("lo1"), "lo1")
+                restored_imgs["lo2"] = decode_img(d_imgs.get("lo2"), "lo2")
+                st.session_state.existing_imgs = restored_imgs
+                
+                restored_ex = []
+                for i, ex in enumerate(loaded_draft.get("existing_ex_imgs", [])):
+                    path = decode_img(ex.get("img_data"), f"ex_{i}")
+                    restored_ex.append({"title": ex.get("title", ""), "url": path})
+                st.session_state.existing_ex_imgs = restored_ex
+                
+                st.session_state.extra_images_count = 0
+                st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+                st.session_state.form_reset_key += 1
+                st.session_state["scroll_to_top"] = True
+            except Exception as e:
+                st.session_state.draft_error_msg = f"下書きの読み込みに失敗しました: {e}"
+
     st.markdown("---")
     st.header("5. ワークスペース（下書き） ＆ 次の作業")
     
@@ -817,13 +879,11 @@ def main():
         st.subheader("📝 入力途中のデータを手元のPCに保存")
         st.info("「今日はここまで」という時に、入力中のテキストや画像を1つの「下書きファイル」としてダウンロードします。")
         
-        # --- 下書きデータ作成 ---
         draft = {
             "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
             "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
         }
         
-        # 画像データを文字（Base64）に変換してJSONに埋め込む
         def encode_img(f_obj, e_path):
             if f_obj:
                 try:
@@ -861,69 +921,17 @@ def main():
         st.subheader("📂 PCに保存した下書きを復元")
         uploaded_draft = st.file_uploader("保存した下書きファイル(.json)を選択", type=["json"], key=f"draft_up_{rk}")
         if uploaded_draft:
-            if st.button("🔄 この下書きデータを復元する", type="primary", use_container_width=True):
-                try:
-                    loaded_draft = json.load(uploaded_draft)
-                    st.session_state.input_did = loaded_draft.get("did", "")
-                    st.session_state.input_name = loaded_draft.get("name", "")
-                    p_val = loaded_draft.get("power", "")
-                    st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
-                    st.session_state.input_memo = loaded_draft.get("memo", "")
-                    st.session_state.is_related_loto = loaded_draft.get("is_related_loto", False)
-                    
-                    # 埋め込まれた文字（Base64）から画像ファイルに戻す
-                    def decode_img(img_dict, prefix):
-                        if not img_dict: return ""
-                        if img_dict["type"] == "path": return img_dict["data"]
-                        if img_dict["type"] == "base64":
-                            try:
-                                b_data = base64.b64decode(img_dict["data"])
-                                temp_path = DRAFT_IMG_DIR / f"restored_{prefix}_{datetime.now().strftime('%H%M%S%f')}.jpg"
-                                with open(temp_path, "wb") as f: f.write(b_data)
-                                return str(temp_path)
-                            except: return ""
-                        return ""
-
-                    restored_imgs = {}
-                    d_imgs = loaded_draft.get("existing_imgs", {})
-                    restored_imgs["ext"] = decode_img(d_imgs.get("ext"), "ext")
-                    restored_imgs["out"] = decode_img(d_imgs.get("out"), "out")
-                    restored_imgs["lab"] = decode_img(d_imgs.get("lab"), "lab")
-                    restored_imgs["lo1"] = decode_img(d_imgs.get("lo1"), "lo1")
-                    restored_imgs["lo2"] = decode_img(d_imgs.get("lo2"), "lo2")
-                    st.session_state.existing_imgs = restored_imgs
-                    
-                    restored_ex = []
-                    for i, ex in enumerate(loaded_draft.get("existing_ex_imgs", [])):
-                        path = decode_img(ex.get("img_data"), f"ex_{i}")
-                        restored_ex.append({"title": ex.get("title", ""), "url": path})
-                    st.session_state.existing_ex_imgs = restored_ex
-                    
-                    st.session_state.extra_images_count = 0
-                    st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-                    st.session_state.form_reset_key += 1
-                    st.session_state["scroll_to_top"] = True
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"下書きの読み込みに失敗しました: {e}")
+            st.button("🔄 この下書きデータを復元する", type="primary", use_container_width=True, on_click=restore_draft_callback)
+            
+        if "draft_error_msg" in st.session_state:
+            st.error(st.session_state.draft_error_msg)
+            del st.session_state.draft_error_msg
 
     with col_b:
         st.subheader("🔄 登録の完了・リセット")
         st.info("💡 **印刷用台帳の状況は常に自動保存されています！** ブラウザを閉じても、明日はそのまま続きからラベル印刷が可能です。")
         
-        if st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True):
-            st.session_state.input_did = ""
-            st.session_state.input_name = ""
-            st.session_state.input_power = None
-            st.session_state.input_memo = ""
-            st.session_state.is_related_loto = False
-            st.session_state.existing_imgs = {}
-            st.session_state.existing_ex_imgs = []
-            st.session_state.extra_images_count = 0
-            st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-            st.session_state.form_reset_key += 1
-            st.session_state["scroll_to_top"] = True
-            st.rerun()
+        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
 
     # --- サイドバー：Excel台帳状況 ---
     st.sidebar.markdown("---")
