@@ -27,8 +27,7 @@ EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 LABEL_HISTORY_FILE = Path("label_history.json")
 TEMP_LABEL_DIR = Path("temp_labels")
 
-# 【追加】下書き保存用の領域
-DRAFT_FILE = Path("draft_data.json")
+# 【追加】下書き画像を一時的に展開するフォルダ
 DRAFT_IMG_DIR = Path("draft_images")
 
 for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR, DRAFT_IMG_DIR]:
@@ -803,14 +802,11 @@ def main():
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
-                        if DRAFT_FILE.exists():
-                            DRAFT_FILE.unlink()
-                        
                     except Exception as e:
                         st.error(f"エラーが発生しました: {str(e)}")
 
     # ==========================================
-    # --- 【大進化】下書き保存（ワークスペース）＆ 次の作業 ---
+    # --- 【大進化】下書き保存（PCへダウンロード）＆ 次の作業 ---
     # ==========================================
     st.markdown("---")
     st.header("5. ワークスペース（下書き） ＆ 次の作業")
@@ -818,63 +814,98 @@ def main():
     col_a, col_b = st.columns(2)
     
     with col_a:
-        st.subheader("📝 入力途中のデータを一時保存")
-        st.info("「今日はここまで」という時に、入力中のテキストや画像をまるごと一時保存できます。")
+        st.subheader("📝 入力途中のデータを手元のPCに保存")
+        st.info("「今日はここまで」という時に、入力中のテキストや画像を1つの「下書きファイル」としてダウンロードします。")
         
-        if st.button("💾 現在の入力状態を【下書き】として保存", use_container_width=True):
-            draft = {
-                "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
-                "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
-            }
-            
-            def cache_img(f_obj, e_path, file_name):
-                if f_obj:
-                    p = DRAFT_IMG_DIR / f"{file_name}.jpg"
-                    with open(p, "wb") as f: f.write(f_obj.read())
-                    f_obj.seek(0)
-                    return str(p)
-                return str(e_path) if e_path else ""
-
-            draft["existing_imgs"]["ext"] = cache_img(f_ext, e_ext, "ext")
-            draft["existing_imgs"]["out"] = cache_img(f_out, e_out, "out")
-            draft["existing_imgs"]["lab"] = cache_img(f_lab, e_lab, "lab")
-            draft["existing_imgs"]["lo1"] = cache_img(f_lo1, e_lo1, "lo1")
-            draft["existing_imgs"]["lo2"] = cache_img(f_lo2, e_lo2, "lo2")
-
-            ex_imgs = []
-            for item in ex_imgs_to_save:
-                f_obj = item.get("file")
-                e_path = item.get("url", "")
-                title = item.get("title", "")
-                idx = item.get("index", 0)
-                path = cache_img(f_obj, e_path, f"ex_{idx}")
-                ex_imgs.append({"title": title, "url": path})
-            draft["existing_ex_imgs"] = ex_imgs
-
-            with open(DRAFT_FILE, "w", encoding="utf-8") as f:
-                json.dump(draft, f, ensure_ascii=False, indent=2)
-            st.success("✅ 下書きを保存しました！明日「下書きを復元」から続きを再開できます。")
-
-        if DRAFT_FILE.exists():
-            if st.button("📂 保存してある【下書き】を復元する", type="primary", use_container_width=True):
+        # --- 下書きデータ作成 ---
+        draft = {
+            "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
+            "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
+        }
+        
+        # 画像データを文字（Base64）に変換してJSONに埋め込む
+        def encode_img(f_obj, e_path):
+            if f_obj:
                 try:
-                    with open(DRAFT_FILE, "r", encoding="utf-8") as f:
-                        draft = json.load(f)
-                    st.session_state.input_did = draft.get("did", "")
-                    st.session_state.input_name = draft.get("name", "")
-                    p_val = draft.get("power", "")
+                    bytes_data = f_obj.getvalue()
+                    return {"type": "base64", "data": base64.b64encode(bytes_data).decode("utf-8")}
+                except: pass
+            elif e_path:
+                return {"type": "path", "data": str(e_path)}
+            return None
+
+        draft["existing_imgs"]["ext"] = encode_img(f_ext, e_ext)
+        draft["existing_imgs"]["out"] = encode_img(f_out, e_out)
+        draft["existing_imgs"]["lab"] = encode_img(f_lab, e_lab)
+        draft["existing_imgs"]["lo1"] = encode_img(f_lo1, e_lo1)
+        draft["existing_imgs"]["lo2"] = encode_img(f_lo2, e_lo2)
+
+        ex_imgs = []
+        for item in ex_imgs_to_save:
+            enc = encode_img(item.get("file"), item.get("url", ""))
+            ex_imgs.append({"title": item.get("title", ""), "img_data": enc})
+        draft["existing_ex_imgs"] = ex_imgs
+        
+        draft_json_str = json.dumps(draft, ensure_ascii=False)
+        dl_filename = f"draft_{safe_filename(did) if did else 'new'}_{datetime.now().strftime('%Y%m%d%H%M')}.json"
+        
+        st.download_button(
+            label="💾 現在の状態を【下書きファイル(.json)】としてPCに保存",
+            data=draft_json_str,
+            file_name=dl_filename,
+            mime="application/json",
+            use_container_width=True
+        )
+        
+        st.markdown("---")
+        st.subheader("📂 PCに保存した下書きを復元")
+        uploaded_draft = st.file_uploader("保存した下書きファイル(.json)を選択", type=["json"], key=f"draft_up_{rk}")
+        if uploaded_draft:
+            if st.button("🔄 この下書きデータを復元する", type="primary", use_container_width=True):
+                try:
+                    loaded_draft = json.load(uploaded_draft)
+                    st.session_state.input_did = loaded_draft.get("did", "")
+                    st.session_state.input_name = loaded_draft.get("name", "")
+                    p_val = loaded_draft.get("power", "")
                     st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
-                    st.session_state.input_memo = draft.get("memo", "")
-                    st.session_state.is_related_loto = draft.get("is_related_loto", False)
-                    st.session_state.existing_imgs = draft.get("existing_imgs", {})
-                    st.session_state.existing_ex_imgs = draft.get("existing_ex_imgs", [])
-                    st.session_state.extra_images_count = 0 
+                    st.session_state.input_memo = loaded_draft.get("memo", "")
+                    st.session_state.is_related_loto = loaded_draft.get("is_related_loto", False)
+                    
+                    # 埋め込まれた文字（Base64）から画像ファイルに戻す
+                    def decode_img(img_dict, prefix):
+                        if not img_dict: return ""
+                        if img_dict["type"] == "path": return img_dict["data"]
+                        if img_dict["type"] == "base64":
+                            try:
+                                b_data = base64.b64decode(img_dict["data"])
+                                temp_path = DRAFT_IMG_DIR / f"restored_{prefix}_{datetime.now().strftime('%H%M%S%f')}.jpg"
+                                with open(temp_path, "wb") as f: f.write(b_data)
+                                return str(temp_path)
+                            except: return ""
+                        return ""
+
+                    restored_imgs = {}
+                    d_imgs = loaded_draft.get("existing_imgs", {})
+                    restored_imgs["ext"] = decode_img(d_imgs.get("ext"), "ext")
+                    restored_imgs["out"] = decode_img(d_imgs.get("out"), "out")
+                    restored_imgs["lab"] = decode_img(d_imgs.get("lab"), "lab")
+                    restored_imgs["lo1"] = decode_img(d_imgs.get("lo1"), "lo1")
+                    restored_imgs["lo2"] = decode_img(d_imgs.get("lo2"), "lo2")
+                    st.session_state.existing_imgs = restored_imgs
+                    
+                    restored_ex = []
+                    for i, ex in enumerate(loaded_draft.get("existing_ex_imgs", [])):
+                        path = decode_img(ex.get("img_data"), f"ex_{i}")
+                        restored_ex.append({"title": ex.get("title", ""), "url": path})
+                    st.session_state.existing_ex_imgs = restored_ex
+                    
+                    st.session_state.extra_images_count = 0
                     st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
                     st.session_state.form_reset_key += 1
                     st.session_state["scroll_to_top"] = True
                     st.rerun()
                 except Exception as e:
-                    st.error("下書きの読み込みに失敗しました。")
+                    st.error(f"下書きの読み込みに失敗しました: {e}")
 
     with col_b:
         st.subheader("🔄 登録の完了・リセット")
