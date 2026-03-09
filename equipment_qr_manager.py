@@ -27,7 +27,11 @@ EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 LABEL_HISTORY_FILE = Path("label_history.json")
 TEMP_LABEL_DIR = Path("temp_labels")
 
-for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR]:
+# 【追加】下書き保存用の領域
+DRAFT_FILE = Path("draft_data.json")
+DRAFT_IMG_DIR = Path("draft_images")
+
+for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR, DRAFT_IMG_DIR]:
     d.mkdir(exist_ok=True)
 
 cloud_font_path = "BIZUDGothic-Regular.ttf"
@@ -473,7 +477,6 @@ def main():
                 needs_save = True
         if needs_save: df_init.to_csv(DB_CSV, index=False)
 
-    # --- 入力枠のIDを完全固定し、裏側からデータを同期 ---
     if "input_did" not in st.session_state: st.session_state.input_did = ""
     if "input_name" not in st.session_state: st.session_state.input_name = ""
     if "input_power" not in st.session_state: st.session_state.input_power = None
@@ -495,7 +498,6 @@ def main():
             c_sel = st.session_state.current_db_sel
             sel_idx = options.index(c_sel) if c_sel in options else 0
             
-            # 【重要修正】on_change（誤作動の原因）を完全に廃止し、安全な手動チェックに変更しました
             selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key="db_select_widget")
             
             if selected_edit != st.session_state.current_db_sel:
@@ -801,34 +803,96 @@ def main():
                         st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
+                        # もし下書きがあったら登録完了と同時に削除する
+                        if DRAFT_FILE.exists():
+                            DRAFT_FILE.unlink()
+                        
                     except Exception as e:
                         st.error(f"エラーが発生しました: {str(e)}")
 
+    # --- 【大進化】下書き保存（ワークスペース）＆ 次の作業 ---
     st.markdown("---")
-    st.header("5. 次の作業")
-    st.info(
-        "💡 **登録完了後のステップ**\n\n"
-        "▶ **続けて別の機器を登録する場合**\n"
-        "下の「🔄 次の機器を入力する」ボタンを押すと、入力欄がクリアされて一番上に戻ります。\n\n"
-        "▶ **ラベルを印刷する場合**\n"
-        "画面左側のサイドバーの一番下にある「📥 最新のExcelをダウンロード」からファイルを保存し、そのままA4・縦で印刷してください。"
-    )
+    st.header("5. ワークスペース（下書き） ＆ 次の作業")
     
-    def reset_form_callback():
-        st.session_state.input_did = ""
-        st.session_state.input_name = ""
-        st.session_state.input_power = None
-        st.session_state.input_memo = ""
-        st.session_state.is_related_loto = False
+    col_a, col_b = st.columns(2)
+    
+    with col_a:
+        st.subheader("📝 入力途中のデータを一時保存")
+        st.info("「今日はここまで」という時に、入力中のテキストや画像をまるごと一時保存できます。")
         
-        st.session_state.existing_imgs = {}
-        st.session_state.existing_ex_imgs = []
-        st.session_state.extra_images_count = 0
-        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-        st.session_state.form_reset_key += 1
-        st.session_state["scroll_to_top"] = True
+        if st.button("💾 現在の入力状態を【下書き】として保存", use_container_width=True):
+            draft = {
+                "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
+                "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
+            }
+            
+            # 画像を安全な場所に退避させる関数
+            def cache_img(f_obj, e_path, file_name):
+                if f_obj:
+                    p = DRAFT_IMG_DIR / f"{file_name}.jpg"
+                    with open(p, "wb") as f: f.write(f_obj.read())
+                    f_obj.seek(0)
+                    return str(p)
+                return str(e_path) if e_path else ""
+
+            draft["existing_imgs"]["ext"] = cache_img(f_ext, e_ext, "ext")
+            draft["existing_imgs"]["out"] = cache_img(f_out, e_out, "out")
+            draft["existing_imgs"]["lab"] = cache_img(f_lab, e_lab, "lab")
+            draft["existing_imgs"]["lo1"] = cache_img(f_lo1, e_lo1, "lo1")
+            draft["existing_imgs"]["lo2"] = cache_img(f_lo2, e_lo2, "lo2")
+
+            ex_imgs = []
+            for item in ex_imgs_to_save:
+                f_obj = item.get("file")
+                e_path = item.get("url", "")
+                title = item.get("title", "")
+                idx = item.get("index", 0)
+                path = cache_img(f_obj, e_path, f"ex_{idx}")
+                ex_imgs.append({"title": title, "url": path})
+            draft["existing_ex_imgs"] = ex_imgs
+
+            with open(DRAFT_FILE, "w", encoding="utf-8") as f:
+                json.dump(draft, f, ensure_ascii=False, indent=2)
+            st.success("✅ 下書きを保存しました！明日「下書きを復元」から続きを再開できます。")
+
+        if DRAFT_FILE.exists():
+            if st.button("📂 保存してある【下書き】を復元する", type="primary", use_container_width=True):
+                try:
+                    with open(DRAFT_FILE, "r", encoding="utf-8") as f:
+                        draft = json.load(f)
+                    st.session_state.input_did = draft.get("did", "")
+                    st.session_state.input_name = draft.get("name", "")
+                    p_val = draft.get("power", "")
+                    st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
+                    st.session_state.input_memo = draft.get("memo", "")
+                    st.session_state.is_related_loto = draft.get("is_related_loto", False)
+                    st.session_state.existing_imgs = draft.get("existing_imgs", {})
+                    st.session_state.existing_ex_imgs = draft.get("existing_ex_imgs", [])
+                    st.session_state.extra_images_count = 0 # 復元時は既存枠に表示されるため追加枠はリセット
+                    st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+                    st.session_state.form_reset_key += 1
+                    st.session_state["scroll_to_top"] = True
+                    st.rerun()
+                except Exception as e:
+                    st.error("下書きの読み込みに失敗しました。")
+
+    with col_b:
+        st.subheader("🔄 登録の完了・リセット")
+        st.info("💡 **印刷用台帳の状況は常に自動保存されています！** ブラウザを閉じても、明日はそのまま続きからラベル印刷が可能です。")
         
-    st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
+        if st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True):
+            st.session_state.input_did = ""
+            st.session_state.input_name = ""
+            st.session_state.input_power = None
+            st.session_state.input_memo = ""
+            st.session_state.is_related_loto = False
+            st.session_state.existing_imgs = {}
+            st.session_state.existing_ex_imgs = []
+            st.session_state.extra_images_count = 0
+            st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+            st.session_state.form_reset_key += 1
+            st.session_state["scroll_to_top"] = True
+            st.rerun()
 
     # --- サイドバー：Excel台帳状況 ---
     st.sidebar.markdown("---")
