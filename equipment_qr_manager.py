@@ -473,7 +473,7 @@ def main():
                 needs_save = True
         if needs_save: df_init.to_csv(DB_CSV, index=False)
 
-    # --- 【大掃除完了】入力枠のIDを完全固定し、裏側からデータを同期する最強の方式 ---
+    # --- 入力枠のIDを完全固定し、裏側からデータを同期 ---
     if "input_did" not in st.session_state: st.session_state.input_did = ""
     if "input_name" not in st.session_state: st.session_state.input_name = ""
     if "input_power" not in st.session_state: st.session_state.input_power = None
@@ -495,10 +495,12 @@ def main():
             c_sel = st.session_state.current_db_sel
             sel_idx = options.index(c_sel) if c_sel in options else 0
             
-            def on_db_select_change():
-                selected = st.session_state.db_select_widget
-                st.session_state.current_db_sel = selected
-                if selected == "✨ 新規登録 (クリア)":
+            # 【重要修正】on_change（誤作動の原因）を完全に廃止し、安全な手動チェックに変更しました
+            selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key="db_select_widget")
+            
+            if selected_edit != st.session_state.current_db_sel:
+                st.session_state.current_db_sel = selected_edit
+                if selected_edit == "✨ 新規登録 (クリア)":
                     st.session_state.input_did = ""
                     st.session_state.input_name = ""
                     st.session_state.input_power = None
@@ -508,7 +510,7 @@ def main():
                     st.session_state.existing_ex_imgs = []
                     st.session_state.extra_images_count = 0
                 else:
-                    did_str = selected.split(" : ")[0]
+                    did_str = selected_edit.split(" : ")[0]
                     match = df[df["ID"].astype(str) == did_str]
                     if not match.empty:
                         row = match.iloc[-1]
@@ -528,8 +530,7 @@ def main():
                         try: st.session_state.existing_ex_imgs = json.loads(ex_str)
                         except: st.session_state.existing_ex_imgs = []
                 st.session_state.form_reset_key += 1
-
-            st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key="db_select_widget", on_change=on_db_select_change)
+                st.rerun()
 
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
