@@ -50,7 +50,7 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 画像自動圧縮＆最適化エンジン ---
+# --- 画像自動圧縮＆最適化エンジン（スマホの回転防止もここで処理） ---
 # ==========================================
 def compress_image(uploaded_file, max_size=1000):
     try:
@@ -61,7 +61,7 @@ def compress_image(uploaded_file, max_size=1000):
         else:
             img = Image.open(uploaded_file)
             
-        img = ImageOps.exif_transpose(img)
+        img = ImageOps.exif_transpose(img) # ここでスマホ写真の90度回転バグを修正！
         if img.mode in ('RGBA', 'P'):
             img = img.convert('RGB')
             
@@ -806,10 +806,9 @@ def main():
                         st.error(f"エラーが発生しました: {str(e)}")
 
     # ==========================================
-    # --- 【大進化】下書き保存（PCへダウンロード）＆ 次の作業 ---
+    # --- 【最強進化】環境まるごとバックアップ保存＆復元 ---
     # ==========================================
     
-    # 魔法のコールバック関数たち（エラーを防ぐ盾）
     def reset_form_callback():
         st.session_state.input_did = ""
         st.session_state.input_name = ""
@@ -823,18 +822,43 @@ def main():
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
 
-    def restore_draft_callback():
+    def restore_backup_callback():
         current_rk = st.session_state.form_reset_key
-        uploaded_file = st.session_state.get(f"draft_up_{current_rk}")
+        uploaded_file = st.session_state.get(f"backup_up_{current_rk}")
         if uploaded_file is not None:
             try:
-                loaded_draft = json.loads(uploaded_file.getvalue().decode("utf-8"))
-                st.session_state.input_did = loaded_draft.get("did", "")
-                st.session_state.input_name = loaded_draft.get("name", "")
-                p_val = loaded_draft.get("power", "")
+                loaded_data = json.loads(uploaded_file.getvalue().decode("utf-8"))
+                
+                # 古い下書きデータの互換性対応
+                form_data = loaded_data.get("form", loaded_data) 
+                workspace_data = loaded_data.get("workspace", {})
+
+                # 【大進化1】システム全体の環境データ（データベースと印刷行列）を復元
+                if workspace_data:
+                    if "devices_csv" in workspace_data and workspace_data["devices_csv"]:
+                        with open(DB_CSV, "w", encoding="utf-8") as f:
+                            f.write(workspace_data["devices_csv"])
+                    
+                    label_imgs = workspace_data.get("label_images", {})
+                    for img_name, b64_str in label_imgs.items():
+                        try:
+                            with open(TEMP_LABEL_DIR / img_name, "wb") as f:
+                                f.write(base64.b64decode(b64_str))
+                        except: pass
+
+                    label_hist = workspace_data.get("label_history", [])
+                    with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f:
+                        json.dump(label_hist, f, ensure_ascii=False, indent=2)
+                    
+                    rebuild_excel()
+
+                # 【大進化2】入力途中のフォームデータを復元
+                st.session_state.input_did = form_data.get("did", "")
+                st.session_state.input_name = form_data.get("name", "")
+                p_val = form_data.get("power", "")
                 st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
-                st.session_state.input_memo = loaded_draft.get("memo", "")
-                st.session_state.is_related_loto = loaded_draft.get("is_related_loto", False)
+                st.session_state.input_memo = form_data.get("memo", "")
+                st.session_state.is_related_loto = form_data.get("is_related_loto", False)
                 
                 def decode_img(img_dict, prefix):
                     if not img_dict: return ""
@@ -849,7 +873,7 @@ def main():
                     return ""
 
                 restored_imgs = {}
-                d_imgs = loaded_draft.get("existing_imgs", {})
+                d_imgs = form_data.get("existing_imgs", {})
                 restored_imgs["ext"] = decode_img(d_imgs.get("ext"), "ext")
                 restored_imgs["out"] = decode_img(d_imgs.get("out"), "out")
                 restored_imgs["lab"] = decode_img(d_imgs.get("lab"), "lab")
@@ -858,7 +882,7 @@ def main():
                 st.session_state.existing_imgs = restored_imgs
                 
                 restored_ex = []
-                for i, ex in enumerate(loaded_draft.get("existing_ex_imgs", [])):
+                for i, ex in enumerate(form_data.get("existing_ex_imgs", [])):
                     path = decode_img(ex.get("img_data"), f"ex_{i}")
                     restored_ex.append({"title": ex.get("title", ""), "url": path})
                 st.session_state.existing_ex_imgs = restored_ex
@@ -867,65 +891,102 @@ def main():
                 st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
                 st.session_state.form_reset_key += 1
                 st.session_state["scroll_to_top"] = True
+                
+                st.session_state.restore_success = True
             except Exception as e:
-                st.session_state.draft_error_msg = f"下書きの読み込みに失敗しました: {e}"
+                st.session_state.backup_error_msg = f"バックアップの読み込みに失敗しました: {e}"
 
     st.markdown("---")
-    st.header("5. ワークスペース（下書き） ＆ 次の作業")
+    st.header("5. ワークスペース（作業状態のバックアップ） ＆ 次の作業")
     
+    if st.session_state.get("restore_success"):
+        st.success("✅ バックアップから「入力状態」「データベース」「Excel台帳」をすべて復元しました！")
+        st.session_state.restore_success = False
+
     col_a, col_b = st.columns(2)
     
     with col_a:
-        st.subheader("📝 入力途中のデータを手元のPCに保存")
-        st.info("「今日はここまで」という時に、入力中のテキストや画像を1つの「下書きファイル」としてダウンロードします。")
+        st.subheader("📝 作業状態をまるごとPCに保存")
+        st.info("入力中の文字・画像だけでなく、左側の「データベース」や右側の「Excel台帳」も含めて、今の環境をそのままファイルとしてPCにダウンロードします。")
         
-        draft = {
+        # 1. フォームの入力状態
+        form_draft = {
             "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
             "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
         }
         
-        def encode_img(f_obj, e_path):
+        # 写真の回転を直しつつBase64で文字化する魔法の関数
+        def encode_img_fixed(f_obj, e_path):
             if f_obj:
                 try:
-                    bytes_data = f_obj.getvalue()
-                    return {"type": "base64", "data": base64.b64encode(bytes_data).decode("utf-8")}
+                    # ここでcompress_imageを通すことで、スマホ写真の90度回転(EXIF)が修正されます！
+                    comp_bytes = compress_image(f_obj) 
+                    if comp_bytes:
+                        return {"type": "base64", "data": base64.b64encode(comp_bytes).decode("utf-8")}
                 except: pass
             elif e_path:
                 return {"type": "path", "data": str(e_path)}
             return None
 
-        draft["existing_imgs"]["ext"] = encode_img(f_ext, e_ext)
-        draft["existing_imgs"]["out"] = encode_img(f_out, e_out)
-        draft["existing_imgs"]["lab"] = encode_img(f_lab, e_lab)
-        draft["existing_imgs"]["lo1"] = encode_img(f_lo1, e_lo1)
-        draft["existing_imgs"]["lo2"] = encode_img(f_lo2, e_lo2)
+        form_draft["existing_imgs"]["ext"] = encode_img_fixed(f_ext, e_ext)
+        form_draft["existing_imgs"]["out"] = encode_img_fixed(f_out, e_out)
+        form_draft["existing_imgs"]["lab"] = encode_img_fixed(f_lab, e_lab)
+        form_draft["existing_imgs"]["lo1"] = encode_img_fixed(f_lo1, e_lo1)
+        form_draft["existing_imgs"]["lo2"] = encode_img_fixed(f_lo2, e_lo2)
 
         ex_imgs = []
         for item in ex_imgs_to_save:
-            enc = encode_img(item.get("file"), item.get("url", ""))
+            enc = encode_img_fixed(item.get("file"), item.get("url", ""))
             ex_imgs.append({"title": item.get("title", ""), "img_data": enc})
-        draft["existing_ex_imgs"] = ex_imgs
+        form_draft["existing_ex_imgs"] = ex_imgs
         
-        draft_json_str = json.dumps(draft, ensure_ascii=False)
-        dl_filename = f"draft_{safe_filename(did) if did else 'new'}_{datetime.now().strftime('%Y%m%d%H%M')}.json"
+        # 2. システム全体の環境（ワークスペース）情報
+        csv_data_str = ""
+        if DB_CSV.exists():
+            with open(DB_CSV, "r", encoding="utf-8") as f: csv_data_str = f.read()
+
+        label_hist_data = []
+        if LABEL_HISTORY_FILE.exists():
+            try:
+                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: label_hist_data = json.load(f)
+            except: pass
+
+        label_images_b64 = {}
+        for item in label_hist_data:
+            img_name = item.get("img_filename")
+            img_p = TEMP_LABEL_DIR / img_name
+            if img_p.exists():
+                with open(img_p, "rb") as f: label_images_b64[img_name] = base64.b64encode(f.read()).decode("utf-8")
+
+        backup_data = {
+            "form": form_draft,
+            "workspace": {
+                "devices_csv": csv_data_str,
+                "label_history": label_hist_data,
+                "label_images": label_images_b64
+            }
+        }
+        
+        backup_json_str = json.dumps(backup_data, ensure_ascii=False)
+        dl_filename = f"backup_{safe_filename(did) if did else 'workspace'}_{datetime.now().strftime('%Y%m%d%H%M')}.json"
         
         st.download_button(
-            label="💾 現在の状態を【下書きファイル(.json)】としてPCに保存",
-            data=draft_json_str,
+            label="💾 現在の状態を【ワークスペース保存(.json)】としてPCに保存",
+            data=backup_json_str,
             file_name=dl_filename,
             mime="application/json",
             use_container_width=True
         )
         
         st.markdown("---")
-        st.subheader("📂 PCに保存した下書きを復元")
-        uploaded_draft = st.file_uploader("保存した下書きファイル(.json)を選択", type=["json"], key=f"draft_up_{rk}")
-        if uploaded_draft:
-            st.button("🔄 この下書きデータを復元する", type="primary", use_container_width=True, on_click=restore_draft_callback)
+        st.subheader("📂 PCに保存したバックアップを復元")
+        uploaded_backup = st.file_uploader("保存したファイル(.json)を選択", type=["json"], key=f"backup_up_{rk}")
+        if uploaded_backup:
+            st.button("🔄 このバックアップ環境を復元する", type="primary", use_container_width=True, on_click=restore_backup_callback)
             
-        if "draft_error_msg" in st.session_state:
-            st.error(st.session_state.draft_error_msg)
-            del st.session_state.draft_error_msg
+        if "backup_error_msg" in st.session_state:
+            st.error(st.session_state.backup_error_msg)
+            del st.session_state.backup_error_msg
 
     with col_b:
         st.subheader("🔄 登録の完了・リセット")
