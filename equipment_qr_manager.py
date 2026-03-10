@@ -550,6 +550,9 @@ def main():
                     st.session_state.existing_ex_imgs = []
                     st.session_state.extra_images_count = 0
                     st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+                    # 【重要修正】削除時にもセレクトボックスの記憶を強制リセット
+                    if "db_select_widget" in st.session_state:
+                        st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
                     st.session_state.form_reset_key += 1
                     st.rerun()
 
@@ -819,6 +822,11 @@ def main():
         st.session_state.existing_ex_imgs = []
         st.session_state.extra_images_count = 0
         st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+        
+        # 【重要修正】クリア時にセレクトボックスの記憶も強制リセット
+        if "db_select_widget" in st.session_state:
+            st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
+            
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
 
@@ -829,11 +837,9 @@ def main():
             try:
                 loaded_data = json.loads(uploaded_file.getvalue().decode("utf-8"))
                 
-                # 古い下書きデータの互換性対応
                 form_data = loaded_data.get("form", loaded_data) 
                 workspace_data = loaded_data.get("workspace", {})
 
-                # 【大進化1】システム全体の環境データ（データベースと印刷行列）を復元
                 if workspace_data:
                     if "devices_csv" in workspace_data and workspace_data["devices_csv"]:
                         with open(DB_CSV, "w", encoding="utf-8") as f:
@@ -852,7 +858,6 @@ def main():
                     
                     rebuild_excel()
 
-                # 【大進化2】入力途中のフォームデータを復元
                 st.session_state.input_did = form_data.get("did", "")
                 st.session_state.input_name = form_data.get("name", "")
                 p_val = form_data.get("power", "")
@@ -889,6 +894,11 @@ def main():
                 
                 st.session_state.extra_images_count = 0
                 st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+                
+                # 【重要修正】復元時にもセレクトボックスの記憶を強制リセット
+                if "db_select_widget" in st.session_state:
+                    st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
+                    
                 st.session_state.form_reset_key += 1
                 st.session_state["scroll_to_top"] = True
                 
@@ -919,7 +929,6 @@ def main():
         def encode_img_fixed(f_obj, e_path):
             if f_obj:
                 try:
-                    # ここでcompress_imageを通すことで、スマホ写真の90度回転(EXIF)が修正されます！
                     comp_bytes = compress_image(f_obj) 
                     if comp_bytes:
                         return {"type": "base64", "data": base64.b64encode(comp_bytes).decode("utf-8")}
