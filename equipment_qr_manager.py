@@ -488,6 +488,36 @@ def main():
 
     if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
 
+    # ==========================================
+    # --- 【重要】削除ボタン用の魔法のコールバック関数 ---
+    # ==========================================
+    def delete_db_item_callback(did_to_del):
+        try:
+            d_csv = pd.read_csv(DB_CSV)
+            d_csv = d_csv[d_csv["ID"].astype(str) != str(did_to_del)]
+            d_csv.to_csv(DB_CSV, index=False)
+        except Exception:
+            pass
+            
+        st.session_state.input_did = ""
+        st.session_state.input_name = ""
+        st.session_state.input_power = None
+        st.session_state.input_memo = ""
+        st.session_state.is_related_loto = False
+        st.session_state.existing_imgs = {}
+        st.session_state.existing_ex_imgs = []
+        st.session_state.extra_images_count = 0
+        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
+        
+        # 掟破りにならない安全なリセット方法
+        if "db_select_widget" in st.session_state:
+            st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
+            
+        st.session_state.form_reset_key += 1
+        st.session_state["scroll_to_top"] = True
+        st.session_state.delete_success_msg = True
+
+
     st.sidebar.header("🗄️ 登録済み機器データベース")
     if DB_CSV.exists():
         df = pd.read_csv(DB_CSV)
@@ -535,26 +565,14 @@ def main():
 
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
-                if st.sidebar.button("🗑️ この機器をデータベースから削除"):
-                    did_to_del = st.session_state.current_db_sel.split(" : ")[0]
-                    df = df[df["ID"].astype(str) != did_to_del]
-                    df.to_csv(DB_CSV, index=False)
-                    st.sidebar.success("削除しました！")
-                    
-                    st.session_state.input_did = ""
-                    st.session_state.input_name = ""
-                    st.session_state.input_power = None
-                    st.session_state.input_memo = ""
-                    st.session_state.is_related_loto = False
-                    st.session_state.existing_imgs = {}
-                    st.session_state.existing_ex_imgs = []
-                    st.session_state.extra_images_count = 0
-                    st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-                    # 【重要修正】削除時にもセレクトボックスの記憶を強制リセット
-                    if "db_select_widget" in st.session_state:
-                        st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-                    st.session_state.form_reset_key += 1
-                    st.rerun()
+                did_val = st.session_state.current_db_sel.split(" : ")[0]
+                
+                # 【エラー完全解消】削除ボタンもコールバック関数の魔法に対応！
+                st.sidebar.button("🗑️ この機器をデータベースから削除", on_click=delete_db_item_callback, args=(did_val,))
+                
+            if st.session_state.get("delete_success_msg"):
+                st.sidebar.success("✅ 削除しました！")
+                st.session_state.delete_success_msg = False
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
@@ -822,11 +840,8 @@ def main():
         st.session_state.existing_ex_imgs = []
         st.session_state.extra_images_count = 0
         st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-        
-        # 【重要修正】クリア時にセレクトボックスの記憶も強制リセット
         if "db_select_widget" in st.session_state:
             st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-            
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
 
@@ -895,7 +910,6 @@ def main():
                 st.session_state.extra_images_count = 0
                 st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
                 
-                # 【重要修正】復元時にもセレクトボックスの記憶を強制リセット
                 if "db_select_widget" in st.session_state:
                     st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
                     
@@ -919,13 +933,11 @@ def main():
         st.subheader("📝 作業状態をまるごとPCに保存")
         st.info("入力中の文字・画像だけでなく、左側の「データベース」や右側の「Excel台帳」も含めて、今の環境をそのままファイルとしてPCにダウンロードします。")
         
-        # 1. フォームの入力状態
         form_draft = {
             "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
             "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
         }
         
-        # 写真の回転を直しつつBase64で文字化する魔法の関数
         def encode_img_fixed(f_obj, e_path):
             if f_obj:
                 try:
@@ -949,7 +961,6 @@ def main():
             ex_imgs.append({"title": item.get("title", ""), "img_data": enc})
         form_draft["existing_ex_imgs"] = ex_imgs
         
-        # 2. システム全体の環境（ワークスペース）情報
         csv_data_str = ""
         if DB_CSV.exists():
             with open(DB_CSV, "r", encoding="utf-8") as f: csv_data_str = f.read()
