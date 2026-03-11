@@ -384,39 +384,63 @@ def create_formatted_ledger_excel(df_csv):
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター")
+        # 表を3行目から書き始める（上にタイトル用のスペースを空けるため）
+        df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター", startrow=2)
         ws = writer.sheets["機器台帳マスター"]
         
         # --- 書式設定の定義 ---
         fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
         border_thin = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-        font_bold = Font(bold=True)
+        font_header = Font(bold=True)
+        font_link = Font(color="0000FF", underline="single") # URL用の青文字アンダーライン
+        font_title = Font(size=24, bold=True)                # タイトル用のデカ文字
+        
         align_center = Alignment(horizontal="center", vertical="center")
         align_right = Alignment(horizontal="right", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
         
-        # --- 列幅の設定 ---
-        ws.column_dimensions["A"].width = 12   # 管理番号
-        ws.column_dimensions["B"].width = 25   # 機器名称
-        ws.column_dimensions["C"].width = 12   # 使用電源
-        ws.column_dimensions["D"].width = 110  # マニュアルURL
-        ws.column_dimensions["E"].width = 22   # 最終更新日時
-        ws.column_dimensions["F"].width = 30   # メモ・備考
+        # --- タイトル行の作成 (A1:F2を結合) ---
+        ws.merge_cells("A1:F2")
+        title_cell = ws["A1"]
+        title_cell.value = "機器台帳マスター"
+        title_cell.font = font_title
+        title_cell.alignment = align_center
         
-        # --- ヘッダー(1行目)の書式適用 ---
-        for cell in ws[1]:
+        # --- 列幅の設定 ---
+        ws.column_dimensions["A"].width = 15   # 管理番号
+        ws.column_dimensions["B"].width = 30   # 機器名称
+        ws.column_dimensions["C"].width = 15   # 使用電源
+        ws.column_dimensions["D"].width = 115  # マニュアルURL
+        ws.column_dimensions["E"].width = 25   # 最終更新日時
+        ws.column_dimensions["F"].width = 35   # メモ・備考
+        
+        # --- 行の高さの設定 ---
+        ws.row_dimensions[1].height = 25
+        ws.row_dimensions[2].height = 25
+        ws.row_dimensions[3].height = 25 # ヘッダー行
+        
+        # --- ヘッダー(3行目)の書式適用 ---
+        for cell in ws[3]:
             cell.fill = fill_yellow
-            cell.font = font_bold
+            cell.font = font_header
             cell.border = border_thin
             cell.alignment = align_center
             
-        # --- データ行の書式適用 ---
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        # --- データ行(4行目以降)の書式適用 ---
+        for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
+            ws.row_dimensions[row[0].row].height = 20 # データ行にゆとりを持たせる
             for idx, cell in enumerate(row):
                 cell.border = border_thin
+                
+                # 配置の適用
                 if idx == 0: cell.alignment = align_right       # A: 管理番号
-                elif idx in [1, 2, 4]: cell.alignment = align_center # B: 名称, C: 電源, E: 日時
-                else: cell.alignment = align_left               # D: URL, F: メモ
+                elif idx in [1, 2, 4]: cell.alignment = align_center # B, C, E
+                else: cell.alignment = align_left               # D, F
+                
+                # D列(idx=3)のURLを、クリック可能なハイパーリンクに変換！
+                if idx == 3 and cell.value and str(cell.value).startswith("http"):
+                    cell.hyperlink = cell.value
+                    cell.font = font_link
                 
     return output.getvalue()
 
@@ -1114,3 +1138,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
