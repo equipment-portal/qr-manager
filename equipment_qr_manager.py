@@ -26,8 +26,6 @@ MANUAL_DIR = Path("manuals")
 EXCEL_LABEL_PATH = Path("print_labels.xlsx")
 LABEL_HISTORY_FILE = Path("label_history.json")
 TEMP_LABEL_DIR = Path("temp_labels")
-
-# 【追加】下書き画像を一時的に展開するフォルダ
 DRAFT_IMG_DIR = Path("draft_images")
 
 for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR, DRAFT_IMG_DIR]:
@@ -339,14 +337,13 @@ def clear_history():
         except: pass
 
 # ==========================================
-# --- ストレージ保存処理（個別画像用・安全なタイムスタンプ付き） ---
+# --- ストレージ保存処理（【正解】タイムスタンプ付きで絶対にキャッシュ回避） ---
 # ==========================================
 def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
     if not file_obj: return ""
     comp_data = compress_image(file_obj)
     if not comp_data: return ""
     
-    # 【修正】キャッシュ呪いと422エラーを防ぐため、必ず毎回新しい名前で保存！
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     fname = f"{safe_filename(did)}_{suffix}_{timestamp}.jpg"
     
@@ -425,36 +422,6 @@ def update_master_ledger_excel(df_csv, mode, repo, token, local_path):
 # --- メインアプリ ---
 # ==========================================
 def main():
-    qp = st.query_params
-    is_redirect_mode = "id" in qp
-    
-    # 【革命的ワープ機能】現場でQRを読んだ時、ボタンを押さずに0.1秒で最新画像へ強制転送！
-    if is_redirect_mode:
-        st.set_page_config(page_title="機器情報 読み込み中...", layout="centered")
-        st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>", unsafe_allow_html=True)
-
-        target_id = qp["id"]
-        if DB_CSV.exists():
-            try:
-                df = pd.read_csv(DB_CSV)
-                match = df[df["ID"].astype(str) == str(target_id)]
-                if not match.empty:
-                    target_url = match.iloc[-1]["URL"]
-                    # ここがオートワープの魔法のスクリプトです
-                    st.components.v1.html(
-                        f"""
-                        <script>
-                            window.parent.location.replace("{target_url}");
-                        </script>
-                        """,
-                        height=0
-                    )
-                    st.markdown("<h3 style='text-align: center; margin-top: 50px;'>🔄 最新の機器情報へ移動しています...</h3>", unsafe_allow_html=True)
-                else: st.error("エラー: 管理番号が見つかりません。")
-            except: st.error("データベース読み込みエラー")
-        else: st.error("データベースが見つかりません。")
-        return
-
     st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
     
     st.markdown("""
@@ -573,10 +540,7 @@ def main():
     st.sidebar.header("⚙️ システム詳細設定")
     save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
-    # 【追加】QRコードを永遠に固定するためのベースURL
-    app_url = st.sidebar.text_input("システムの公開URL (QR固定・自動ワープ用)", value="https://equipment-qr-manager.streamlit.app/")
     github_repo = ""; github_token = ""; local_path = ""
-    
     if save_mode == "2. 全自動（データベース保存）":
         github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
         github_token = st.sidebar.text_input("システム接続キー (トークン)", value=st.secrets.get("github_token", ""), type="password")
@@ -725,9 +689,7 @@ def main():
         if st.button("🖨️ 手動設定でラベルを発行", type="primary"):
             if long_url and did and name and power:
                 qr_path = QR_DIR / f"{safe_filename(did)}_qr.png"
-                # 【革命】直リンクではなく、オートワープ用のアドレスをQRに刻む！
-                fixed_qr_url = f"{app_url.rstrip('/')}/?id={did}"
-                img_qr = make_optimized_qr(fixed_qr_url)
+                img_qr = make_optimized_qr(long_url)
                 img_qr.save(qr_path)
                 
                 df = pd.read_csv(DB_CSV)
@@ -778,7 +740,6 @@ def main():
                             "img_loto2": fin_lo2 if fin_lo2 else None
                         }
                         
-                        # 422エラーとキャッシュの呪いを防ぐため、タイムスタンプ付きの安全な保存に回帰！
                         ts_str = datetime.now().strftime("%Y%m%d%H%M%S")
                         s_id = safe_filename(did)
                         file_name_manual = f"{s_id}_{ts_str}.jpg"
@@ -803,9 +764,7 @@ def main():
                             final_manual_url = str(out_manual).replace("\\", "/")
 
                         qr_path = QR_DIR / f"{s_id}_qr.png"
-                        # 【革命】直リンクではなく、オートワープ用のアドレスをQRに刻む！
-                        fixed_qr_url = f"{app_url.rstrip('/')}/?id={did}"
-                        img_qr = make_optimized_qr(fixed_qr_url)
+                        img_qr = make_optimized_qr(final_manual_url)
                         img_qr.save(qr_path)
                         
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
@@ -823,7 +782,8 @@ def main():
 
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
-                        st.success(f"✅ 登録完了！ QRコードを固定化しました。")
+                        st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
+                        st.markdown(f"**[🔗 ここをクリックしてブラウザで画像を確認]({final_manual_url})**")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
                     except Exception as e:
