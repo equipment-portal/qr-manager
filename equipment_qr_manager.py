@@ -494,7 +494,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2", "extra_images"]
+    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "is_related_loto", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2", "extra_images"]
     if not DB_CSV.exists():
         pd.DataFrame(columns=db_columns).to_csv(DB_CSV, index=False)
     else:
@@ -590,7 +590,7 @@ def main():
                         p_val = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
                         st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
                         st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
-                        st.session_state.is_related_loto = False
+                        st.session_state.is_related_loto = bool(row.get("is_related_loto")) if pd.notna(row.get("is_related_loto")) else False
                         
                         st.session_state.existing_imgs = {
                             "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
@@ -774,7 +774,15 @@ def main():
     
     if save_mode == "1. 手動ダウンロードのみ":
         long_url = st.text_input("保管先等のURLを貼り付け")
-        if st.button("🖨️ 手動設定でラベルを発行", type="primary"):
+        
+        # 【変更】ボタンを2つ横並びに配置
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            btn_m_print = st.button("🖨️ 手動設定でラベルを発行", type="primary", use_container_width=True)
+        with col_m2:
+            btn_m_save = st.button("🗄️ データのみ保存（ラベルなし）", type="secondary", use_container_width=True)
+            
+        if btn_m_print or btn_m_save:
             if long_url and did and name and power:
                 qr_path = QR_DIR / f"{safe_filename(did)}_qr.png"
                 img_qr = make_optimized_qr(long_url)
@@ -782,20 +790,32 @@ def main():
                 
                 df = pd.read_csv(DB_CSV)
                 df = df[df["ID"].astype(str) != str(did)]
-                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "memo": memo}
+                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "memo": memo, "is_related_loto": is_related_loto}
                 df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 df.to_csv(DB_CSV, index=False)
                 
                 label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
-                add_label_to_history(name, label_img)
                 
-                # 結果をセッション状態に保存
-                st.session_state.label_img_data = label_img
-                st.session_state.label_msg = "ラベルを発行しました！"
+                # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
+                if btn_m_print:
+                    add_label_to_history(name, label_img)
+                    st.session_state.label_img_data = label_img
+                    st.session_state.label_msg = "ラベルを発行しました！"
+                else:
+                    st.session_state.label_img_data = None
+                    st.session_state.label_msg = "✅ データベースのみ保存しました！（ラベル未発行）"
+                    
                 st.session_state.label_url = None
 
     elif save_mode in ["2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"]:
-        if st.button("🖨️ 【全自動】画像を保存し、台帳へ登録してラベルを発行する", type="primary"):
+        # 【変更】ボタンを2つ横並びに配置
+        col_a1, col_a2 = st.columns(2)
+        with col_a1:
+            btn_auto_print = st.button("🖨️ 画像保存＆ラベル発行（全自動）", type="primary", use_container_width=True)
+        with col_a2:
+            btn_auto_save = st.button("🗄️ データのみ保存（ラベルなし）", type="secondary", use_container_width=True)
+
+        if btn_auto_print or btn_auto_save:
             if did and name and power:
                 with st.spinner("🔄 画像の圧縮とデータベース保存を実行中..."):
                     try:
@@ -860,13 +880,16 @@ def main():
                         img_qr.save(qr_path)
                         
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
-                        add_label_to_history(name, label_img)
+                        
+                        # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
+                        if btn_auto_print:
+                            add_label_to_history(name, label_img)
 
                         df = pd.read_csv(DB_CSV)
                         df = df[df["ID"].astype(str) != str(did)]
                         new_row = {
                             "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "memo": memo, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
+                            "memo": memo, "is_related_loto": is_related_loto, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
                             "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) 
                         }
                         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -875,8 +898,13 @@ def main():
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
                         # 結果をセッション状態に保存
-                        st.session_state.label_img_data = label_img
-                        st.session_state.label_msg = f"✅ 登録完了！ マニュアルURL: {final_manual_url}"
+                        if btn_auto_print:
+                            st.session_state.label_img_data = label_img
+                            st.session_state.label_msg = f"✅ 登録・ラベル発行完了！ 機器情報ページURL: {final_manual_url}"
+                        else:
+                            st.session_state.label_img_data = None
+                            st.session_state.label_msg = f"✅ データ保存のみ完了！（ラベル未発行） 機器情報ページURL: {final_manual_url}"
+                            
                         st.session_state.label_url = final_manual_url
                         
                     except Exception as e:
@@ -1138,5 +1166,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
