@@ -458,6 +458,21 @@ def main():
 
     if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
 
+    # 【追加】プレビューとラベルの表示状態を記憶する変数
+    if "preview_b64" not in st.session_state: st.session_state.preview_b64 = None
+    if "preview_file" not in st.session_state: st.session_state.preview_file = None
+    if "label_img_data" not in st.session_state: st.session_state.label_img_data = None
+    if "label_msg" not in st.session_state: st.session_state.label_msg = None
+    if "label_url" not in st.session_state: st.session_state.label_url = None
+
+    # 【追加】機器切り替え時などにプレビューとラベルの記憶を消去する関数
+    def clear_preview_and_label():
+        st.session_state.preview_b64 = None
+        st.session_state.preview_file = None
+        st.session_state.label_img_data = None
+        st.session_state.label_msg = None
+        st.session_state.label_url = None
+
     def delete_db_item_callback(did_to_del):
         try:
             d_csv = pd.read_csv(DB_CSV)
@@ -480,6 +495,7 @@ def main():
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
         st.session_state.delete_success_msg = True
+        clear_preview_and_label()
 
 
     st.sidebar.header("🗄️ 登録済み機器データベース")
@@ -524,6 +540,9 @@ def main():
                         if pd.isna(row.get("extra_images")): ex_str = "[]"
                         try: st.session_state.existing_ex_imgs = json.loads(ex_str)
                         except: st.session_state.existing_ex_imgs = []
+                
+                # 機器切り替え時にプレビューとラベルを消去
+                clear_preview_and_label()
                 st.session_state.form_reset_key += 1
                 st.rerun()
 
@@ -669,16 +688,23 @@ def main():
                 manual_path = MANUAL_DIR / f"preview_{rk}.jpg"
                 create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
                 if manual_path.exists():
-                    st.success("プレビュー成功！")
-                    with open(manual_path, "rb") as f: img_b64 = base64.b64encode(f.read()).decode("utf-8")
-                    st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{img_b64}" width="100%"></div>', height=520)
+                    # 生成した画像をセッション状態に保存
+                    with open(manual_path, "rb") as f: 
+                        st.session_state.preview_b64 = base64.b64encode(f.read()).decode("utf-8")
                     
                     s_id = safe_filename(did)
                     dl_file_name = f"{s_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{s_id}.jpg"
-                    with open(manual_path, "rb") as img_file:
-                        st.download_button(label="📥 完成したプレビュー画像を手動でPCに保存", data=img_file, file_name=dl_file_name, mime="image/jpeg")
+                    st.session_state.preview_file = {"path": manual_path, "name": dl_file_name}
         else:
             st.error("管理番号、機器名称、使用電源は必須です。")
+
+    # 記憶されているプレビューがあれば、ボタンが押されていなくても常に表示する
+    if st.session_state.preview_b64:
+        st.success("プレビュー成功！")
+        st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{st.session_state.preview_b64}" width="100%"></div>', height=520)
+        if st.session_state.preview_file:
+            with open(st.session_state.preview_file["path"], "rb") as img_file:
+                st.download_button(label="📥 完成したプレビュー画像を手動でPCに保存", data=img_file, file_name=st.session_state.preview_file["name"], mime="image/jpeg")
 
     # --- 登録・発行機能 ---
     st.markdown("---")
@@ -700,7 +726,11 @@ def main():
                 
                 label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                 add_label_to_history(name, label_img)
-                st.image(label_img, caption="印刷用ラベル", width=300)
+                
+                # 結果をセッション状態に保存
+                st.session_state.label_img_data = label_img
+                st.session_state.label_msg = "ラベルを発行しました！"
+                st.session_state.label_url = None
 
     elif save_mode in ["2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"]:
         if st.button("🖨️ 【全自動】画像を保存し、台帳へ登録してラベルを発行する", type="primary"):
@@ -782,12 +812,21 @@ def main():
 
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
-                        st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
-                        st.markdown(f"**[🔗 ここをクリックしてブラウザで画像を確認]({final_manual_url})**")
-                        st.image(label_img, caption="印刷用ラベル", width=300)
+                        # 結果をセッション状態に保存
+                        st.session_state.label_img_data = label_img
+                        st.session_state.label_msg = f"✅ 登録完了！ マニュアルURL: {final_manual_url}"
+                        st.session_state.label_url = final_manual_url
                         
                     except Exception as e:
                         st.error(f"エラーが発生しました: {str(e)}")
+
+    # 記憶されているラベル結果があれば、ボタンの外で常に表示する
+    if st.session_state.label_msg:
+        st.success(st.session_state.label_msg)
+        if st.session_state.label_url:
+            st.markdown(f"**[🔗 ここをクリックしてブラウザで画像を確認]({st.session_state.label_url})**")
+    if st.session_state.label_img_data is not None:
+        st.image(st.session_state.label_img_data, caption="印刷用ラベル", width=300)
 
     # ==========================================
     # --- 【最強進化】環境まるごとバックアップ保存＆復元 ---
@@ -807,6 +846,7 @@ def main():
             st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
+        clear_preview_and_label()
 
     def restore_backup_callback():
         current_rk = st.session_state.form_reset_key
@@ -878,7 +918,7 @@ def main():
                     
                 st.session_state.form_reset_key += 1
                 st.session_state["scroll_to_top"] = True
-                
+                clear_preview_and_label()
                 st.session_state.restore_success = True
             except Exception as e:
                 st.session_state.backup_error_msg = f"バックアップの読み込みに失敗しました: {e}"
@@ -893,8 +933,8 @@ def main():
     col_a, col_b = st.columns(2)
     
     with col_a:
-        st.subheader("📝 作業状態をまるごとPCに保存")
-        st.info("入力中の文字・画像だけでなく、左側の「データベース」や右側の「Excel台帳」も含めて、今の環境をそのままファイルとしてPCにダウンロードします。")
+        st.subheader("📝 現在の作業状態をPCに保存")
+        st.info("入力中の文字・画像だけでなく、左側の「データベース」や右側の「Excel台帳」も含めて、今の環境をそのままファイルとしてPCにバックアップします。")
         
         form_draft = {
             "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
@@ -973,7 +1013,7 @@ def main():
 
     with col_b:
         st.subheader("🔄 登録の完了・リセット")
-        st.info("💡 **印刷用台帳の状況は常に自動保存されています！** ブラウザを閉じても、明日はそのまま続きからラベル印刷が可能です。")
+        st.info("💡 **印刷用台帳はシステム内部に記憶されています。** ブラウザを閉じても、次回起動時にそのまま続きからラベル印刷が可能です。")
         
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
 
