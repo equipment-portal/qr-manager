@@ -778,9 +778,9 @@ def main():
                             "img_loto2": fin_lo2 if fin_lo2 else None
                         }
                         
-                        ts_str = datetime.now().strftime("%Y%m%d%H%M%S")
                         s_id = safe_filename(did)
-                        file_name_manual = f"{s_id}_{ts_str}.jpg"
+                        # タイムスタンプを外し、常に「管理番号.jpg」で上書き保存する！
+                        file_name_manual = f"{s_id}.jpg"
                         manual_path = MANUAL_DIR / file_name_manual
                         
                         create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
@@ -793,6 +793,11 @@ def main():
                                 req.add_header("Authorization", f"token {github_token}"); req.add_header("Content-Type", "application/json")
                                 with urllib.request.urlopen(req) as res:
                                     final_manual_url = json.loads(res.read().decode("utf-8"))["content"]["html_url"].replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
+                                
+                                # 【追加】更新時に、クラウドサーバー(CDN)の古い画像を強制的に吹き飛ばす！
+                                try:
+                                    urllib.request.urlopen(f"https://purge.jsdelivr.net/gh/{github_repo}@main/manuals/{file_name_manual}")
+                                except: pass
                         
                         elif save_mode == "3. 社内共有フォルダへ自動保存":
                             target_dir = Path(local_path) / "manuals"
@@ -1052,3 +1057,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
