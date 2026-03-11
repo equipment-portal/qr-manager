@@ -1075,10 +1075,11 @@ def main():
                 excel_data = output.getvalue()
                 
                 st.sidebar.download_button(
-                    label="📥 機器台帳マスター(Excel)をダウンロード",
+                    label="📥 Excel形式でダウンロード",
                     data=excel_data,
                     file_name=f"機器台帳マスター_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
                 )
             else:
                 st.sidebar.info("登録されている機器がありません。")
@@ -1087,6 +1088,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
