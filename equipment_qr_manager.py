@@ -796,10 +796,15 @@ def main():
                 
                 label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                 
+                # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
+                buf = io.BytesIO()
+                label_img.save(buf, format="PNG")
+                img_bytes = buf.getvalue()
+                
                 # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
                 if btn_m_print:
                     add_label_to_history(name, label_img)
-                    st.session_state.label_img_data = label_img
+                    st.session_state.label_img_data = img_bytes
                     st.session_state.label_msg = "ラベルを発行しました！"
                 else:
                     st.session_state.label_img_data = None
@@ -881,6 +886,11 @@ def main():
                         
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                         
+                        # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
+                        buf = io.BytesIO()
+                        label_img.save(buf, format="PNG")
+                        img_bytes = buf.getvalue()
+                        
                         # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
                         if btn_auto_print:
                             add_label_to_history(name, label_img)
@@ -899,7 +909,7 @@ def main():
 
                         # 結果をセッション状態に保存
                         if btn_auto_print:
-                            st.session_state.label_img_data = label_img
+                            st.session_state.label_img_data = img_bytes
                             st.session_state.label_msg = f"✅ 登録・ラベル発行完了！ 機器情報ページURL: {final_manual_url}"
                         else:
                             st.session_state.label_img_data = None
@@ -1166,6 +1176,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
