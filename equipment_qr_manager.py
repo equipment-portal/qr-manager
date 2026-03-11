@@ -346,13 +346,25 @@ def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
     comp_data = compress_image(file_obj)
     if not comp_data: return ""
     
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    fname = f"{safe_filename(did)}_{suffix}_{timestamp}.jpg"
+    # タイムスタンプを廃止し、常に同じファイル名で上書きしてゴミを防ぐ！
+    fname = f"{safe_filename(did)}_{suffix}.jpg"
     
     if mode == "2. 全自動（データベース保存）":
         encoded = base64.b64encode(comp_data).decode("utf-8")
         api_url = f"https://api.github.com/repos/{repo}/contents/images/{fname}"
+        
+        # GitHubの掟：上書き許可証(sha)をこっそり取得する
+        sha = None
+        try:
+            req_check = urllib.request.Request(api_url)
+            req_check.add_header("Authorization", f"token {token}")
+            with urllib.request.urlopen(req_check) as res:
+                sha = json.loads(res.read().decode("utf-8"))["sha"]
+        except: pass
+        
         payload = {"message": f"Upload {fname}", "content": encoded, "branch": "main"}
+        if sha: payload["sha"] = sha
+        
         req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
         req.add_header("Authorization", f"token {token}")
         req.add_header("Content-Type", "application/json")
@@ -788,13 +800,27 @@ def main():
                         final_manual_url = ""
                         if save_mode == "2. 全自動（データベース保存）":
                             with open(manual_path, "rb") as f:
-                                payload = {"message": f"Upload Manual {file_name_manual}", "content": base64.b64encode(f.read()).decode("utf-8"), "branch": "main"}
-                                req = urllib.request.Request(f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}", data=json.dumps(payload).encode("utf-8"), method="PUT")
+                                encoded_manual = base64.b64encode(f.read()).decode("utf-8")
+                                api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}"
+                                
+                                # GitHubの掟：上書き許可証(sha)をこっそり取得する
+                                sha = None
+                                try:
+                                    req_check = urllib.request.Request(api_url)
+                                    req_check.add_header("Authorization", f"token {github_token}")
+                                    with urllib.request.urlopen(req_check) as res:
+                                        sha = json.loads(res.read().decode("utf-8"))["sha"]
+                                except: pass
+                                
+                                payload = {"message": f"Upload Manual {file_name_manual}", "content": encoded_manual, "branch": "main"}
+                                if sha: payload["sha"] = sha
+                                
+                                req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
                                 req.add_header("Authorization", f"token {github_token}"); req.add_header("Content-Type", "application/json")
                                 with urllib.request.urlopen(req) as res:
                                     final_manual_url = json.loads(res.read().decode("utf-8"))["content"]["html_url"].replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
                                 
-                                # 【追加】更新時に、クラウドサーバー(CDN)の古い画像を強制的に吹き飛ばす！
+                                # 更新時に、クラウドサーバー(CDN)の古い画像を強制的に吹き飛ばす！
                                 try:
                                     urllib.request.urlopen(f"https://purge.jsdelivr.net/gh/{github_repo}@main/manuals/{file_name_manual}")
                                 except: pass
@@ -1057,4 +1083,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
