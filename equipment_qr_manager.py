@@ -377,9 +377,9 @@ def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
 def create_formatted_ledger_excel(df_csv):
     df_export = df_csv.rename(columns={
         "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
-        "URL": "マニュアルURL", "Updated": "最終更新日時", "memo": "メモ・備考"
+        "URL": "機器情報ページURL", "Updated": "最終更新日時", "memo": "メモ・備考"
     })
-    cols_to_keep = ["管理番号", "機器名称", "使用電源", "マニュアルURL", "最終更新日時", "メモ・備考"]
+    cols_to_keep = ["管理番号", "機器名称", "使用電源", "機器情報ページURL", "最終更新日時", "メモ・備考"]
     df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
     
     output = io.BytesIO()
@@ -1138,4 +1138,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
