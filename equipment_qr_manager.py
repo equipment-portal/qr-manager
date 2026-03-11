@@ -1055,7 +1055,38 @@ def main():
         with open(EXCEL_LABEL_PATH, "rb") as f: st.sidebar.download_button("📥 最新のExcelをダウンロード", f, "labels.xlsx")
         if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
 
+    # --- マスター台帳ダウンロードボタンの追加 ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📊 機器台帳マスター")
+    if DB_CSV.exists():
+        try:
+            df_csv = pd.read_csv(DB_CSV)
+            if not df_csv.empty:
+                df_export = df_csv.rename(columns={
+                    "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
+                    "URL": "マニュアルURL", "Updated": "最終更新日時", "memo": "メモ・備考"
+                })
+                cols_to_keep = ["管理番号", "機器名称", "使用電源", "マニュアルURL", "最終更新日時", "メモ・備考"]
+                df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
+                
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター")
+                excel_data = output.getvalue()
+                
+                st.sidebar.download_button(
+                    label="📥 機器台帳マスター(Excel)をダウンロード",
+                    data=excel_data,
+                    file_name=f"機器台帳マスター_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.sidebar.info("登録されている機器がありません。")
+        except Exception as e:
+            st.sidebar.error(f"台帳生成エラー: {e}")
+
 if __name__ == "__main__":
     main()
+
 
 
