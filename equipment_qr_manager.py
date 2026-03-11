@@ -50,7 +50,7 @@ def safe_filename(name):
     return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
 
 # ==========================================
-# --- 画像自動圧縮＆最適化エンジン（スマホの回転防止もここで処理） ---
+# --- 画像自動圧縮＆最適化エンジン ---
 # ==========================================
 def compress_image(uploaded_file, max_size=1000):
     try:
@@ -61,7 +61,7 @@ def compress_image(uploaded_file, max_size=1000):
         else:
             img = Image.open(uploaded_file)
             
-        img = ImageOps.exif_transpose(img) # ここでスマホ写真の90度回転バグを修正！
+        img = ImageOps.exif_transpose(img) 
         if img.mode in ('RGBA', 'P'):
             img = img.convert('RGB')
             
@@ -339,32 +339,21 @@ def clear_history():
         except: pass
 
 # ==========================================
-# --- ストレージ保存処理（個別画像用） ---
+# --- ストレージ保存処理（個別画像用・安全なタイムスタンプ付き） ---
 # ==========================================
 def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
     if not file_obj: return ""
     comp_data = compress_image(file_obj)
     if not comp_data: return ""
     
-    # タイムスタンプを廃止し、常に同じファイル名で上書きしてゴミを防ぐ！
-    fname = f"{safe_filename(did)}_{suffix}.jpg"
+    # 【修正】キャッシュ呪いと422エラーを防ぐため、必ず毎回新しい名前で保存！
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    fname = f"{safe_filename(did)}_{suffix}_{timestamp}.jpg"
     
     if mode == "2. 全自動（データベース保存）":
         encoded = base64.b64encode(comp_data).decode("utf-8")
         api_url = f"https://api.github.com/repos/{repo}/contents/images/{fname}"
-        
-        # GitHubの掟：上書き許可証(sha)をこっそり取得する
-        sha = None
-        try:
-            req_check = urllib.request.Request(api_url)
-            req_check.add_header("Authorization", f"token {token}")
-            with urllib.request.urlopen(req_check) as res:
-                sha = json.loads(res.read().decode("utf-8"))["sha"]
-        except: pass
-        
         payload = {"message": f"Upload {fname}", "content": encoded, "branch": "main"}
-        if sha: payload["sha"] = sha
-        
         req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
         req.add_header("Authorization", f"token {token}")
         req.add_header("Content-Type", "application/json")
@@ -439,8 +428,9 @@ def main():
     qp = st.query_params
     is_redirect_mode = "id" in qp
     
+    # 【革命的ワープ機能】現場でQRを読んだ時、ボタンを押さずに0.1秒で最新画像へ強制転送！
     if is_redirect_mode:
-        st.set_page_config(page_title="機器情報ページ", layout="centered")
+        st.set_page_config(page_title="機器情報 読み込み中...", layout="centered")
         st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;}</style>", unsafe_allow_html=True)
 
         target_id = qp["id"]
@@ -450,15 +440,16 @@ def main():
                 match = df[df["ID"].astype(str) == str(target_id)]
                 if not match.empty:
                     target_url = match.iloc[-1]["URL"]
-                    link_html = f"""
-                    <div style="text-align: center; margin-top: 60px;">
-                        <p style="font-size: 20px; font-weight: bold; color: #333;">✅ 機器情報ページの準備ができました</p>
-                        <a href="{target_url}" style="display:inline-block; margin-top:15px; padding:20px 40px; background:#28a745; color:white; font-size:22px; font-weight:bold; text-decoration:none; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.2);">
-                            📱 機器情報ページを開く
-                        </a>
-                    </div>
-                    """
-                    st.markdown(link_html, unsafe_allow_html=True)
+                    # ここがオートワープの魔法のスクリプトです
+                    st.components.v1.html(
+                        f"""
+                        <script>
+                            window.parent.location.replace("{target_url}");
+                        </script>
+                        """,
+                        height=0
+                    )
+                    st.markdown("<h3 style='text-align: center; margin-top: 50px;'>🔄 最新の機器情報へ移動しています...</h3>", unsafe_allow_html=True)
                 else: st.error("エラー: 管理番号が見つかりません。")
             except: st.error("データベース読み込みエラー")
         else: st.error("データベースが見つかりません。")
@@ -500,9 +491,6 @@ def main():
 
     if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
 
-    # ==========================================
-    # --- 【重要】削除ボタン用の魔法のコールバック関数 ---
-    # ==========================================
     def delete_db_item_callback(did_to_del):
         try:
             d_csv = pd.read_csv(DB_CSV)
@@ -520,11 +508,8 @@ def main():
         st.session_state.existing_ex_imgs = []
         st.session_state.extra_images_count = 0
         st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-        
-        # 掟破りにならない安全なリセット方法
         if "db_select_widget" in st.session_state:
             st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-            
         st.session_state.form_reset_key += 1
         st.session_state["scroll_to_top"] = True
         st.session_state.delete_success_msg = True
@@ -578,8 +563,6 @@ def main():
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
                 did_val = st.session_state.current_db_sel.split(" : ")[0]
-                
-                # 【エラー完全解消】削除ボタンもコールバック関数の魔法に対応！
                 st.sidebar.button("🗑️ この機器をデータベースから削除", on_click=delete_db_item_callback, args=(did_val,))
                 
             if st.session_state.get("delete_success_msg"):
@@ -590,7 +573,10 @@ def main():
     st.sidebar.header("⚙️ システム詳細設定")
     save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
+    # 【追加】QRコードを永遠に固定するためのベースURL
+    app_url = st.sidebar.text_input("システムの公開URL (QR固定・自動ワープ用)", value="https://equipment-qr-manager.streamlit.app/")
     github_repo = ""; github_token = ""; local_path = ""
+    
     if save_mode == "2. 全自動（データベース保存）":
         github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
         github_token = st.sidebar.text_input("システム接続キー (トークン)", value=st.secrets.get("github_token", ""), type="password")
@@ -739,7 +725,9 @@ def main():
         if st.button("🖨️ 手動設定でラベルを発行", type="primary"):
             if long_url and did and name and power:
                 qr_path = QR_DIR / f"{safe_filename(did)}_qr.png"
-                img_qr = make_optimized_qr(long_url)
+                # 【革命】直リンクではなく、オートワープ用のアドレスをQRに刻む！
+                fixed_qr_url = f"{app_url.rstrip('/')}/?id={did}"
+                img_qr = make_optimized_qr(fixed_qr_url)
                 img_qr.save(qr_path)
                 
                 df = pd.read_csv(DB_CSV)
@@ -790,9 +778,10 @@ def main():
                             "img_loto2": fin_lo2 if fin_lo2 else None
                         }
                         
+                        # 422エラーとキャッシュの呪いを防ぐため、タイムスタンプ付きの安全な保存に回帰！
+                        ts_str = datetime.now().strftime("%Y%m%d%H%M%S")
                         s_id = safe_filename(did)
-                        # タイムスタンプを外し、常に「管理番号.jpg」で上書き保存する！
-                        file_name_manual = f"{s_id}.jpg"
+                        file_name_manual = f"{s_id}_{ts_str}.jpg"
                         manual_path = MANUAL_DIR / file_name_manual
                         
                         create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
@@ -800,30 +789,11 @@ def main():
                         final_manual_url = ""
                         if save_mode == "2. 全自動（データベース保存）":
                             with open(manual_path, "rb") as f:
-                                encoded_manual = base64.b64encode(f.read()).decode("utf-8")
-                                api_url = f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}"
-                                
-                                # GitHubの掟：上書き許可証(sha)をこっそり取得する
-                                sha = None
-                                try:
-                                    req_check = urllib.request.Request(api_url)
-                                    req_check.add_header("Authorization", f"token {github_token}")
-                                    with urllib.request.urlopen(req_check) as res:
-                                        sha = json.loads(res.read().decode("utf-8"))["sha"]
-                                except: pass
-                                
-                                payload = {"message": f"Upload Manual {file_name_manual}", "content": encoded_manual, "branch": "main"}
-                                if sha: payload["sha"] = sha
-                                
-                                req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
+                                payload = {"message": f"Upload Manual {file_name_manual}", "content": base64.b64encode(f.read()).decode("utf-8"), "branch": "main"}
+                                req = urllib.request.Request(f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}", data=json.dumps(payload).encode("utf-8"), method="PUT")
                                 req.add_header("Authorization", f"token {github_token}"); req.add_header("Content-Type", "application/json")
                                 with urllib.request.urlopen(req) as res:
                                     final_manual_url = json.loads(res.read().decode("utf-8"))["content"]["html_url"].replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                                
-                                # 更新時に、クラウドサーバー(CDN)の古い画像を強制的に吹き飛ばす！
-                                try:
-                                    urllib.request.urlopen(f"https://purge.jsdelivr.net/gh/{github_repo}@main/manuals/{file_name_manual}")
-                                except: pass
                         
                         elif save_mode == "3. 社内共有フォルダへ自動保存":
                             target_dir = Path(local_path) / "manuals"
@@ -833,7 +803,9 @@ def main():
                             final_manual_url = str(out_manual).replace("\\", "/")
 
                         qr_path = QR_DIR / f"{s_id}_qr.png"
-                        img_qr = make_optimized_qr(final_manual_url)
+                        # 【革命】直リンクではなく、オートワープ用のアドレスをQRに刻む！
+                        fixed_qr_url = f"{app_url.rstrip('/')}/?id={did}"
+                        img_qr = make_optimized_qr(fixed_qr_url)
                         img_qr.save(qr_path)
                         
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
@@ -851,7 +823,7 @@ def main():
 
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
-                        st.success(f"✅ 登録完了！ マニュアルURL: {final_manual_url}")
+                        st.success(f"✅ 登録完了！ QRコードを固定化しました。")
                         st.image(label_img, caption="印刷用ラベル", width=300)
                         
                     except Exception as e:
@@ -1083,5 +1055,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
