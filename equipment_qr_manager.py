@@ -242,7 +242,8 @@ def create_label_image(data):
     scale = 4; target_w_px = 350 * scale; target_h_px = 200 * scale
     try:
         font_title = ImageFont.truetype(cloud_font_path, 19 * scale) 
-        font_main = ImageFont.truetype(cloud_font_path, 30 * scale)  
+        # 【変更】デフォルトの文字サイズを「30」から「27」へ本当に少しだけ縮小
+        font_main = ImageFont.truetype(cloud_font_path, 27 * scale)  
         font_sm = ImageFont.truetype(cloud_font_path, 12 * scale)    
         font_footer = ImageFont.truetype(cloud_font_path, 13 * scale) 
     except: font_title = font_main = font_sm = font_footer = ImageFont.load_default()
@@ -253,27 +254,30 @@ def create_label_image(data):
     draw = ImageDraw.Draw(label_img)
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=(255, 255, 0), width=12 * scale)
     
-    draw.text((18 * scale, 16 * scale), "■", fill="black", font=font_title)
-    draw.text((42 * scale, 16 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
+    # 【微調整】前回下げたタイトル位置はそのまま維持
+    draw.text((18 * scale, 12 * scale), "■", fill="black", font=font_title)
+    draw.text((42 * scale, 12 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    qr_size = 72 * scale
+    qr_size = 96 * scale # サイズを96に拡大
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
-            qr_pil = data['img_qr'].convert('RGB').resize((qr_size, qr_size))
-            label_img.paste(qr_pil, (target_w_px - qr_size - 22 * scale, target_h_px - qr_size - 30 * scale))
+            qr_pil = data['img_qr'].convert('RGB').resize((qr_size, qr_size), Image.Resampling.NEAREST)
+            label_img.paste(qr_pil, (target_w_px - qr_size - 14 * scale, 76 * scale))
         except: pass
     
-    current_size = 30 * scale
+    # 【変更】スタートの文字サイズを27に合わせる
+    current_size = 27 * scale
     temp_font = font_main
-    while (draw.textbbox((0, 0), device_name, font=temp_font)[2]) > (target_w_px - 40 * scale) and current_size > 12 * scale:
+    # 【変更】文字が長い場合でもQRコードにぶつからないよう、右側の見えない壁を「30」から「45」にして少し厚くする
+    while (draw.textbbox((0, 0), device_name, font=temp_font)[2]) > (target_w_px - 45 * scale) and current_size > 12 * scale:
         current_size -= 1 * scale
         temp_font = ImageFont.truetype(cloud_font_path, current_size)
 
-    draw.text((18 * scale, 52 * scale), "機器名称:", fill="black", font=font_sm)
-    draw.text((18 * scale, 66 * scale), device_name, fill="black", font=temp_font)
-    draw.text((18 * scale, 108 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((18 * scale, 122 * scale), f"AC {device_power}", fill="black", font=temp_font)
-    draw.text((18 * scale, 172 * scale), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
+    draw.text((18 * scale, 36 * scale), "機器名称:", fill="black", font=font_sm)
+    draw.text((18 * scale, 50 * scale), device_name, fill="black", font=temp_font)
+    draw.text((18 * scale, 98 * scale), "使用電源:", fill="black", font=font_sm)
+    draw.text((18 * scale, 112 * scale), f"AC {device_power}", fill="black", font=temp_font)
+    draw.text((18 * scale, 171 * scale), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
     
     return label_img.resize((350, 200), Image.Resampling.LANCZOS)
 
@@ -375,6 +379,8 @@ def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
 # --- マスター台帳Excelの自動生成・保存 ---
 # ==========================================
 def create_formatted_ledger_excel(df_csv):
+    import re # 【追加】自然順ソートのための正規表現ライブラリ
+    
     df_export = df_csv.rename(columns={
         "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
         "URL": "機器情報ページURL", "Updated": "最終更新日時", "memo": "メモ・備考"
@@ -382,6 +388,36 @@ def create_formatted_ledger_excel(df_csv):
     cols_to_keep = ["管理番号", "機器名称", "使用電源", "機器情報ページURL", "最終更新日時", "メモ・備考"]
     df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
     
+    # --- 【最強進化】Pythonによる「自然順ソート（人間的ソート）」の実装 ---
+    def add_natural_sort_keys(df, col_name, prefix):
+        def extract_group(x):
+            # 先頭が数字ならグループ0、文字ならグループ1（数字を上に、文字を五十音で下にする）
+            return 0 if re.match(r'^(\d+)', str(x) if pd.notna(x) else "") else 1
+        def extract_num(x):
+            # 先頭の数字部分だけを抜き出して「数値（算数の数）」として扱う
+            m = re.match(r'^(\d+)', str(x) if pd.notna(x) else "")
+            return int(m.group(1)) if m else 0
+        def extract_str(x):
+            # 数字の後に続く文字（HRやtなど）を抜き出す
+            s = str(x) if pd.notna(x) else ""
+            m = re.match(r'^(\d+)', s)
+            return s[len(m.group(1)):] if m else s
+            
+        df[f'{prefix}_group'] = df[col_name].apply(extract_group)
+        df[f'{prefix}_num'] = df[col_name].apply(extract_num)
+        df[f'{prefix}_str'] = df[col_name].apply(extract_str)
+        return df
+
+    # データが空でなければ、管理番号と機器名称を自然順で並べ替える
+    if not df_export.empty:
+        df_export = add_natural_sort_keys(df_export, '管理番号', 'id')
+        df_export = add_natural_sort_keys(df_export, '機器名称', 'name')
+        
+        # 1. 管理番号順 -> 2. 機器名称順 の優先度で、桁数と文字を完璧に並べ替える
+        df_export = df_export.sort_values(
+            by=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str']
+        ).drop(columns=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str'])
+
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         # 表を3行目から書き始める（上にタイトル用のスペースを空けるため）
@@ -441,7 +477,10 @@ def create_formatted_ledger_excel(df_csv):
                 if idx == 3 and cell.value and str(cell.value).startswith("http"):
                     cell.hyperlink = cell.value
                     cell.font = font_link
-                
+        
+        # 3行目のヘッダー（A3〜F列の最終データ行まで）にオートフィルターを設定
+        ws.auto_filter.ref = f"A3:F{ws.max_row}"
+                    
     return output.getvalue()
 
 def update_master_ledger_excel(df_csv, mode, repo, token, local_path):
@@ -477,6 +516,43 @@ def update_master_ledger_excel(df_csv, mode, repo, token, local_path):
                 f.write(excel_data)
     except Exception as e:
         print(f"Excelマスター台帳の保存エラー: {e}")
+
+import socket
+import threading
+import http.server
+import socketserver
+import functools
+
+# --- 社内Wi-Fi用 ミニWebサーバー機能（バックグラウンドで画像を配信） ---
+@st.cache_resource
+def start_local_image_server():
+    def run_server():
+        # 【変更】絶対パス（フルパス）で指定することで、404 Not Found エラーを確実に回避する
+        manual_dir_abs = str(MANUAL_DIR.resolve())
+        Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=manual_dir_abs)
+        socketserver.TCPServer.allow_reuse_address = True
+        try:
+            # ポート8000番で画像配信用サーバーを立ち上げる
+            with socketserver.TCPServer(("", 8000), Handler) as httpd:
+                httpd.serve_forever()
+        except:
+            pass
+    t = threading.Thread(target=run_server, daemon=True)
+    t.start()
+    return True
+
+start_local_image_server()
+
+# --- PCのローカルIPアドレス（192.168...等）を取得する関数 ---
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return "127.0.0.1"
 
 # ==========================================
 # --- メインアプリ ---
@@ -609,7 +685,8 @@ def main():
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
                 did_val = st.session_state.current_db_sel.split(" : ")[0]
-                st.sidebar.button("🗑️ この機器をデータベースから削除", on_click=delete_db_item_callback, args=(did_val,))
+                # 【変更】サイドバーの幅に収まり、改行で見切れないように文字数を短く調整
+                st.sidebar.button("🗑️ この機器データを削除", on_click=delete_db_item_callback, args=(did_val,))
                 
             if st.session_state.get("delete_success_msg"):
                 st.sidebar.success("✅ 削除しました！")
@@ -617,14 +694,23 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
-    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
+    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=2)
     
     github_repo = ""; github_token = ""; local_path = ""
     if save_mode == "2. 全自動（データベース保存）":
         github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
-        github_token = st.sidebar.text_input("システム接続キー (トークン)", value=st.secrets.get("github_token", ""), type="password")
+        
+        # ローカル環境でsecrets（鍵置き場）が無い場合のエラーを回避
+        default_token = ""
+        try:
+            default_token = st.secrets.get("github_token", "")
+        except:
+            pass
+            
+        github_token = st.sidebar.text_input("システム接続キー (トークン)", value=default_token, type="password")
+        
     elif save_mode == "3. 社内共有フォルダへ自動保存":
-        local_path = st.sidebar.text_input("共有フォルダのパス", value=r"C:\Equipment_Manuals")
+        local_path = st.sidebar.text_input("共有フォルダのパス", value=".")
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("**⏬ 手動保存オプション**")
@@ -857,7 +943,8 @@ def main():
                             "img_loto2": fin_lo2 if fin_lo2 else None
                         }
                         
-                        ts_str = datetime.now().strftime("%Y%m%d%H%M%S")
+                        # 【変更】QRのマス目を極限まで減らすため、ファイル名を「ID_時分」まで短縮（4桁）
+                        ts_str = datetime.now().strftime("%H%M")
                         s_id = safe_filename(did)
                         file_name_manual = f"{s_id}_{ts_str}.jpg"
                         manual_path = MANUAL_DIR / file_name_manual
@@ -877,8 +964,15 @@ def main():
                             target_dir = Path(local_path) / "manuals"
                             target_dir.mkdir(parents=True, exist_ok=True)
                             out_manual = target_dir / file_name_manual
-                            shutil.copy(manual_path, out_manual)
-                            final_manual_url = str(out_manual).replace("\\", "/")
+                            
+                            # 保存先が同じ場所の場合はコピーをスキップしてエラーを回避
+                            if manual_path.resolve() != out_manual.resolve():
+                                shutil.copy(manual_path, out_manual)
+                                
+                            # 社内Wi-Fi上のスマホからアクセスできる専用URL（IPアドレス:8000）を生成
+                            # 【変更】manualsフォルダを直接配信するため、URLから /manuals/ を削除
+                            local_ip = get_local_ip()
+                            final_manual_url = f"http://{local_ip}:8000/{file_name_manual}"
 
                         qr_path = QR_DIR / f"{s_id}_qr.png"
                         img_qr = make_optimized_qr(final_manual_url)
@@ -1113,7 +1207,7 @@ def main():
 
     with col_b:
         st.subheader("🔄 登録の完了・リセット")
-        st.info("💡 **印刷用台帳はシステム内部に記憶されています。** ブラウザを閉じても、次回起動時にそのまま続きからラベル印刷が可能です。")
+        st.info("💡 **データベースと印刷用台帳はフォルダ内に自動保存されています。**\n\n※入力途中のデータはブラウザを閉じるとリセットされるため、別のPCに作業を引き継ぐ際などは、左側の「ワークスペース保存(.json)」をご活用ください。")
         
         st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
 
@@ -1176,7 +1270,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
