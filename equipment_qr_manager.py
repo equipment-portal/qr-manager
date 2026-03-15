@@ -685,8 +685,8 @@ def main():
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
                 did_val = st.session_state.current_db_sel.split(" : ")[0]
-                # 【変更】サイドバーの幅に収まり、改行で見切れないように文字数を短く調整
-                st.sidebar.button("🗑️ この機器データを削除", on_click=delete_db_item_callback, args=(did_val,))
+                # 【変更】「除」の後ろに全角スペースを1つ追加して、右枠との間にスキマ（クッション）を作る
+                st.sidebar.button("🗑️ この機器データを削除　", on_click=delete_db_item_callback, args=(did_val,))
                 
             if st.session_state.get("delete_success_msg"):
                 st.sidebar.success("✅ 削除しました！")
