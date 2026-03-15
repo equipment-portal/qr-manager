@@ -5,7 +5,7 @@ import os
 import urllib.request
 import urllib.parse
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import io
 import base64
 import json
@@ -876,7 +876,8 @@ def main():
                 
                 df = pd.read_csv(DB_CSV)
                 df = df[df["ID"].astype(str) != str(did)]
-                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "memo": memo, "is_related_loto": is_related_loto}
+                JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"), "memo": memo, "is_related_loto": is_related_loto}
                 df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 df.to_csv(DB_CSV, index=False)
                 
@@ -944,7 +945,8 @@ def main():
                         }
                         
                         # 【変更】QRのマス目を極限まで減らすため、ファイル名を「ID_時分」まで短縮（4桁）
-                        ts_str = datetime.now().strftime("%H%M")
+                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+                        ts_str = datetime.now(JST).strftime("%H%M")
                         s_id = safe_filename(did)
                         file_name_manual = f"{s_id}_{ts_str}.jpg"
                         manual_path = MANUAL_DIR / file_name_manual
@@ -991,8 +993,9 @@ def main():
 
                         df = pd.read_csv(DB_CSV)
                         df = df[df["ID"].astype(str) != str(did)]
+                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
                         new_row = {
-                            "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"),
                             "memo": memo, "is_related_loto": is_related_loto, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
                             "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) 
                         }
@@ -1185,8 +1188,8 @@ def main():
         }
         
         backup_json_str = json.dumps(backup_data, ensure_ascii=False)
-        # 【変更】バックアップのファイル名を「QR管理システムBK_年月日_時分.json」に変更
-        dl_filename = f"QR管理システムBK_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+        JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
+        dl_filename = f"QR管理システムBK_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.json"
         
         st.download_button(
             label="💾 現在の状態を【ワークスペース保存(.json)】としてPCに保存",
@@ -1257,11 +1260,11 @@ def main():
             if not df_csv.empty:
                 excel_data = create_formatted_ledger_excel(df_csv)
                 
+                JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
                 st.sidebar.download_button(
                     label="📥 Excel形式でダウンロード",
                     data=excel_data,
-                    # 【変更】台帳のファイル名にも時刻を追加し「機器台帳マスター_年月日_時分.xlsx」に変更
-                    file_name=f"機器台帳マスター_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                    file_name=f"機器台帳マスター_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
