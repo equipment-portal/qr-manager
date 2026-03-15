@@ -1185,7 +1185,8 @@ def main():
         }
         
         backup_json_str = json.dumps(backup_data, ensure_ascii=False)
-        dl_filename = f"backup_{safe_filename(did) if did else 'workspace'}_{datetime.now().strftime('%Y%m%d%H%M')}.json"
+        # 【変更】バックアップのファイル名を「QR管理システムBK_年月日_時分.json」に変更
+        dl_filename = f"QR管理システムBK_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         
         st.download_button(
             label="💾 現在の状態を【ワークスペース保存(.json)】としてPCに保存",
@@ -1259,7 +1260,8 @@ def main():
                 st.sidebar.download_button(
                     label="📥 Excel形式でダウンロード",
                     data=excel_data,
-                    file_name=f"機器台帳マスター_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    # 【変更】台帳のファイル名にも時刻を追加し「機器台帳マスター_年月日_時分.xlsx」に変更
+                    file_name=f"機器台帳マスター_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
