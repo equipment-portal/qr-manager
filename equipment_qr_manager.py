@@ -696,7 +696,8 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
-    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=2)
+    # 【変更】クラウド版の運用に合わせて、初期選択を「2. 全自動（データベース保存）」に変更（index=2 を index=1 に変更）
+    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
     github_repo = ""; github_token = ""; local_path = ""
     if save_mode == "2. 全自動（データベース保存）":
