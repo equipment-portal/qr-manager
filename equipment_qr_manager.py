@@ -558,12 +558,14 @@ def get_local_ip():
 # --- メインアプリ ---
 # ==========================================
 def main():
-    st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", layout="wide", initial_sidebar_state="expanded")
+    # 【変更】page_icon="icon.ico" を追加してブラウザのタブにアイコンを表示
+    st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", page_icon="icon.ico", layout="wide", initial_sidebar_state="expanded")
     
     st.markdown("""
     <style>
     .stButton button { width: 100%; border-radius: 5px; }
-    .block-container { padding-top: 1.5rem !important; }
+    /* 【変更】天井の余白を 3.0rem に広げて、大きなアイコンの見切れを防止 */
+    .block-container { padding-top: 3.0rem !important; }
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
     [data-testid="stSidebar"] button { padding: 0 !important; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; justify-content: center; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
@@ -721,7 +723,27 @@ def main():
     )
     
     st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
-    st.title("📱 機器情報ページ ＆ QR管理システム")
+    
+    # 【変更】絵文字を削除し、icon.icoを読み込んでタイトル横に下揃えで配置する
+    icon_path = Path("icon.ico")
+    img_base64 = ""
+    if icon_path.exists():
+        with open(icon_path, "rb") as f:
+            img_base64 = base64.b64encode(f.read()).decode("utf-8")
+    
+    if img_base64:
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: flex-end; margin-bottom: 1rem;">
+                <img src="data:image/x-icon;base64,{img_base64}" height="50" style="margin-right: 15px; flex-shrink: 0;">
+                <span style="font-size: calc(1.4rem + 1.2vw); font-weight: 700; line-height: 1.0;">機器情報ページ ＆ QR管理システム</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        # 万が一GitHub上にicon.icoが見つからない場合の予備（絵文字なしバージョン）
+        st.title("機器情報ページ ＆ QR管理システム")
     
     if st.session_state.get("scroll_to_top"):
         import streamlit.components.v1 as components
