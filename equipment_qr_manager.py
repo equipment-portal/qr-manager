@@ -1270,8 +1270,21 @@ def main():
             if cb2.button("❌", key=f"d_itm_{i}"): delete_label_from_history(i); st.rerun()
     
     if EXCEL_LABEL_PATH.exists():
-        with open(EXCEL_LABEL_PATH, "rb") as f: st.sidebar.download_button("📥 最新のExcelをダウンロード", f, "labels.xlsx")
-        if st.sidebar.button("🗑️ 台帳をリセット"): clear_history(); st.rerun()
+        with open(EXCEL_LABEL_PATH, "rb") as f:
+            excel_data_labels = f.read()
+        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+        st.sidebar.download_button(
+            label="📥 最新のExcelをダウンロード", 
+            data=excel_data_labels, 
+            # 【変更】ファイル名に日付と時刻（JST）を付与して「印刷用Excel台帳_年月日_時分.xlsx」にする
+            file_name=f"印刷用Excel台帳_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.xlsx", 
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+            use_container_width=True
+        )
+        
+        if st.sidebar.button("🗑️ 台帳をリセット", use_container_width=True):
+            clear_history()
+            st.rerun()
 
     # --- マスター台帳ダウンロードボタンの追加 ---
     st.sidebar.markdown("---")
