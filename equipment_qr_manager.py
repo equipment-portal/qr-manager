@@ -735,7 +735,7 @@ def main():
         st.markdown(
             f"""
             <div style="display: flex; align-items: flex-end; margin-bottom: 1rem;">
-                <img src="data:image/x-icon;base64,{img_base64}" height="50" style="margin-right: 15px; flex-shrink: 0;">
+                <img src="data:image/x-icon;base64,{img_base64}" height="100" style="margin-right: 15px; flex-shrink: 0;">
                 <span style="font-size: calc(1.4rem + 1.2vw); font-weight: 700; line-height: 1.0;">機器情報ページ ＆ QR管理システム</span>
             </div>
             """,
