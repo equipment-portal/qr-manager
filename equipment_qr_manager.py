@@ -230,7 +230,7 @@ for b_start, b_end in on_blocks:
 # --- UI：ヘッダー ---
 try:
     logo_base64 = get_image_base64(logo_path)
-    logo_html = f"""<div style="display: flex; align-items: flex-end; gap: 15px; margin-bottom: 10px;"><img src="data:image/png;base64,{logo_base64}" width="100px"><h1 style="margin: 0; color: #1f2937; line-height: 0.9; position: relative; top: 8px;">MFRスマート電源管理システム</h1></div>"""
+    logo_html = f"""<div style="display: flex; align-items: flex-end; gap: 15px; margin-bottom: 10px;"><img src="data:image/png;base64,{logo_base64}" width="100px"><h1 style="margin: 0; color: #1f2937; line-height: 0.9; position: relative; top: 12px;">MFRスマート電源管理システム</h1></div>"""
     st.markdown(logo_html, unsafe_allow_html=True)
 except:
     st.title("MFRスマート電源管理システム")
