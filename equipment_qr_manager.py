@@ -1,1313 +1,699 @@
 import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
-import qrcode
+from datetime import datetime, timedelta, time as dt_time
+import pickle
 import os
-import urllib.request
-import urllib.parse
-from pathlib import Path
-from datetime import datetime, timezone, timedelta
-import io
 import base64
-import json
-import shutil
+from streamlit_autorefresh import st_autorefresh
 
-# --- Excel操作用ライブラリ ---
-import openpyxl
-from openpyxl.drawing.image import Image as XLImage
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+# ページ設定
+logo_path = "logo.png" 
+icon_path = "icon.ico" 
+st.set_page_config(page_title="MFR電源管理システム", page_icon=icon_path, layout="wide")
 
-# --- 画像処理用ライブラリ ---
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+# 60秒ごとに自動更新
+st_autorefresh(interval=60000, key="data_refresh")
 
-# --- 初期設定 ---
-DB_CSV = Path("devices.csv")
-QR_DIR = Path("qr_codes")
-MANUAL_DIR = Path("manuals")
-EXCEL_LABEL_PATH = Path("print_labels.xlsx")
-LABEL_HISTORY_FILE = Path("label_history.json")
-TEMP_LABEL_DIR = Path("temp_labels")
-DRAFT_IMG_DIR = Path("draft_images")
+# --- データの保存と読み込み ---
+STATE_FILE = "mfr_state.pkl"
 
-for d in [QR_DIR, MANUAL_DIR, TEMP_LABEL_DIR, DRAFT_IMG_DIR]:
-    d.mkdir(exist_ok=True)
-
-cloud_font_path = "BIZUDGothic-Regular.ttf"
-
-def setup_fonts():
-    if not os.path.exists(cloud_font_path):
+def load_state():
+    if os.path.exists(STATE_FILE):
         try:
-            font_url = "https://github.com/googlefonts/morisawa-biz-ud-gothic/raw/main/fonts/ttf/BIZUDGothic-Regular.ttf"
-            urllib.request.urlretrieve(font_url, cloud_font_path)
-        except Exception as e:
-            pass
-
-setup_fonts()
-
-def safe_filename(name):
-    keepcharacters = (' ', '.', '_', '-')
-    return "".join(c for c in name if c.isalnum() or c in keepcharacters).rstrip()
-
-# ==========================================
-# --- 画像自動圧縮＆最適化エンジン ---
-# ==========================================
-def compress_image(uploaded_file, max_size=1000):
-    try:
-        if hasattr(uploaded_file, 'read'):
-            file_bytes = uploaded_file.read()
-            img = Image.open(io.BytesIO(file_bytes))
-            uploaded_file.seek(0)
-        else:
-            img = Image.open(uploaded_file)
-            
-        img = ImageOps.exif_transpose(img) 
-        if img.mode in ('RGBA', 'P'):
-            img = img.convert('RGB')
-            
-        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-        output = io.BytesIO()
-        img.save(output, format="JPEG", quality=75, optimize=True)
-        return output.getvalue()
-    except Exception as e:
-        print(f"圧縮エラー: {e}")
-        return None
-
-# ==========================================
-# --- URL短縮 ＆ 爆速QR生成 ---
-# ==========================================
-def make_short_url(long_url):
-    try:
-        api_url = f"https://is.gd/create.php?format=simple&url={urllib.parse.quote(long_url)}"
-        req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as res:
-            return res.read().decode('utf-8')
-    except:
-        return long_url
-
-def make_optimized_qr(url):
-    short_url = make_short_url(url)
-    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=1)
-    qr.add_data(short_url)
-    qr.make(fit=True)
-    return qr.make_image(fill_color="black", back_color="white")
-
-# ==========================================
-# --- マニュアル画像 生成関数 ---
-# ==========================================
-def create_manual_image(data, output_path):
-    W = 1600; margin = 80; content_w = W - margin * 2
-    try:
-        font_title = ImageFont.truetype(cloud_font_path, 80)
-        font_sub = ImageFont.truetype(cloud_font_path, 55)
-        font_text = ImageFont.truetype(cloud_font_path, 45)
-    except:
-        font_title = font_sub = font_text = ImageFont.load_default()
-
-    sections = []
-    header_img = Image.new('RGB', (W, 380), 'white')
-    draw = ImageDraw.Draw(header_img)
-    draw.rectangle([0, 0, W, 100], fill=(255, 215, 0))
-    draw.text((W - margin, 25), f"管理番号: {data['id']}", fill="black", font=font_text, anchor="ra")
-    draw.text((margin, 150), data['name'], fill="black", font=font_title)
-    draw.rectangle([margin, 280, W - margin, 340], fill=(242, 155, 33))
-    draw.text((margin + 20, 285), f"■ 使用電源: AC {data['power'] or '未設定'}", fill="white", font=font_text)
-    sections.append(header_img)
-
-    def process_img_section(img_file, title):
-        if not img_file:
-            sec_img = Image.new('RGB', (W, 200), 'white')
-            s_draw = ImageDraw.Draw(sec_img)
-            s_draw.text((margin, 20), title, fill="black", font=font_sub)
-            s_draw.rectangle([margin, 90, W - margin, 190], outline="gray", width=3)
-            s_draw.text((W // 2, 145), "画像なし", fill="gray", font=font_text, anchor="mm")
-            return sec_img
-        
-        try:
-            if isinstance(img_file, str):
-                if img_file.startswith("http"):
-                    req = urllib.request.Request(img_file, headers={'User-Agent': 'Mozilla/5.0'})
-                    with urllib.request.urlopen(req) as res:
-                        pil_img = Image.open(io.BytesIO(res.read()))
-                else:
-                    pil_img = Image.open(img_file)
-            elif hasattr(img_file, 'read'):
-                file_bytes = img_file.read()
-                pil_img = Image.open(io.BytesIO(file_bytes))
-                img_file.seek(0)
-            else:
-                pil_img = Image.open(img_file)
-            
-            pil_img = ImageOps.exif_transpose(pil_img).convert('RGB')
-            new_h = int(content_w * (pil_img.height / pil_img.width))
-            pil_img = pil_img.resize((content_w, new_h), Image.Resampling.LANCZOS)
-            
-            sec_img = Image.new('RGB', (W, 90 + new_h + 50), 'white')
-            s_draw = ImageDraw.Draw(sec_img)
-            s_draw.text((margin, 20), title, fill="black", font=font_sub)
-            sec_img.paste(pil_img, (margin, 90))
-            s_draw.rectangle([margin, 90, margin + content_w, 90 + new_h], outline="gray", width=3)
-            return sec_img
-        except: return None
-
-    loto_suffix = "（関連機器、付帯設備）" if data.get('is_related_loto') else ""
-    img_list = [
-        (data.get('img_exterior'), "機器外観"),
-        (data.get('img_outlet'), "コンセント位置"),
-        (data.get('img_label'), "資産管理ラベル"),
-        (data.get('img_loto1'), f"LOTO手順書{loto_suffix} Page 1"),
-        (data.get('img_loto2'), f"LOTO手順書{loto_suffix} Page 2")
-    ]
-    for f, t in img_list:
-        sec = process_img_section(f, t)
-        if sec: sections.append(sec)
-
-    total_h = sum(s.height for s in sections) + 100
-    final_img = Image.new('RGB', (W, total_h), 'white')
-    curr_y = 0
-    for s in sections:
-        final_img.paste(s, (0, curr_y))
-        curr_y += s.height
-    final_img.convert('RGB').save(output_path, format="JPEG", quality=85)
-
-def create_manual_image_extended(data, extra_images, output_path):
-    W = 1600; margin = 80; content_w = W - margin * 2
-    try:
-        font_sub = ImageFont.truetype(cloud_font_path, 65)
-        font_text = ImageFont.truetype(cloud_font_path, 55)
-    except: font_sub = font_text = ImageFont.load_default()
-
-    create_manual_image(data, output_path)
-    base = Image.open(output_path)
-    added = []
-
-    for ex_f, ex_t in extra_images:
-        try:
-            if isinstance(ex_f, str):
-                if ex_f.startswith("http"):
-                    req = urllib.request.Request(ex_f, headers={'User-Agent': 'Mozilla/5.0'})
-                    with urllib.request.urlopen(req) as res: pil = Image.open(io.BytesIO(res.read()))
-                else: pil = Image.open(ex_f)
-            elif hasattr(ex_f, 'read'):
-                file_bytes = ex_f.read()
-                pil = Image.open(io.BytesIO(file_bytes))
-                ex_f.seek(0)
-            else: pil = Image.open(ex_f)
-
-            pil = ImageOps.exif_transpose(pil).convert('RGB')
-            nh = int(content_w * (pil.height / pil.width))
-            pil = pil.resize((content_w, nh), Image.Resampling.LANCZOS)
-            si = Image.new('RGB', (W, 160 + nh), 'white')
-            dr = ImageDraw.Draw(si)
-            dr.text((margin, 25), ex_t, fill="black", font=font_sub)
-            si.paste(pil, (margin, 100))
-            dr.rectangle([margin, 100, margin+content_w, 100+nh], outline="gray", width=3)
-            added.append(si)
-        except: continue
-
-    memo_val = data.get("memo", "なし")
-    dummy_draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
-    lines = []
-    line = ""
-    for paragraph in memo_val.split('\n'):
-        for char in paragraph:
-            if dummy_draw.textbbox((0, 0), line + char, font=font_text)[2] <= (content_w - 60):
-                line += char
-            else:
-                lines.append(line)
-                line = char
-        if line: lines.append(line); line = ""
-    if not lines: lines = ["なし"]
-
-    char_h = font_text.getbbox("あ")[3] - font_text.getbbox("あ")[1] if hasattr(font_text, 'getbbox') else font_text.getsize("あ")[1]
-    line_step = char_h + 25
-    memo_box_h = 110 + (len(lines) * line_step) + 60
-    ms = Image.new('RGB', (W, memo_box_h), 'white')
-    md = ImageDraw.Draw(ms)
-    md.text((margin, 30), "■ メモ・備考", fill="black", font=font_sub)
-    md.rectangle([margin, 110, W - margin, memo_box_h - 20], outline=(242, 155, 33), width=6)
-    for i, l in enumerate(lines): md.text((margin + 40, 140 + (i * line_step)), l, fill="black", font=font_text)
-    added.append(ms)
-
-    final = Image.new('RGB', (W, base.height + sum(s.height for s in added) + 100), 'white')
-    final.paste(base, (0, 0))
-    cy = base.height
-    for s in added: final.paste(s, (0, cy)); cy += s.height
-    final.convert('RGB').save(output_path, format="JPEG", quality=85)
-
-
-# ==========================================
-# --- 印刷用ラベル ＆ Excel台帳 処理 ---
-# ==========================================
-def create_label_image(data):
-    scale = 4; target_w_px = 350 * scale; target_h_px = 200 * scale
-    try:
-        font_title = ImageFont.truetype(cloud_font_path, 19 * scale) 
-        # 【変更】デフォルトの文字サイズを「30」から「27」へ本当に少しだけ縮小
-        font_main = ImageFont.truetype(cloud_font_path, 27 * scale)  
-        font_sm = ImageFont.truetype(cloud_font_path, 12 * scale)    
-        font_footer = ImageFont.truetype(cloud_font_path, 13 * scale) 
-    except: font_title = font_main = font_sm = font_footer = ImageFont.load_default()
-        
-    device_name = data.get('name', '不明')
-    device_power = data.get('power', '不明')
-    label_img = Image.new('RGB', (target_w_px, target_h_px), 'white')
-    draw = ImageDraw.Draw(label_img)
-    draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=(255, 255, 0), width=12 * scale)
-    
-    # 【微調整】前回下げたタイトル位置はそのまま維持
-    draw.text((18 * scale, 12 * scale), "■", fill="black", font=font_title)
-    draw.text((42 * scale, 12 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
-    
-    qr_size = 96 * scale # サイズを96に拡大
-    if 'img_qr' in data and data['img_qr'] is not None:
-        try:
-            qr_pil = data['img_qr'].convert('RGB').resize((qr_size, qr_size), Image.Resampling.NEAREST)
-            label_img.paste(qr_pil, (target_w_px - qr_size - 14 * scale, 76 * scale))
-        except: pass
-    
-    # 【変更】スタートの文字サイズを27に合わせる
-    current_size = 27 * scale
-    temp_font = font_main
-    # 【変更】文字が長い場合でもQRコードにぶつからないよう、右側の見えない壁を「30」から「45」にして少し厚くする
-    while (draw.textbbox((0, 0), device_name, font=temp_font)[2]) > (target_w_px - 45 * scale) and current_size > 12 * scale:
-        current_size -= 1 * scale
-        temp_font = ImageFont.truetype(cloud_font_path, current_size)
-
-    draw.text((18 * scale, 36 * scale), "機器名称:", fill="black", font=font_sm)
-    draw.text((18 * scale, 50 * scale), device_name, fill="black", font=temp_font)
-    draw.text((18 * scale, 98 * scale), "使用電源:", fill="black", font=font_sm)
-    draw.text((18 * scale, 112 * scale), f"AC {device_power}", fill="black", font=temp_font)
-    draw.text((18 * scale, 171 * scale), "[QR] 詳細スキャン（外観・コンセント位置・LOTO手順）", fill="black", font=font_footer)
-    
-    return label_img.resize((350, 200), Image.Resampling.LANCZOS)
-
-def rebuild_excel():
-    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "印刷用ラベルシート"
-    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_margins.left = ws.page_margins.right = ws.page_margins.top = ws.page_margins.bottom = 0.2
-    
-    history = []
-    if LABEL_HISTORY_FILE.exists():
-        try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
-        except: pass
-
-    for count, item in enumerate(history):
-        img_path = TEMP_LABEL_DIR / item["img_filename"]
-        if not img_path.exists(): continue
-        c_idx = count // 13; r_idx = count % 13  
-        cell_col = c_idx + 1; cell_row = r_idx + 1
-        col_letter = get_column_letter(cell_col)
-        ws.column_dimensions[col_letter].width = 19.5
-        ws.row_dimensions[cell_row].height = 63.0 
-        xl_img = XLImage(str(img_path))
-        xl_img.width = 132; xl_img.height = 76
-        xl_img.anchor = f"{col_letter}{cell_row}"
-        ws.add_image(xl_img)
-    wb.save(EXCEL_LABEL_PATH)
-
-def add_label_to_history(name, label_img):
-    history = []
-    if LABEL_HISTORY_FILE.exists():
-        try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
-        except: pass
-    fname = f"label_{datetime.now().strftime('%Y%m%d%H%M%S%f')}.png"
-    label_img.save(TEMP_LABEL_DIR / fname, format='PNG')
-    history.append({"name": name, "img_filename": fname})
-    with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f: json.dump(history, f, ensure_ascii=False, indent=2)
-    rebuild_excel()
-
-def delete_label_from_history(index):
-    history = []
-    if LABEL_HISTORY_FILE.exists():
-        try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: history = json.load(f)
-        except: pass
-    if 0 <= index < len(history):
-        try: (TEMP_LABEL_DIR / history[index]["img_filename"]).unlink()
-        except: pass
-        history.pop(index)
-        with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f: json.dump(history, f, ensure_ascii=False, indent=2)
-        rebuild_excel()
-
-def clear_history():
-    try: EXCEL_LABEL_PATH.unlink()
-    except: pass
-    try: LABEL_HISTORY_FILE.unlink()
-    except: pass
-    for f in TEMP_LABEL_DIR.glob("*.png"):
-        try: f.unlink()
-        except: pass
-
-# ==========================================
-# --- ストレージ保存処理（【正解】タイムスタンプ付きで絶対にキャッシュ回避） ---
-# ==========================================
-def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
-    if not file_obj: return ""
-    comp_data = compress_image(file_obj)
-    if not comp_data: return ""
-    
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    fname = f"{safe_filename(did)}_{suffix}_{timestamp}.jpg"
-    
-    if mode == "2. 全自動（データベース保存）":
-        encoded = base64.b64encode(comp_data).decode("utf-8")
-        api_url = f"https://api.github.com/repos/{repo}/contents/images/{fname}"
-        payload = {"message": f"Upload {fname}", "content": encoded, "branch": "main"}
-        req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
-        req.add_header("Authorization", f"token {token}")
-        req.add_header("Content-Type", "application/json")
-        try:
-            with urllib.request.urlopen(req) as res:
-                res_data = json.loads(res.read().decode("utf-8"))
-                raw_url = res_data["content"]["html_url"]
-                return raw_url.replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-        except: return ""
-        
-    elif mode == "3. 社内共有フォルダへ自動保存":
-        base_dir = Path(local_path) / "images"
-        base_dir.mkdir(parents=True, exist_ok=True)
-        out_path = base_dir / fname
-        with open(out_path, "wb") as f: f.write(comp_data)
-        return str(out_path).replace("\\", "/")
-    
-    return ""
-
-# ==========================================
-# --- マスター台帳Excelの自動生成・保存 ---
-# ==========================================
-def create_formatted_ledger_excel(df_csv):
-    import re # 【追加】自然順ソートのための正規表現ライブラリ
-    
-    df_export = df_csv.rename(columns={
-        "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
-        "URL": "機器情報ページURL", "Updated": "最終更新日時", "memo": "メモ・備考"
-    })
-    cols_to_keep = ["管理番号", "機器名称", "使用電源", "機器情報ページURL", "最終更新日時", "メモ・備考"]
-    df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
-    
-    # --- 【最強進化】Pythonによる「自然順ソート（人間的ソート）」の実装 ---
-    def add_natural_sort_keys(df, col_name, prefix):
-        def extract_group(x):
-            # 先頭が数字ならグループ0、文字ならグループ1（数字を上に、文字を五十音で下にする）
-            return 0 if re.match(r'^(\d+)', str(x) if pd.notna(x) else "") else 1
-        def extract_num(x):
-            # 先頭の数字部分だけを抜き出して「数値（算数の数）」として扱う
-            m = re.match(r'^(\d+)', str(x) if pd.notna(x) else "")
-            return int(m.group(1)) if m else 0
-        def extract_str(x):
-            # 数字の後に続く文字（HRやtなど）を抜き出す
-            s = str(x) if pd.notna(x) else ""
-            m = re.match(r'^(\d+)', s)
-            return s[len(m.group(1)):] if m else s
-            
-        df[f'{prefix}_group'] = df[col_name].apply(extract_group)
-        df[f'{prefix}_num'] = df[col_name].apply(extract_num)
-        df[f'{prefix}_str'] = df[col_name].apply(extract_str)
-        return df
-
-    # データが空でなければ、管理番号と機器名称を自然順で並べ替える
-    if not df_export.empty:
-        df_export = add_natural_sort_keys(df_export, '管理番号', 'id')
-        df_export = add_natural_sort_keys(df_export, '機器名称', 'name')
-        
-        # 1. 管理番号順 -> 2. 機器名称順 の優先度で、桁数と文字を完璧に並べ替える
-        df_export = df_export.sort_values(
-            by=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str']
-        ).drop(columns=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str'])
-
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # 表を3行目から書き始める（上にタイトル用のスペースを空けるため）
-        df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター", startrow=2)
-        ws = writer.sheets["機器台帳マスター"]
-        
-        # --- 書式設定の定義 ---
-        fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-        border_thin = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-        font_header = Font(bold=True)
-        font_link = Font(color="0000FF", underline="single") # URL用の青文字アンダーライン
-        font_title = Font(size=24, bold=True)                # タイトル用のデカ文字
-        
-        align_center = Alignment(horizontal="center", vertical="center")
-        align_right = Alignment(horizontal="right", vertical="center")
-        align_left = Alignment(horizontal="left", vertical="center")
-        
-        # --- タイトル行の作成 (A1:F2を結合) ---
-        ws.merge_cells("A1:F2")
-        title_cell = ws["A1"]
-        title_cell.value = "機器台帳マスター"
-        title_cell.font = font_title
-        title_cell.alignment = align_center
-        
-        # --- 列幅の設定 ---
-        ws.column_dimensions["A"].width = 15   # 管理番号
-        ws.column_dimensions["B"].width = 30   # 機器名称
-        ws.column_dimensions["C"].width = 15   # 使用電源
-        ws.column_dimensions["D"].width = 115  # マニュアルURL
-        ws.column_dimensions["E"].width = 25   # 最終更新日時
-        ws.column_dimensions["F"].width = 35   # メモ・備考
-        
-        # --- 行の高さの設定 ---
-        ws.row_dimensions[1].height = 25
-        ws.row_dimensions[2].height = 25
-        ws.row_dimensions[3].height = 25 # ヘッダー行
-        
-        # --- ヘッダー(3行目)の書式適用 ---
-        for cell in ws[3]:
-            cell.fill = fill_yellow
-            cell.font = font_header
-            cell.border = border_thin
-            cell.alignment = align_center
-            
-        # --- データ行(4行目以降)の書式適用 ---
-        for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
-            ws.row_dimensions[row[0].row].height = 20 # データ行にゆとりを持たせる
-            for idx, cell in enumerate(row):
-                cell.border = border_thin
-                
-                # 配置の適用
-                if idx == 0: cell.alignment = align_right       # A: 管理番号
-                elif idx in [1, 2, 4]: cell.alignment = align_center # B, C, E
-                else: cell.alignment = align_left               # D, F
-                
-                # D列(idx=3)のURLを、クリック可能なハイパーリンクに変換！
-                if idx == 3 and cell.value and str(cell.value).startswith("http"):
-                    cell.hyperlink = cell.value
-                    cell.font = font_link
-        
-        # 3行目のヘッダー（A3〜F列の最終データ行まで）にオートフィルターを設定
-        ws.auto_filter.ref = f"A3:F{ws.max_row}"
-                    
-    return output.getvalue()
-
-def update_master_ledger_excel(df_csv, mode, repo, token, local_path):
-    try:
-        excel_data = create_formatted_ledger_excel(df_csv)
-        file_name = "機器台帳マスター.xlsx"
-        
-        if mode == "2. 全自動（データベース保存）":
-            encoded = base64.b64encode(excel_data).decode("utf-8")
-            api_url = f"https://api.github.com/repos/{repo}/contents/ledger/{urllib.parse.quote(file_name)}"
-            
-            sha = None
-            try:
-                req_check = urllib.request.Request(api_url)
-                req_check.add_header("Authorization", f"token {token}")
-                with urllib.request.urlopen(req_check) as res:
-                    sha = json.loads(res.read().decode("utf-8"))["sha"]
-            except: pass
-            
-            payload = {"message": "Update Master Ledger", "content": encoded, "branch": "main"}
-            if sha: payload["sha"] = sha
-            
-            req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), method="PUT")
-            req.add_header("Authorization", f"token {token}")
-            req.add_header("Content-Type", "application/json")
-            urllib.request.urlopen(req)
-            
-        elif mode == "3. 社内共有フォルダへ自動保存":
-            target_dir = Path(local_path)
-            target_dir.mkdir(parents=True, exist_ok=True)
-            out_path = target_dir / file_name
-            with open(out_path, "wb") as f:
-                f.write(excel_data)
-    except Exception as e:
-        print(f"Excelマスター台帳の保存エラー: {e}")
-
-import socket
-import threading
-import http.server
-import socketserver
-import functools
-
-# --- 社内Wi-Fi用 ミニWebサーバー機能（バックグラウンドで画像を配信） ---
-@st.cache_resource
-def start_local_image_server():
-    def run_server():
-        # 【変更】絶対パス（フルパス）で指定することで、404 Not Found エラーを確実に回避する
-        manual_dir_abs = str(MANUAL_DIR.resolve())
-        Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=manual_dir_abs)
-        socketserver.TCPServer.allow_reuse_address = True
-        try:
-            # ポート8000番で画像配信用サーバーを立ち上げる
-            with socketserver.TCPServer(("", 8000), Handler) as httpd:
-                httpd.serve_forever()
-        except:
-            pass
-    t = threading.Thread(target=run_server, daemon=True)
-    t.start()
-    return True
-
-start_local_image_server()
-
-# --- PCのローカルIPアドレス（192.168...等）を取得する関数 ---
-def get_local_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except:
-        return "127.0.0.1"
-
-# ==========================================
-# --- メインアプリ ---
-# ==========================================
-def main():
-    # 【変更】page_icon="icon.ico" を追加してブラウザのタブにアイコンを表示
-    st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", page_icon="icon.ico", layout="wide", initial_sidebar_state="expanded")
-    
-    st.markdown("""
-    <style>
-    .stButton button { width: 100%; border-radius: 5px; }
-    /* 【変更】天井の余白を 3.0rem に広げて、大きなアイコンの見切れを防止 */
-    .block-container { padding-top: 3.0rem !important; }
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
-    [data-testid="stSidebar"] button { padding: 0 !important; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; justify-content: center; }
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
-    </style>
-    """, unsafe_allow_html=True)
-
-    db_columns = ["ID", "Name", "Power", "URL", "Updated", "memo", "is_related_loto", "img_exterior", "img_outlet", "img_label", "img_loto1", "img_loto2", "extra_images"]
-    if not DB_CSV.exists():
-        pd.DataFrame(columns=db_columns).to_csv(DB_CSV, index=False)
-    else:
-        df_init = pd.read_csv(DB_CSV)
-        needs_save = False
-        for col in db_columns:
-            if col not in df_init.columns:
-                df_init[col] = ""
-                needs_save = True
-        if needs_save: df_init.to_csv(DB_CSV, index=False)
-
-    if "input_did" not in st.session_state: st.session_state.input_did = ""
-    if "input_name" not in st.session_state: st.session_state.input_name = ""
-    if "input_power" not in st.session_state: st.session_state.input_power = None
-    if "input_memo" not in st.session_state: st.session_state.input_memo = ""
-    if "is_related_loto" not in st.session_state: st.session_state.is_related_loto = False
-    
-    if "form_reset_key" not in st.session_state: st.session_state.form_reset_key = 0
-    if "extra_images_count" not in st.session_state: st.session_state.extra_images_count = 0
-    rk = st.session_state.form_reset_key
-
-    if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-
-    # 【追加】プレビューとラベルの表示状態を記憶する変数
-    if "preview_b64" not in st.session_state: st.session_state.preview_b64 = None
-    if "preview_file" not in st.session_state: st.session_state.preview_file = None
-    if "label_img_data" not in st.session_state: st.session_state.label_img_data = None
-    if "label_msg" not in st.session_state: st.session_state.label_msg = None
-    if "label_url" not in st.session_state: st.session_state.label_url = None
-
-    # 【追加】機器切り替え時などにプレビューとラベルの記憶を消去する関数
-    def clear_preview_and_label():
-        st.session_state.preview_b64 = None
-        st.session_state.preview_file = None
-        st.session_state.label_img_data = None
-        st.session_state.label_msg = None
-        st.session_state.label_url = None
-
-    def delete_db_item_callback(did_to_del):
-        try:
-            d_csv = pd.read_csv(DB_CSV)
-            d_csv = d_csv[d_csv["ID"].astype(str) != str(did_to_del)]
-            d_csv.to_csv(DB_CSV, index=False)
+            with open(STATE_FILE, "rb") as f:
+                return pickle.load(f)
         except Exception:
             pass
-            
-        st.session_state.input_did = ""
-        st.session_state.input_name = ""
-        st.session_state.input_power = None
-        st.session_state.input_memo = ""
-        st.session_state.is_related_loto = False
-        st.session_state.existing_imgs = {}
-        st.session_state.existing_ex_imgs = []
-        st.session_state.extra_images_count = 0
-        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-        if "db_select_widget" in st.session_state:
-            st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-        st.session_state.form_reset_key += 1
-        st.session_state["scroll_to_top"] = True
-        st.session_state.delete_success_msg = True
-        clear_preview_and_label()
+    return None
 
+def save_state():
+    state_to_save = {
+        'jobs': st.session_state.jobs,
+        'last_inspection_date': st.session_state.last_inspection_date,
+        'products': st.session_state.products,
+        'shown_alerts': st.session_state.shown_alerts
+    }
+    with open(STATE_FILE, "wb") as f:
+        pickle.dump(state_to_save, f)
 
-    st.sidebar.header("🗄️ 登録済み機器データベース")
-    if DB_CSV.exists():
-        df = pd.read_csv(DB_CSV)
-        if not df.empty:
-            options = ["✨ 新規登録 (クリア)"] + (df["ID"].astype(str) + " : " + df["Name"]).tolist()
-            
-            c_sel = st.session_state.current_db_sel
-            sel_idx = options.index(c_sel) if c_sel in options else 0
-            
-            selected_edit = st.sidebar.selectbox("編集・確認する機器を選択:", options, index=sel_idx, key="db_select_widget")
-            
-            if selected_edit != st.session_state.current_db_sel:
-                st.session_state.current_db_sel = selected_edit
-                if selected_edit == "✨ 新規登録 (クリア)":
-                    st.session_state.input_did = ""
-                    st.session_state.input_name = ""
-                    st.session_state.input_power = None
-                    st.session_state.input_memo = ""
-                    st.session_state.is_related_loto = False
-                    st.session_state.existing_imgs = {}
-                    st.session_state.existing_ex_imgs = []
-                    st.session_state.extra_images_count = 0
-                else:
-                    did_str = selected_edit.split(" : ")[0]
-                    match = df[df["ID"].astype(str) == did_str]
-                    if not match.empty:
-                        row = match.iloc[-1]
-                        st.session_state.input_did = str(row["ID"])
-                        st.session_state.input_name = str(row["Name"])
-                        p_val = str(row.get("Power", "")) if pd.notna(row.get("Power")) else None
-                        st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
-                        st.session_state.input_memo = str(row.get("memo", "")) if pd.notna(row.get("memo")) else ""
-                        st.session_state.is_related_loto = bool(row.get("is_related_loto")) if pd.notna(row.get("is_related_loto")) else False
-                        
-                        st.session_state.existing_imgs = {
-                            "ext": str(row.get("img_exterior", "")), "out": str(row.get("img_outlet", "")),
-                            "lab": str(row.get("img_label", "")), "lo1": str(row.get("img_loto1", "")), "lo2": str(row.get("img_loto2", ""))
-                        }
-                        ex_str = str(row.get("extra_images", "[]"))
-                        if pd.isna(row.get("extra_images")): ex_str = "[]"
-                        try: st.session_state.existing_ex_imgs = json.loads(ex_str)
-                        except: st.session_state.existing_ex_imgs = []
-                
-                # 機器切り替え時にプレビューとラベルを消去
-                clear_preview_and_label()
-                st.session_state.form_reset_key += 1
-                st.rerun()
+def get_image_base64(path):
+    with open(path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
 
-            if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
-                st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
-                did_val = st.session_state.current_db_sel.split(" : ")[0]
-                # 【変更】「除」の後ろに全角スペースを1つ追加して、右枠との間にスキマ（クッション）を作る
-                st.sidebar.button("🗑️ この機器データを削除　", on_click=delete_db_item_callback, args=(did_val,))
-                
-            if st.session_state.get("delete_success_msg"):
-                st.sidebar.success("✅ 削除しました！")
-                st.session_state.delete_success_msg = False
+def get_measurement_text(num_targets, current_target_qty, targets):
+    if num_targets == 2:
+        if current_target_qty == targets[0]: return '始'
+        if current_target_qty == targets[1]: return '終'
+    elif num_targets == 3:
+        if current_target_qty == targets[0]: return '始'
+        if current_target_qty == targets[1]: return '中'
+        if current_target_qty == targets[2]: return '終'
+    return str(current_target_qty)
 
-    st.sidebar.markdown("---")
-    st.sidebar.header("⚙️ システム詳細設定")
-    # 【変更】クラウド版の運用に合わせて、初期選択を「2. 全自動（データベース保存）」に変更（index=2 を index=1 に変更）
-    save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
+# --- CSS設定 ---
+st.markdown(
+    """
+    <style>
+    .mfr-status-header {
+        font-size: 1.25rem !important; 
+        font-weight: bold !important; 
+        margin-top: 10px !important;
+        margin-bottom: 5px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- 初期設定・状態管理 ---
+if 'initialized' not in st.session_state:
+    saved_state = load_state()
+    if saved_state:
+        st.session_state.jobs = saved_state['jobs']
+        st.session_state.last_inspection_date = saved_state['last_inspection_date']
+        st.session_state.products = saved_state.get('products', {})
+        st.session_state.shown_alerts = saved_state.get('shown_alerts', [])
+    else:
+        st.session_state.jobs = {'100t': None, '450t': None, '550t': None}
+        st.session_state.last_inspection_date = None
+        st.session_state.products = {
+            'サンプル製品A': {'qty': 500, 'cycle': 60.0, 'measurements': 2},
+            'サンプル製品B': {'qty': 1000, 'cycle': 30.0, 'measurements': 3}
+        }
+        st.session_state.shown_alerts = []
+    st.session_state.initialized = True
+    st.session_state.inspection_dialog_shown = False 
+
+# --- UI：サイドバー ---
+with st.sidebar:
+    st.header("⚙️ システム管理")
+        
+    st.subheader("📦 製品マスター管理")
+    with st.expander("製品の登録・編集・削除", expanded=False):
+        with st.form("product_form"):
+            p_name = st.text_input("製品名（新規登録または上書き）")
+            p_qty = st.number_input("生産数", min_value=1, value=100)
+            p_cycle = st.number_input("サイクルタイム(秒)", min_value=0.1, value=30.0, step=0.1)
+            p_meas = st.radio("MFR測定回数", options=[2, 3], format_func=lambda x: "2回 (初め・終わり)" if x==2 else "3回 (初め・中・終わり)")
+            submit_btn = st.form_submit_button("💾 登録・更新")
+            if submit_btn and p_name:
+                st.session_state.products[p_name] = {'qty': p_qty, 'cycle': p_cycle, 'measurements': p_meas}
+                save_state(); st.success(f"「{p_name}」を登録しました。"); st.rerun()
+        
+        st.markdown("---")
+        if st.session_state.products:
+            del_name = st.selectbox("削除する製品を選択", list(st.session_state.products.keys()))
+            if st.button("🗑️ 選択した製品を削除"):
+                del st.session_state.products[del_name]; save_state(); st.success(f"「{del_name}」を削除しました。"); st.rerun()
+
+    st.markdown("---")
+    st.subheader("🔧 リセット・テスト用ツール")
+    if st.button("🔄 すべての成型機の状態をリセット"):
+        st.session_state.jobs = {'100t': None, '450t': None, '550t': None}
+        save_state(); st.rerun()
+        
+    if st.button("🔄 今日の点検状態を未実施に戻す"):
+        st.session_state.last_inspection_date = None; st.session_state.inspection_dialog_shown = False
+        save_state(); st.rerun()
+
+# --- 事前計算ロジック ---
+now = (datetime.utcnow() + timedelta(hours=9))
+today_date = now.date()
+
+def calculate_upcoming_measurements():
+    upcoming = []
+    max_date = today_date 
     
-    github_repo = ""; github_token = ""; local_path = ""
-    if save_mode == "2. 全自動（データベース保存）":
-        github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
-        
-        # ローカル環境でsecrets（鍵置き場）が無い場合のエラーを回避
-        default_token = ""
-        try:
-            default_token = st.secrets.get("github_token", "")
-        except:
-            pass
-            
-        github_token = st.sidebar.text_input("システム接続キー (トークン)", value=default_token, type="password")
-        
-    elif save_mode == "3. 社内共有フォルダへ自動保存":
-        local_path = st.sidebar.text_input("共有フォルダのパス", value=".")
+    for machine, job in st.session_state.jobs.items():
+        if job is None or job['status'] == 'Completed': continue
+        for target in job['targets']:
+            if target not in job['completed']:
+                if job['status'] == 'Running':
+                    remaining_qty = target - job['current_qty']
+                    if remaining_qty <= 0: est_time = now
+                    else: est_time = job['last_update'] + timedelta(seconds=remaining_qty * job['cycle_time'])
+                elif job['status'] == 'Paused':
+                    est_time = None 
+                
+                upcoming.append({
+                    'machine': machine, 'target_qty': target, 'est_time': est_time,
+                    'status': job['status'], 'Targets': job['targets']
+                })
+                if est_time and est_time.date() > max_date:
+                    max_date = est_time.date()
+    
+    # 日常点検の予定を自動追加
+    for i in range((max_date - today_date).days + 1):
+        d = today_date + timedelta(days=i)
+        if d == today_date and st.session_state.last_inspection_date == today_date:
+            continue
+        is_monday_d = (d.weekday() == 0)
+        insp_time = datetime(d.year, d.month, d.day, 8 if is_monday_d else 7, 0, 0)
+        est_time_insp = now if d == today_date and now >= insp_time else insp_time
+        upcoming.append({
+            'machine': '日常点検(A勤)', 'target_qty': '日常点検',
+            'est_time': est_time_insp, 'status': 'Planned', 'Targets': ['日常点検']
+        })
 
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("**⏬ 手動保存オプション**")
-    include_equip_name = st.sidebar.checkbox(
-        "プレビュー画像の保存名に「機器名称」を含める", 
-        value=True, 
-        help="プレビュー確認後に、手動で画像をPCへダウンロードする際のファイル名に適用されます（例: 2699_金型反転機.jpg）"
+    valid_upcoming = [x for x in upcoming if x['est_time'] is not None]
+    valid_upcoming.sort(key=lambda x: x['est_time'])
+    return valid_upcoming, upcoming
+
+valid_upcoming, all_upcoming = calculate_upcoming_measurements()
+
+on_blocks = []
+if valid_upcoming:
+    current_start = valid_upcoming[0]['est_time'] - timedelta(minutes=60)
+    current_end = valid_upcoming[0]['est_time']
+    for i in range(1, len(valid_upcoming)):
+        next_measure = valid_upcoming[i]['est_time']
+        gap_minutes = (next_measure - current_end).total_seconds() / 60
+        if gap_minutes >= 90:
+            on_blocks.append((current_start, current_end))
+            current_start = next_measure - timedelta(minutes=60)
+            current_end = next_measure
+        else:
+            current_end = next_measure
+    on_blocks.append((current_start, current_end))
+
+# --- アラーム・ダイアログ通知 ---
+
+# 1. 始業時点検確認
+inspection_start_time = datetime.combine(today_date, dt_time(7, 0, 0))
+inspection_end_time = datetime.combine(today_date, dt_time(10, 0, 0))
+
+if st.session_state.last_inspection_date != today_date:
+    if now >= inspection_end_time:
+        st.session_state.last_inspection_date = today_date
+        save_state()
+        st.rerun()
+    elif inspection_start_time <= now < inspection_end_time:
+        if not st.session_state.get('inspection_dialog_shown', False):
+            st.session_state.inspection_dialog_shown = True
+            st.toast("📋 本日の日常点検（MFR測定）は既に完了していますか？下部のボタンから記録してください。", icon="⚠️")
+
+# 2. 測定実行のアラーム
+for pt in valid_upcoming:
+    m_time = pt['est_time']
+    if m_time <= now < m_time + timedelta(minutes=15):
+        if pt['machine'] == '日常点検(A勤)':
+            alert_id_meas = f"MEAS_INSP_{m_time.strftime('%Y%m%d_%H%M')}"
+            msg_meas = "📋 日常点検の時間です！点検を実施してください。"
+        else:
+            meas_text = get_measurement_text(len(pt['Targets']), pt['target_qty'], pt['Targets'])
+            alert_id_meas = f"MEAS_{pt['machine']}_{meas_text}_{m_time.strftime('%Y%m%d_%H%M')}"
+            msg_meas = f"🎯 {pt['machine']} 成型機（{meas_text}）のMFR測定を実施してください！"
+
+        if alert_id_meas not in st.session_state.shown_alerts:
+            st.session_state.shown_alerts.append(alert_id_meas); save_state()
+            st.toast(msg_meas, icon="🚨") 
+
+# 3. 電源ON・OFFアラーム
+for b_start, b_end in on_blocks:
+    if b_start <= now < b_end:
+        alert_id_on = f"ON_{b_start.strftime('%Y%m%d_%H%M')}"
+        if alert_id_on not in st.session_state.shown_alerts:
+            st.session_state.shown_alerts.append(alert_id_on); save_state()
+            target_tasks = [x['machine'] for x in valid_upcoming if b_start <= x['est_time'] <= b_end]
+            target_machine = target_tasks[0] if target_tasks else "成型機"
+            scheduled_time_str = (b_start + timedelta(minutes=60)).strftime('%H:%M')
+            st.toast(f"🔥 MFR測定器 電源ON！（{target_machine} {scheduled_time_str} 予定）", icon="🔥")
+
+    if b_end + timedelta(minutes=3) <= now < b_end + timedelta(minutes=18):
+        alert_id_off = f"OFF_{b_end.strftime('%Y%m%d_%H%M')}"
+        if alert_id_off not in st.session_state.shown_alerts:
+            st.session_state.shown_alerts.append(alert_id_off); save_state()
+            st.toast("💤 MFR測定器 電源OFF！（測定完了・冷却開始）", icon="💤")
+
+# --- UI：ヘッダー ---
+try:
+    logo_base64 = get_image_base64(logo_path)
+    logo_html = f"""<div style="display: flex; align-items: flex-end; gap: 15px; margin-bottom: 10px;"><img src="data:image/png;base64,{logo_base64}" width="100px"><h1 style="margin: 0; color: #1f2937; line-height: 0.9; position: relative; top: 8px;">MFRスマート電源管理システム</h1></div>"""
+    st.markdown(logo_html, unsafe_allow_html=True)
+except:
+    st.title("MFRスマート電源管理システム")
+
+st.write(f"現在時刻: **{now.strftime('%Y/%m/%d %H:%M:%S')}** (60秒ごとに自動更新中 🔄)")
+st.markdown("---")
+
+# --- MFR電源ステータス ---
+st.subheader("💡 MFR測定器 電源ステータス")
+is_monday = (today_date.weekday() == 0)
+
+inspection_start_time = datetime.combine(today_date, dt_time(7, 0, 0))
+inspection_end_time = datetime.combine(today_date, dt_time(10, 0, 0))
+
+if st.session_state.last_inspection_date == today_date:
+    st.success("✅ 本日の日常点検は完了しています。")
+else:
+    if inspection_start_time <= now < inspection_end_time:
+        if is_monday: st.error("⚠️ 【至急】本日の日常点検が未完了です！ MFR電源をONにして点検を実施してください。（月曜は朝8:00）")
+        else: st.error("⚠️ 【至急】本日の日常点検が未完了です！ MFR電源をONにして点検を実施してください。（火〜金は朝7:00）")
+        if st.button("📝 点検が終わったので完了を記録する"):
+            st.session_state.last_inspection_date = today_date; save_state(); st.rerun()
+    elif now < inspection_start_time:
+        if is_monday: st.warning("📋 本日の日常点検が未完了です。（月曜は朝8:00開始）")
+        else: st.warning("📋 本日の日常点検が未完了です。（火〜金は朝7:00開始）")
+st.markdown("---")
+
+if not valid_upcoming:
+    st.success("💤 **電源OFF推奨** (現在、稼働中で測定予定のジョブはありません)")
+else:
+    next_measure = valid_upcoming[0]
+    time_diff = next_measure['est_time'] - now
+    minutes_until = time_diff.total_seconds() / 60
+    
+    if next_measure['target_qty'] == '日常点検': meas_text = '日常点検'
+    else: meas_text = f"{get_measurement_text(len(next_measure['Targets']), next_measure['target_qty'], next_measure['Targets'])}の測定"
+
+    if minutes_until <= 60: st.error(f"🔥 **電源ON（加熱開始・維持）** \n\n次回の測定まで約 {max(0, int(minutes_until))} 分です。 ({next_measure['machine']}の{meas_text})")
+    elif minutes_until >= 90: st.success(f"💤 **電源OFF推奨（待機）** \n\n次回の測定まで約 {int(minutes_until)} 分あります。ゆっくり冷まして設備負担を軽減してください。")
+    else: st.warning(f"⚠️ **まもなくON（待機）** \n\n次回の測定まで約 {int(minutes_until)} 分です。現在はOFFのままで問題ありません。")
+st.markdown("---")
+
+# --- UI：成型機コントロールパネル ---
+cols_top = st.columns(3)
+machine_data = {}
+
+for idx, machine in enumerate(['100t', '450t', '550t']):
+    with cols_top[idx]:
+        st.header(f"⚙️ {machine} 成型機")
+        job = st.session_state.jobs[machine]
+        est_current = 0
+        
+        if job is None:
+            if not st.session_state.products:
+                st.warning("⚠️ サイドバーから製品マスターを登録してください。")
+            else:
+                product_name = st.selectbox("製品名を選択", list(st.session_state.products.keys()), key=f"prod_sel_{machine}")
+                prod_info = st.session_state.products[product_name]
+                total_qty, cycle_time, meas_count = prod_info['qty'], prod_info['cycle'], prod_info['measurements']
+                
+                st.info(f"📊 **設定呼び出し:** 生産数 {total_qty}個 / サイクル {cycle_time}秒 / 測定 {meas_count}回")
+                
+                if meas_count == 2: targets = [1, total_qty]
+                else: targets = [1, total_qty] if total_qty <= 2 else [1, total_qty // 2, total_qty]
+                
+                st.markdown("💡 **途中開始の場合の設定**")
+                current_qty = st.number_input("現在の生産数 (0からなら0のまま)", min_value=0, max_value=int(total_qty), value=0, step=1, key=f"cur_{machine}")
+                default_completed = [t for t in targets if t <= current_qty]
+                completed = st.multiselect("既に測定済みのポイント", options=targets, default=default_completed, format_func=lambda x: f"{x}個目", key=f"comp_sel_{machine}")
+
+                if st.button("▶️ 生産スタート", key=f"start_btn_{machine}"):
+                    st.session_state.jobs[machine] = {
+                        'product_name': product_name, 'total_qty': total_qty, 'cycle_time': cycle_time,
+                        'current_qty': current_qty, 'last_update': (datetime.utcnow() + timedelta(hours=9)),
+                        'targets': targets, 'completed': completed, 'status': 'Running'
+                    }
+                    save_state(); st.rerun()
+        else:
+            status_color = "🟢" if job['status'] == 'Running' else ("🟡" if job['status'] == 'Paused' else "✅")
+            st.write(f"状態: {status_color} **{job['status']}**")
+            p_name = job.get('product_name', '設定なし')
+            st.write(f"製品: **{p_name}** ({job['total_qty']}個 / サイクル: {job['cycle_time']}秒)")
+
+            if job['status'] == 'Running':
+                elapsed_sec = ((datetime.utcnow() + timedelta(hours=9)) - job['last_update']).total_seconds()
+                est_current = min(int(job['current_qty'] + (elapsed_sec / job['cycle_time'])), job['total_qty'])
+            else:
+                est_current = job['current_qty']
+                
+            st.metric("現在生産数 (推測)", f"{est_current} / {job['total_qty']}")
+            
+            if job['status'] != 'Completed':
+                col_ctrl1, col_ctrl2 = st.columns(2)
+                with col_ctrl1:
+                    if job['status'] == 'Running':
+                        if st.button("⏸️ 一時停止", key=f"pause_main_{machine}"):
+                            job['current_qty'] = est_current; job['status'] = 'Paused'; save_state(); st.rerun()
+                    elif job['status'] == 'Paused':
+                        if st.button("▶️ 再開", key=f"resume_main_{machine}"):
+                            job['last_update'] = (datetime.utcnow() + timedelta(hours=9)); job['status'] = 'Running'; save_state(); st.rerun()
+                with col_ctrl2:
+                    if st.button("⏹️ 生産終了", key=f"stop_main_{machine}"):
+                        st.session_state.jobs[machine] = None; save_state(); st.rerun()
+
+            if job['status'] == 'Completed':
+                if st.button("🔄 次の製品の生産をセット", key=f"next_ok_{machine}"):
+                    st.session_state.jobs[machine] = None; save_state(); st.rerun()
+
+            st.divider()
+            st.markdown('<div class="mfr-status-header">📋 MFR測定状況：</div>', unsafe_allow_html=True)
+            num_targets = len(job['targets'])
+            for t in job['targets']:
+                meas_text = get_measurement_text(num_targets, t, job['targets'])
+                if t in job['completed']: st.write(f"✅ {meas_text} ー 測定完了")
+                else:
+                    if st.button(f"🎯 {meas_text} ー 測定完了を記録", key=f"comp_{machine}_{t}"):
+                        if job['status'] == 'Running':
+                            elapsed_sec = ((datetime.utcnow() + timedelta(hours=9)) - job['last_update']).total_seconds()
+                            job['current_qty'] = min(int(job['current_qty'] + (elapsed_sec / job['cycle_time'])), job['total_qty'])
+                            job['last_update'] = (datetime.utcnow() + timedelta(hours=9))
+                            
+                        job['completed'].append(t)
+                        if len(job['completed']) == len(job['targets']): 
+                            job['status'] = 'Completed'
+                            job['current_qty'] = job['total_qty']
+                        save_state(); st.rerun()
+
+        machine_data[machine] = {'job': job, 'est_current': est_current}
+
+# 下段パネル
+cols_bottom = st.columns(3)
+for idx, machine in enumerate(['100t', '450t', '550t']):
+    with cols_bottom[idx]:
+        st.divider() 
+        job = machine_data[machine]['job']
+        est_current = machine_data[machine]['est_current']
+        
+        with st.expander("🔧 実績の補正・サイクル微調整", expanded=False):
+            adjust_qty_value = est_current if job is not None else 0
+            adjust_cycle_value = float(job['cycle_time']) if job is not None else 30.0
+            
+            st.markdown("💡 **① 個数のズレを修正**")
+            new_qty = st.number_input("現在の実際の個数", min_value=0, max_value=job['total_qty'] if job is not None else 999999, value=adjust_qty_value, step=1, key=f"adj_qty_{machine}")
+            if st.button("💾 個数を上書き更新", key=f"update_qty_{machine}"):
+                if job is not None:
+                    job['current_qty'] = new_qty
+                    job['last_update'] = (datetime.utcnow() + timedelta(hours=9))
+                    save_state(); st.rerun()
+                else:
+                    st.warning("稼働していません。")
+            
+            st.markdown("---")
+            
+            st.markdown("💡 **② サイクル(生産ペース)の変更**")
+            new_cycle = st.number_input("サイクルタイム微調整(秒)", min_value=1.0, value=adjust_cycle_value, step=0.1, key=f"adj_cyc_{machine}")
+            if st.button("💾 サイクルのみ変更", key=f"update_cyc_{machine}"):
+                if job is not None:
+                    job['current_qty'] = est_current 
+                    job['cycle_time'] = new_cycle
+                    job['last_update'] = (datetime.utcnow() + timedelta(hours=9))
+                    save_state(); st.rerun()
+                else:
+                    st.warning("稼働していません。")
+st.markdown("---")
+
+# --- UI：シフト別スケジュール表 ---
+def get_shift_name(dt):
+    h = dt.hour
+    if 7 <= h < 15: return "A勤"
+    elif 15 <= h < 23: return "B勤"
+    else: return "C勤"
+
+st.subheader("🗓️ 各勤務の電源操作・作業フロー 一覧")
+if on_blocks:
+    html = "<table style='width:100%; border-collapse: collapse; font-size: 20px; text-align: center; margin-bottom: 20px;'>"
+    html += "<tr style='background-color: #f3f4f6; color: #111; font-weight: bold; border-bottom: 3px solid #ccc;'><th style='padding: 15px; border: 1px solid #ddd; width: 10%;'>状態</th><th style='padding: 15px; border: 1px solid #ddd; width: 30%;'>電源ON担当・ON時刻</th><th style='padding: 15px; border: 1px solid #ddd;'>作業フロー</th></tr>"
+    for b_start, b_end in on_blocks:
+        status_text = "完了" if b_end < now else ("進行中" if b_start <= now <= b_end else "予定")
+        bg_color = "#e6ffe6" if status_text == "完了" else ("#fffdeb" if status_text == "進行中" else "#ffffff")
+        on_assignee = get_shift_name(b_start)
+        on_time = b_start.strftime('%m/%d %H:%M')
+        
+        tasks_in_flow = []
+        for pt in valid_upcoming:
+            if b_start <= pt['est_time'] <= b_end:
+                if pt['machine'] == '日常点検(A勤)': tasks_in_flow.append("日常点検")
+                else: tasks_in_flow.append(f"{pt['machine']}MFR測定({get_measurement_text(len(pt['Targets']), pt['target_qty'], pt['Targets'])})")
+        
+        flow_full_text = " ➡ ".join(tasks_in_flow) + " ➡ OFF" if tasks_in_flow else "➡ OFF (測定なし)"
+        flow_full_html = f"<span style='color: #000; font-size: 22px;'>➡</span> {flow_full_text}"
+        
+        html += f"<tr style='background-color: {bg_color}; border-bottom: 1px solid #ddd;'><td style='padding: 15px; font-weight: bold;'>{status_text}</td><td style='padding: 15px; font-weight: bold;'><span style='color: #d32f2f; font-size: 24px;'>🔥 ON: </span> {on_assignee} ({on_time})</td><td style='padding: 15px; font-weight: bold; text-align: left;'>{flow_full_html}</td></tr>"
+    html += "</table>"
+    st.markdown(html, unsafe_allow_html=True)
+else:
+    st.info("現在、予定されている電源操作はありません。")
+
+# --- UI：全体可視化グラフ ---
+st.subheader("📈 成型機稼働状況・MFR電源スケジュール")
+
+timeline_data = []
+measurement_points = []
+
+for machine, job in st.session_state.jobs.items():
+    if job is None: continue
+    start_time = job['last_update']
+    end_time = (datetime.utcnow() + timedelta(hours=9)) if job['status'] == 'Completed' else job['last_update'] + timedelta(seconds=(job['total_qty'] - job['current_qty']) * job['cycle_time'])
+    timeline_data.append({'Task': machine, 'Start': start_time, 'End': end_time, 'Status': job['status'], 'Targets': job['targets']})
+
+    for t in job['targets']:
+        t_time = job['last_update'] if job['status'] != 'Running' or (t - job['current_qty']) <= 0 else job['last_update'] + timedelta(seconds=(t - job['current_qty']) * job['cycle_time'])
+        measurement_points.append({'Task': machine, 'Time': t_time, 'Target_Qty': t, 'Targets': job['targets'], 'Status': 'Completed' if (t in job['completed']) else 'Planned'})
+
+today_start = datetime.combine(now.date(), dt_time.min)
+
+if st.session_state.last_inspection_date == today_date:
+    inspection_time = datetime(now.year, now.month, now.day, 8 if is_monday else 7, 0, 0)
+    measurement_points.append({'Task': 'MFR電源', 'Time': inspection_time, 'Target_Qty': '点検済', 'Targets': ['点検済'], 'Status': 'Completed'})
+
+for pt in valid_upcoming:
+    if pt['machine'] == '日常点検(A勤)':
+        measurement_points.append({'Task': 'MFR電源', 'Time': pt['est_time'], 'Target_Qty': '日常点検', 'Targets': ['日常点検'], 'Status': 'Planned'})
+
+for b_start, b_end in on_blocks:
+    timeline_data.append({'Task': 'MFR電源', 'Start': max(b_start, now), 'End': max(b_end, now), 'Status': 'ON'})
+
+DUMMY_DATE = datetime(2000, 1, 1)
+def time_to_dummy(dt):
+    return datetime.combine(DUMMY_DATE, dt.time()) if isinstance(dt, datetime) else datetime.combine(DUMMY_DATE, dt)
+
+def get_date_str(dt):
+    weekdays = ['月', '火', '水', '木', '金', '土', '日']
+    return f"{dt.strftime('%m/%d')} ({weekdays[dt.weekday()]})"
+
+new_timeline_data = []
+overall_end_time = now + timedelta(hours=1) 
+
+for d in timeline_data:
+    if d['End'] < today_start: continue
+    if d['End'] > overall_end_time: overall_end_time = d['End']
+    curr_start = max(d['Start'], today_start)
+    end_time = max(d['End'], curr_start)
+
+    while curr_start.date() < end_time.date():
+        eod = datetime.combine(curr_start.date(), datetime.max.time())
+        new_timeline_data.append({'Task': d['Task'], 'StartDummy': time_to_dummy(curr_start), 'EndDummy': time_to_dummy(eod), 'Status': d['Status'], 'DateStr': get_date_str(curr_start)})
+        curr_start = datetime.combine(curr_start.date() + timedelta(days=1), datetime.min.time())
+        
+    if curr_start <= end_time:
+        new_timeline_data.append({'Task': d['Task'], 'StartDummy': time_to_dummy(curr_start), 'EndDummy': time_to_dummy(end_time), 'Status': d['Status'], 'DateStr': get_date_str(curr_start)})
+
+new_measurement_points = []
+for pt in measurement_points:
+    if pt['Time'] < today_start: continue
+    if pt['Time'] > overall_end_time: overall_end_time = pt['Time']
+    new_measurement_points.append({'Task': pt['Task'], 'TimeDummy': time_to_dummy(pt['Time']), 'DateStr': get_date_str(pt['Time']), 'Target_Qty': pt['Target_Qty'], 'Targets': pt.get('Targets', []), 'Status': pt['Status']})
+
+if new_timeline_data:
+    df = pd.DataFrame(new_timeline_data)
+    unique_dates = sorted(list(set(df['DateStr']))) 
+    
+    date_to_row = {date: len(unique_dates) - i for i, date in enumerate(unique_dates)}
+    
+    fig = px.timeline(
+        df, x_start="StartDummy", x_end="EndDummy", y="Task", color="Status", facet_row="DateStr",
+        color_discrete_map={'Running': '#00a82d', 'Paused': '#f5a623', 'Completed': '#88d8b0', 'ON': '#ff3333'},
+        facet_row_spacing=0.15,
+        category_orders={"DateStr": unique_dates, "Task": ["MFR電源", "550t", "450t", "100t"]} 
     )
     
-    st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
+    fig.update_yaxes(
+        title_text="", tickfont=dict(size=16, color="black", weight="bold"), 
+        autorange=False, range=[3.8, -0.8],
+        showline=True, linewidth=1, linecolor='gray', mirror=True
+    )
     
-    # 【変更】絵文字を削除し、icon.icoを読み込んでタイトル横に下揃えで配置する
-    icon_path = Path("icon.ico")
-    img_base64 = ""
-    if icon_path.exists():
-        with open(icon_path, "rb") as f:
-            img_base64 = base64.b64encode(f.read()).decode("utf-8")
-    
-    if img_base64:
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: flex-end; margin-bottom: 1rem;">
-                <img src="data:image/x-icon;base64,{img_base64}" height="100" style="margin-right: 15px; flex-shrink: 0;">
-                <span style="font-size: calc(1.4rem + 1.2vw); font-weight: 700; line-height: 1.0;">機器情報ページ ＆ QR管理システム</span>
-            </div>
-            """,
-            unsafe_allow_html=True
+    fig.update_xaxes(
+        title_text="", tickformat="%H:%M", dtick=3600000, 
+        tickfont=dict(size=14, color="black", weight="bold"),
+        range=[datetime(2000, 1, 1, 0, 0, 0), datetime(2000, 1, 2, 0, 0, 0)],
+        showgrid=True, gridcolor='rgba(150, 150, 150, 0.5)', gridwidth=1, griddash='dot',
+        showticklabels=True,
+        showline=True, linewidth=1, linecolor='gray', mirror=True
+    )
+    fig.layout.xaxis.title.text = "時間（各シフトごとの担当帯）"
+
+    fig.add_vrect(x0=time_to_dummy(dt_time(0,0)), x1=time_to_dummy(dt_time(7,0)), fillcolor="#e6f2ff", opacity=0.4, layer="below", line_width=1, line_color="gray")
+    fig.add_vrect(x0=time_to_dummy(dt_time(7,0)), x1=time_to_dummy(dt_time(15,0)), fillcolor="#fff5cc", opacity=0.4, layer="below", line_width=1, line_color="gray")
+    fig.add_vrect(x0=time_to_dummy(dt_time(15,0)), x1=time_to_dummy(dt_time(23,0)), fillcolor="#e6ffe6", opacity=0.4, layer="below", line_width=1, line_color="gray")
+    fig.add_vrect(x0=time_to_dummy(dt_time(23,0)), x1=time_to_dummy(dt_time(23,59,59)), fillcolor="#e6f2ff", opacity=0.4, layer="below", line_width=1, line_color="gray")
+
+    for facet_date in unique_dates:
+        row_idx = date_to_row[facet_date]
+        shifts_text = [
+            ("C勤", time_to_dummy(dt_time(3, 30)), 'rgba(0,68,136,0.05)'),
+            ("A勤", time_to_dummy(dt_time(11, 0)), 'rgba(136,102,0,0.05)'),
+            ("B勤", time_to_dummy(dt_time(19, 0)), 'rgba(0,102,0,0.05)')
+        ]
+        for text, x_pos, color in shifts_text:
+            fig.add_annotation(
+                x=x_pos, y=1.5, text=text, font=dict(size=120, color=color, weight="bold"),
+                showarrow=False, xanchor="center", yanchor="middle", row=row_idx, col=1
+            )
+            
+    today_str = get_date_str(now)
+    if today_str in date_to_row:
+        today_row = date_to_row[today_str]
+        now_dummy_time = time_to_dummy(now)
+        fig.add_vline(x=now_dummy_time, line_width=3, line_dash="dash", line_color="#ff0000", layer="above", row=today_row, col=1)
+        yref_name = f"y{today_row if today_row > 1 else ''} domain"
+        fig.add_annotation(
+            x=now_dummy_time, y=1.02, yref=yref_name, text="▼ 現在", font=dict(size=18, color="#ff0000", weight="bold"), 
+            showarrow=False, xanchor="center", yanchor="bottom", bgcolor="white", bordercolor="#ff0000", borderwidth=1, row=today_row, col=1
         )
-    else:
-        # 万が一GitHub上にicon.icoが見つからない場合の予備（絵文字なしバージョン）
-        st.title("機器情報ページ ＆ QR管理システム")
-    
-    if st.session_state.get("scroll_to_top"):
-        import streamlit.components.v1 as components
-        components.html("<script>var t=window.parent.document.getElementById('top_anchor');if(t){t.scrollIntoView(true);}else{window.parent.scrollTo(0,0);}</script>", height=0)
-        st.session_state["scroll_to_top"] = False
-        
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.header("1. 基本情報入力")
-        did = st.text_input("管理番号 (例: 2699)", key="input_did")
-        name = st.text_input("機器名称 (例: 5t金型反転機)", key="input_name")
-        power = st.selectbox("使用電源", ["100V", "200V"], index=None, key="input_power")
-        
-        st.markdown("---")
-        st.header("📝 メモ・備考欄")
-        memo = st.text_area("現場へ伝える補足情報", height=150, key="input_memo")
 
-    def render_image_ui(label, key_suffix, existing_path):
-        st.markdown(f"**{label}**")
-        has_existing = pd.notna(existing_path) and str(existing_path).strip() != "" and str(existing_path) != "nan"
-        
-        del_flag = False
-        if has_existing:
-            try:
-                if str(existing_path).startswith("http"): st.image(existing_path, width=180, caption="現在保存されている画像")
-                elif Path(existing_path).exists(): st.image(str(existing_path), width=180, caption="現在保存されている画像")
-                del_flag = st.checkbox(f"🗑️ この画像を削除する", key=f"del_{key_suffix}_{rk}")
-            except:
-                st.warning("※保存先の画像が見つかりません")
-                has_existing = False
-                
-        new_file = st.file_uploader("新しい画像で上書きする" if has_existing else "画像をアップロード", type=["png", "jpg", "jpeg"], key=f"up_{key_suffix}_{rk}")
-        st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-        return new_file, del_flag, existing_path if has_existing else ""
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1], font=dict(size=22, weight="bold", color="black")) if "=" in a.text else None)
 
-    with col2:
-        st.header("2. 画像の指定・管理")
-        imgs = st.session_state.get("existing_imgs", {})
-        
-        f_ext, d_ext, e_ext = render_image_ui("機器外観", "ext", imgs.get("ext", ""))
-        f_out, d_out, e_out = render_image_ui("コンセント位置", "out", imgs.get("out", ""))
-        f_lab, d_lab, e_lab = render_image_ui("資産管理ラベル", "lab", imgs.get("lab", ""))
-        
-        st.markdown("---")
-        is_related_loto = st.checkbox("関連機器、付帯設備のLOTO手順書を登録する", key="is_related_loto")
-        f_lo1, d_lo1, e_lo1 = render_image_ui("LOTO手順書（1ページ目）", "lo1", imgs.get("lo1", ""))
-        f_lo2, d_lo2, e_lo2 = render_image_ui("LOTO手順書（2ページ目）", "lo2", imgs.get("lo2", ""))
-        
-        st.markdown("---")
-        st.subheader("➕ 追加情報の画像")
-        
-        ex_imgs_data_preview = [] 
-        ex_imgs_to_save = [] 
-        
-        existing_ex = st.session_state.get("existing_ex_imgs", [])
-        
-        for i, ex_dict in enumerate(existing_ex):
-            st.markdown(f"**既存の追加画像 {i+1}**")
-            e_path = ex_dict.get("url", "")
-            e_title = ex_dict.get("title", f"追加画像 {i+1}")
+    if new_measurement_points:
+        df_pts = pd.DataFrame(new_measurement_points)
+        for facet_date in unique_dates:
+            row_idx = date_to_row[facet_date]
+            df_pts_in_facet = df_pts[df_pts['DateStr'] == facet_date]
+            if df_pts_in_facet.empty: continue
             
-            if str(e_path).startswith("http"): st.image(e_path, width=180)
-            elif Path(e_path).exists(): st.image(str(e_path), width=180)
-            
-            del_ex = st.checkbox(f"🗑️ この追加画像を削除", key=f"del_ex_{rk}_{i}")
-            new_title = st.text_input(f"タイトル変更", value=e_title, key=f"edit_ex_t_{rk}_{i}")
-            new_f = st.file_uploader(f"画像を差し替え", type=["png", "jpg", "jpeg"], key=f"edit_ex_f_{rk}_{i}")
-            st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-            
-            if not del_ex:
-                final_f = new_f if new_f else e_path
-                ex_imgs_data_preview.append((final_f, new_title))
-                ex_imgs_to_save.append({"type": "existing", "file": new_f, "url": e_path, "title": new_title, "index": i})
+            df_comp = df_pts_in_facet[df_pts_in_facet['Status'] == 'Completed']
+            if not df_comp.empty:
+                trace_completed_text = ['点検済' if pt.get('Targets', []) and pt['Targets'][0] == '点検済' else get_measurement_text(len(pt.get('Targets', [])), pt['Target_Qty'], pt.get('Targets', [])) for pt in df_comp.to_dict('records')]
+                fig.add_trace(go.Scatter(
+                    x=df_comp['TimeDummy'], y=df_comp['Task'], mode='markers+text',
+                    marker=dict(color='#00e6e6', size=18, symbol='circle', line=dict(width=2, color='black')),
+                    text=trace_completed_text, textposition='top center', textfont=dict(size=18, color='black', weight='bold'),
+                    cliponaxis=False, hoverinfo='skip', showlegend=False 
+                ), row=row_idx, col=1)
+
+            df_plan = df_pts_in_facet[df_pts_in_facet['Status'] == 'Planned']
+            if not df_plan.empty:
+                trace_planned_text = ['日常点検' if pt.get('Targets', []) and pt['Targets'][0] == '日常点検' else get_measurement_text(len(pt.get('Targets', [])), pt['Target_Qty'], pt.get('Targets', [])) for pt in df_plan.to_dict('records')]
+                fig.add_trace(go.Scatter(
+                    x=df_plan['TimeDummy'], y=df_plan['Task'], mode='markers+text',
+                    marker=dict(color='#ffff00', size=20, symbol='diamond', line=dict(width=2, color='black')),
+                    text=trace_planned_text, textposition='top center', textfont=dict(size=20, color='black', weight='bold'),
+                    cliponaxis=False, hoverinfo='skip', showlegend=False 
+                ), row=row_idx, col=1)
+
+    fig.update_layout(
+        height=max(700, len(unique_dates) * 350), margin=dict(t=120, b=50, l=100, r=50), showlegend=True,
+        uirevision='constant'
+    )
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("📊 グラフを表示するための稼働中のジョブはありません。")
+
+# --- UI：🌱EcoNavi ---
+st.markdown("---")
+st.header("🌱 EcoNavi")
+st.write("日々のこまめな電源OFF運用によって節約できた「電気代」と、「ヒーター等の設備寿命延長に伴う修繕費の削減額」を自動計算するシミュレーターです。")
+
+with st.expander("📊 現在のスケジュールにおける削減効果金額を計算", expanded=True):
+    col_k, col_e, col_h, col_l = st.columns(4)
+    with col_k: power_kw = st.number_input("MFR消費電力 (kW)", value=0.80, step=0.10, format="%.2f", help="最大値 0.80 kW")
+    with col_e: elec_price = st.number_input("電気代単価 (円/kWh)", value=20.00, step=1.00, format="%.2f", help="20～25円目安")
+    with col_h: heater_cost = st.number_input("修繕・メンテナンス費用 (円)", value=150000, step=10000, help="部品交換や修理にかかる1回あたりの概算費用")
+    with col_l: heater_life_hours = st.number_input("メンテナンス周期 (時間)", value=10000, step=1000, help="上記の修繕が必要になるまでの想定稼働時間（過去の記録から設定）")
+
+    if timeline_data and on_blocks:
+        schedule_start = min([d['Start'] for d in timeline_data])
+        schedule_end = max([d['End'] for d in timeline_data])
+        total_hours = (schedule_end - schedule_start).total_seconds() / 3600
+        new_on_hours = sum([(b_end - b_start).total_seconds() for b_start, b_end in on_blocks]) / 3600
+        saved_hours = total_hours - new_on_hours
         
-        for i in range(st.session_state.extra_images_count):
-            st.markdown(f"**新規の追加画像 {len(existing_ex) + i + 1}**")
-            et = st.text_input(f"タイトル", key=f"new_ex_title_{rk}_{i}")
-            ef = st.file_uploader(f"画像", type=["png", "jpg", "jpeg"], key=f"new_ex_img_{rk}_{i}")
-            st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-            if ef:
-                t = et if et else f"追加画像 {len(existing_ex) + i + 1}"
-                ex_imgs_data_preview.append((ef, t))
-                ex_imgs_to_save.append({"type": "new", "file": ef, "title": t, "index": i})
+        if saved_hours > 0:
+            saved_cost = saved_hours * power_kw * elec_price
+            saved_heater_value = saved_hours * (heater_cost / heater_life_hours)
 
-        if st.button("➕ 追加枠を増やす"):
-            st.session_state.extra_images_count += 1
-            st.rerun()
+            st.success(f"✨ **現在のスケジュール期間中（約 {total_hours:.1f} 時間）の改善効果**")
+            res_col1, res_col2, res_col3 = st.columns(3)
+            
+            help_time = "【計算式】\n従来OFFにしていなかった全期間の時間 － 今回のスケジュールでONになっている時間"
+            help_elec = "【計算式】\n削減できた待機時間 × MFR消費電力(kW) × 電気代単価"
+            help_maint = "【計算式】\n削減できた待機時間 × (修繕・メンテナンス費用 ÷ メンテナンス周期)\n\n※稼働時間が減ることで、将来発生するメンテナンス費用をどれだけ先送り（節約）できたかを金額換算しています。"
+            
+            res_col1.metric("無駄な待機時間の削減", f"{saved_hours:.1f} 時間", f"従来: {total_hours:.1f}h → 今回: {new_on_hours:.1f}h", delta_color="inverse", help=help_time)
+            res_col2.metric("電気代の削減", f"{int(saved_cost):,} 円", f"▲ {int(saved_cost)}円", delta_color="inverse", help=help_elec)
+            res_col3.metric("設備寿命(修繕費)の節約換算", f"{int(saved_heater_value):,} 円", "部品の長寿命化による効果", help=help_maint)
+            st.caption("※この計算は現在画面に表示されているジョブ（未来の予測を含む）を対象とした概算シミュレーションです。")
 
-    def get_input_for_manual(file_obj, del_flag, existing_path):
-        if del_flag: return None
-        if file_obj: return file_obj
-        if existing_path: return existing_path
-        return None
+            # --- 可視化グラフの追加と調整 ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            old_elec = total_hours * power_kw * elec_price
+            old_maint = total_hours * (heater_cost / heater_life_hours)
+            new_elec = new_on_hours * power_kw * elec_price
+            new_maint = new_on_hours * (heater_cost / heater_life_hours)
+            total_old = old_elec + old_maint
+            total_new = new_elec + new_maint
+            saved_total = total_old - total_new
 
-    # --- プレビュー機能 ---
-    st.markdown("---")
-    st.header("3. 機器情報ページ プレビュー確認")
-    if st.button("🔍 プレビューを作成", type="secondary"):
-        if did and name and power:
-            with st.spinner("プレビュー作成中..."):
-                m_data = {
-                    "id": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
-                    "img_exterior": get_input_for_manual(f_ext, d_ext, e_ext),
-                    "img_outlet": get_input_for_manual(f_out, d_out, e_out),
-                    "img_label": get_input_for_manual(f_lab, d_lab, e_lab),
-                    "img_loto1": get_input_for_manual(f_lo1, d_lo1, e_lo1),
-                    "img_loto2": get_input_for_manual(f_lo2, d_lo2, e_lo2)
-                }
-                manual_path = MANUAL_DIR / f"preview_{rk}.jpg"
-                create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
-                if manual_path.exists():
-                    # 生成した画像をセッション状態に保存
-                    with open(manual_path, "rb") as f: 
-                        st.session_state.preview_b64 = base64.b64encode(f.read()).decode("utf-8")
-                    
-                    s_id = safe_filename(did)
-                    dl_file_name = f"{s_id}_{safe_filename(name)}.jpg" if include_equip_name else f"{s_id}.jpg"
-                    st.session_state.preview_file = {"path": manual_path, "name": dl_file_name}
+            df_eco = pd.DataFrame([
+                {"運用方法": "❌ 従来の運用 (ずっとON)", "コスト内訳": "電気代", "金額": old_elec},
+                {"運用方法": "❌ 従来の運用 (ずっとON)", "コスト内訳": "修繕費 (寿命換算)", "金額": old_maint},
+                {"運用方法": "✨ EcoNavi スマート運用", "コスト内訳": "電気代", "金額": new_elec},
+                {"運用方法": "✨ EcoNavi スマート運用", "コスト内訳": "修繕費 (寿命換算)", "金額": new_maint}
+            ])
+
+            # 配色は暖色系（オレンジ・赤系）を維持
+            fig_eco = px.bar(
+                df_eco, x="運用方法", y="金額", color="コスト内訳",
+                text="金額",
+                color_discrete_map={"電気代": "#f4a261", "修繕費 (寿命換算)": "#e76f51"} 
+            )
+            fig_eco.update_traces(texttemplate='<b>%{text:,.0f} 円</b>', textposition='inside', insidetextfont=dict(size=18, color="white"))
+            
+            fig_eco.update_layout(
+                barmode='stack',
+                height=550, 
+                title=dict(text="<b>📊 スマート運用によるコスト削減効果</b>", font=dict(size=22)), 
+                xaxis_title="",
+                yaxis_title="発生コスト（円）",
+                yaxis=dict(range=[0, total_old * 1.5], tickfont=dict(size=14, weight="bold")),
+                xaxis=dict(tickfont=dict(size=18, weight="bold")),
+                legend=dict(
+                    title="<b>コスト内訳</b>",
+                    orientation="h",
+                    yanchor="bottom", y=1.02,
+                    xanchor="right", x=1,
+                    font=dict(size=14, weight="bold")
+                ),
+                margin=dict(t=80, b=50, l=50, r=50),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(250, 250, 250, 1)",
+                yaxis_showgrid=True, yaxis_gridcolor="rgba(200,200,200,0.5)"
+            )
+
+            # トータル金額を棒の上に配置
+            fig_eco.add_annotation(x="❌ 従来の運用 (ずっとON)", y=total_old, yshift=15, yanchor="bottom", text=f"<b>計 {int(total_old):,} 円</b>", showarrow=False, font=dict(size=22))
+            fig_eco.add_annotation(x="✨ EcoNavi スマート運用", y=total_new, yshift=15, yanchor="bottom", text=f"<b>計 {int(total_new):,} 円</b>", showarrow=False, font=dict(size=22, color="#00a82d"))
+
+            import math
+            # --- デザインの良い矢印への変更（動的アングル計算） ---
+            approx_dx_px = 500  
+            approx_dy_px = ((total_old - total_new) / (total_old * 1.5)) * 400 
+            
+            angle_deg = int(math.degrees(math.atan2(approx_dy_px, approx_dx_px)))
+
+            fig_eco.add_annotation(
+                x=0.5, y=(total_old + total_new) / 2, xref="paper", yref="y",
+                text="<span style='font-size: 80px; color: #e63946; text-shadow: 2px 2px 3px rgba(0,0,0,0.2);'>➡</span>",
+                showarrow=False,
+                textangle=angle_deg 
+            )
+            
+            fig_eco.add_annotation(
+                x=0.5, y=total_old * 1.15, xref="paper", yref="y", yanchor="bottom", 
+                text=f"<b>✨ 削減効果</b><br><br><b><span style='font-size:42px; color:#d00000;'>▲ {int(saved_total):,} 円</span></b>",
+                showarrow=False,
+                font=dict(size=22, color="#111"),
+                bgcolor="#fffdeb", bordercolor="#e63946", borderwidth=3, borderpad=15
+            )
+
+            st.plotly_chart(fig_eco, use_container_width=True)
+
         else:
-            st.error("管理番号、機器名称、使用電源は必須です。")
-
-    # 記憶されているプレビューがあれば、ボタンが押されていなくても常に表示する
-    if st.session_state.preview_b64:
-        st.success("プレビュー成功！")
-        st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{st.session_state.preview_b64}" width="100%"></div>', height=520)
-        if st.session_state.preview_file:
-            with open(st.session_state.preview_file["path"], "rb") as img_file:
-                st.download_button(label="📥 完成したプレビュー画像を手動でPCに保存", data=img_file, file_name=st.session_state.preview_file["name"], mime="image/jpeg")
-
-    # --- 登録・発行機能 ---
-    st.markdown("---")
-    st.header("4. データ登録 ＆ 印刷用ラベル発行")
-    
-    st.info("💡 **【重要】QRコードに関するご注意**\n\n画像や情報を更新し、ラベルを再発行するたびに、新しいURLのQRコードが発行されます。内容を更新した際は、最新のQRコードをご使用ください。")
-    
-    if save_mode == "1. 手動ダウンロードのみ":
-        long_url = st.text_input("保管先等のURLを貼り付け")
-        
-        # 【変更】ボタンを2つ横並びに配置
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            btn_m_print = st.button("🖨️ 手動設定でラベルを発行", type="primary", use_container_width=True)
-        with col_m2:
-            btn_m_save = st.button("🗄️ データのみ保存（ラベルなし）", type="secondary", use_container_width=True)
-            
-        if btn_m_print or btn_m_save:
-            if long_url and did and name and power:
-                qr_path = QR_DIR / f"{safe_filename(did)}_qr.png"
-                img_qr = make_optimized_qr(long_url)
-                img_qr.save(qr_path)
-                
-                df = pd.read_csv(DB_CSV)
-                df = df[df["ID"].astype(str) != str(did)]
-                JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
-                new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"), "memo": memo, "is_related_loto": is_related_loto}
-                df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                df.to_csv(DB_CSV, index=False)
-                
-                label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
-                
-                # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
-                buf = io.BytesIO()
-                label_img.save(buf, format="PNG")
-                img_bytes = buf.getvalue()
-                
-                # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
-                if btn_m_print:
-                    add_label_to_history(name, label_img)
-                    st.session_state.label_img_data = img_bytes
-                    st.session_state.label_msg = "ラベルを発行しました！"
-                else:
-                    st.session_state.label_img_data = None
-                    st.session_state.label_msg = "✅ データベースのみ保存しました！（ラベル未発行）"
-                    
-                st.session_state.label_url = None
-
-    elif save_mode in ["2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"]:
-        # 【変更】ボタンを2つ横並びに配置
-        col_a1, col_a2 = st.columns(2)
-        with col_a1:
-            btn_auto_print = st.button("🖨️ 画像保存＆ラベル発行（全自動）", type="primary", use_container_width=True)
-        with col_a2:
-            btn_auto_save = st.button("🗄️ データのみ保存（ラベルなし）", type="secondary", use_container_width=True)
-
-        if btn_auto_print or btn_auto_save:
-            if did and name and power:
-                with st.spinner("🔄 画像の圧縮とデータベース保存を実行中..."):
-                    try:
-                        def process_save(f_obj, d_flag, e_path, suffix):
-                            if d_flag: return ""
-                            if f_obj: return save_image_to_storage(f_obj, did, suffix, save_mode, github_repo, github_token, local_path)
-                            return e_path
-                            
-                        fin_ext = process_save(f_ext, d_ext, e_ext, "ext")
-                        fin_out = process_save(f_out, d_out, e_out, "out")
-                        fin_lab = process_save(f_lab, d_lab, e_lab, "lab")
-                        fin_lo1 = process_save(f_lo1, d_lo1, e_lo1, "lo1")
-                        fin_lo2 = process_save(f_lo2, d_lo2, e_lo2, "lo2")
-
-                        final_extra_images_db = []
-                        for item in ex_imgs_to_save:
-                            if item["type"] == "existing":
-                                if item["file"]: 
-                                    saved_url = save_image_to_storage(item["file"], did, f"ex_{item['index']}", save_mode, github_repo, github_token, local_path)
-                                    if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
-                                else: 
-                                    final_extra_images_db.append({"title": item["title"], "url": item["url"]})
-                            elif item["type"] == "new":
-                                if item["file"]: 
-                                    saved_url = save_image_to_storage(item["file"], did, f"ex_new_{item['index']}", save_mode, github_repo, github_token, local_path)
-                                    if saved_url: final_extra_images_db.append({"title": item["title"], "url": saved_url})
-
-                        m_data = {
-                            "id": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
-                            "img_exterior": fin_ext if fin_ext else None,
-                            "img_outlet": fin_out if fin_out else None,
-                            "img_label": fin_lab if fin_lab else None,
-                            "img_loto1": fin_lo1 if fin_lo1 else None,
-                            "img_loto2": fin_lo2 if fin_lo2 else None
-                        }
-                        
-                        # 【変更】QRのマス目を極限まで減らすため、ファイル名を「ID_時分」まで短縮（4桁）
-                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
-                        ts_str = datetime.now(JST).strftime("%H%M")
-                        s_id = safe_filename(did)
-                        file_name_manual = f"{s_id}_{ts_str}.jpg"
-                        manual_path = MANUAL_DIR / file_name_manual
-                        
-                        create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
-
-                        final_manual_url = ""
-                        if save_mode == "2. 全自動（データベース保存）":
-                            with open(manual_path, "rb") as f:
-                                payload = {"message": f"Upload Manual {file_name_manual}", "content": base64.b64encode(f.read()).decode("utf-8"), "branch": "main"}
-                                req = urllib.request.Request(f"https://api.github.com/repos/{github_repo}/contents/manuals/{urllib.parse.quote(file_name_manual)}", data=json.dumps(payload).encode("utf-8"), method="PUT")
-                                req.add_header("Authorization", f"token {github_token}"); req.add_header("Content-Type", "application/json")
-                                with urllib.request.urlopen(req) as res:
-                                    final_manual_url = json.loads(res.read().decode("utf-8"))["content"]["html_url"].replace("https://github.com/", "https://cdn.jsdelivr.net/gh/").replace("/blob/", "@")
-                        
-                        elif save_mode == "3. 社内共有フォルダへ自動保存":
-                            target_dir = Path(local_path) / "manuals"
-                            target_dir.mkdir(parents=True, exist_ok=True)
-                            out_manual = target_dir / file_name_manual
-                            
-                            # 保存先が同じ場所の場合はコピーをスキップしてエラーを回避
-                            if manual_path.resolve() != out_manual.resolve():
-                                shutil.copy(manual_path, out_manual)
-                                
-                            # 社内Wi-Fi上のスマホからアクセスできる専用URL（IPアドレス:8000）を生成
-                            # 【変更】manualsフォルダを直接配信するため、URLから /manuals/ を削除
-                            local_ip = get_local_ip()
-                            final_manual_url = f"http://{local_ip}:8000/{file_name_manual}"
-
-                        qr_path = QR_DIR / f"{s_id}_qr.png"
-                        img_qr = make_optimized_qr(final_manual_url)
-                        img_qr.save(qr_path)
-                        
-                        label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
-                        
-                        # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
-                        buf = io.BytesIO()
-                        label_img.save(buf, format="PNG")
-                        img_bytes = buf.getvalue()
-                        
-                        # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
-                        if btn_auto_print:
-                            add_label_to_history(name, label_img)
-
-                        df = pd.read_csv(DB_CSV)
-                        df = df[df["ID"].astype(str) != str(did)]
-                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
-                        new_row = {
-                            "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"),
-                            "memo": memo, "is_related_loto": is_related_loto, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
-                            "extra_images": json.dumps(final_extra_images_db, ensure_ascii=False) 
-                        }
-                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                        df.to_csv(DB_CSV, index=False)
-
-                        update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
-
-                        # 結果をセッション状態に保存
-                        if btn_auto_print:
-                            st.session_state.label_img_data = img_bytes
-                            st.session_state.label_msg = f"✅ 登録・ラベル発行完了！ 機器情報ページURL: {final_manual_url}"
-                        else:
-                            st.session_state.label_img_data = None
-                            st.session_state.label_msg = f"✅ データ保存のみ完了！（ラベル未発行） 機器情報ページURL: {final_manual_url}"
-                            
-                        st.session_state.label_url = final_manual_url
-                        
-                    except Exception as e:
-                        st.error(f"エラーが発生しました: {str(e)}")
-
-    # 記憶されているラベル結果があれば、ボタンの外で常に表示する
-    if st.session_state.label_msg:
-        st.success(st.session_state.label_msg)
-        if st.session_state.label_url:
-            st.markdown(f"**[🔗 ここをクリックしてブラウザで画像を確認]({st.session_state.label_url})**")
-    if st.session_state.label_img_data is not None:
-        st.image(st.session_state.label_img_data, caption="印刷用ラベル", width=300)
-
-    # ==========================================
-    # --- 【最強進化】環境まるごとバックアップ保存＆復元 ---
-    # ==========================================
-    
-    def reset_form_callback():
-        st.session_state.input_did = ""
-        st.session_state.input_name = ""
-        st.session_state.input_power = None
-        st.session_state.input_memo = ""
-        st.session_state.is_related_loto = False
-        st.session_state.existing_imgs = {}
-        st.session_state.existing_ex_imgs = []
-        st.session_state.extra_images_count = 0
-        st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-        if "db_select_widget" in st.session_state:
-            st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-        st.session_state.form_reset_key += 1
-        st.session_state["scroll_to_top"] = True
-        clear_preview_and_label()
-
-    def restore_backup_callback():
-        current_rk = st.session_state.form_reset_key
-        uploaded_file = st.session_state.get(f"backup_up_{current_rk}")
-        if uploaded_file is not None:
-            try:
-                loaded_data = json.loads(uploaded_file.getvalue().decode("utf-8"))
-                
-                form_data = loaded_data.get("form", loaded_data) 
-                workspace_data = loaded_data.get("workspace", {})
-
-                if workspace_data:
-                    if "devices_csv" in workspace_data and workspace_data["devices_csv"]:
-                        with open(DB_CSV, "w", encoding="utf-8") as f:
-                            f.write(workspace_data["devices_csv"])
-                    
-                    label_imgs = workspace_data.get("label_images", {})
-                    for img_name, b64_str in label_imgs.items():
-                        try:
-                            with open(TEMP_LABEL_DIR / img_name, "wb") as f:
-                                f.write(base64.b64decode(b64_str))
-                        except: pass
-
-                    label_hist = workspace_data.get("label_history", [])
-                    with open(LABEL_HISTORY_FILE, "w", encoding="utf-8") as f:
-                        json.dump(label_hist, f, ensure_ascii=False, indent=2)
-                    
-                    rebuild_excel()
-
-                st.session_state.input_did = form_data.get("did", "")
-                st.session_state.input_name = form_data.get("name", "")
-                p_val = form_data.get("power", "")
-                st.session_state.input_power = p_val if p_val in ["100V", "200V"] else None
-                st.session_state.input_memo = form_data.get("memo", "")
-                st.session_state.is_related_loto = form_data.get("is_related_loto", False)
-                
-                def decode_img(img_dict, prefix):
-                    if not img_dict: return ""
-                    if img_dict["type"] == "path": return img_dict["data"]
-                    if img_dict["type"] == "base64":
-                        try:
-                            b_data = base64.b64decode(img_dict["data"])
-                            temp_path = DRAFT_IMG_DIR / f"restored_{prefix}_{datetime.now().strftime('%H%M%S%f')}.jpg"
-                            with open(temp_path, "wb") as f: f.write(b_data)
-                            return str(temp_path)
-                        except: return ""
-                    return ""
-
-                restored_imgs = {}
-                d_imgs = form_data.get("existing_imgs", {})
-                restored_imgs["ext"] = decode_img(d_imgs.get("ext"), "ext")
-                restored_imgs["out"] = decode_img(d_imgs.get("out"), "out")
-                restored_imgs["lab"] = decode_img(d_imgs.get("lab"), "lab")
-                restored_imgs["lo1"] = decode_img(d_imgs.get("lo1"), "lo1")
-                restored_imgs["lo2"] = decode_img(d_imgs.get("lo2"), "lo2")
-                st.session_state.existing_imgs = restored_imgs
-                
-                restored_ex = []
-                for i, ex in enumerate(form_data.get("existing_ex_imgs", [])):
-                    path = decode_img(ex.get("img_data"), f"ex_{i}")
-                    restored_ex.append({"title": ex.get("title", ""), "url": path})
-                st.session_state.existing_ex_imgs = restored_ex
-                
-                st.session_state.extra_images_count = 0
-                st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
-                
-                if "db_select_widget" in st.session_state:
-                    st.session_state.db_select_widget = "✨ 新規登録 (クリア)"
-                    
-                st.session_state.form_reset_key += 1
-                st.session_state["scroll_to_top"] = True
-                clear_preview_and_label()
-                st.session_state.restore_success = True
-            except Exception as e:
-                st.session_state.backup_error_msg = f"バックアップの読み込みに失敗しました: {e}"
-
-    st.markdown("---")
-    st.header("5. ワークスペース（作業状態のバックアップ） ＆ 次の作業")
-    
-    if st.session_state.get("restore_success"):
-        st.success("✅ バックアップから「入力状態」「データベース」「Excel台帳」をすべて復元しました！")
-        st.session_state.restore_success = False
-
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        st.subheader("📝 現在の作業状態をPCに保存")
-        st.info("入力中の文字・画像だけでなく、左側の「データベース」や右側の「Excel台帳」も含めて、今の環境をそのままファイルとしてPCにバックアップします。")
-        
-        form_draft = {
-            "did": did, "name": name, "power": power, "memo": memo, "is_related_loto": is_related_loto,
-            "existing_imgs": {}, "existing_ex_imgs": [], "extra_images_count": st.session_state.extra_images_count
-        }
-        
-        def encode_img_fixed(f_obj, e_path):
-            if f_obj:
-                try:
-                    comp_bytes = compress_image(f_obj) 
-                    if comp_bytes:
-                        return {"type": "base64", "data": base64.b64encode(comp_bytes).decode("utf-8")}
-                except: pass
-            elif e_path:
-                return {"type": "path", "data": str(e_path)}
-            return None
-
-        form_draft["existing_imgs"]["ext"] = encode_img_fixed(f_ext, e_ext)
-        form_draft["existing_imgs"]["out"] = encode_img_fixed(f_out, e_out)
-        form_draft["existing_imgs"]["lab"] = encode_img_fixed(f_lab, e_lab)
-        form_draft["existing_imgs"]["lo1"] = encode_img_fixed(f_lo1, e_lo1)
-        form_draft["existing_imgs"]["lo2"] = encode_img_fixed(f_lo2, e_lo2)
-
-        ex_imgs = []
-        for item in ex_imgs_to_save:
-            enc = encode_img_fixed(item.get("file"), item.get("url", ""))
-            ex_imgs.append({"title": item.get("title", ""), "img_data": enc})
-        form_draft["existing_ex_imgs"] = ex_imgs
-        
-        csv_data_str = ""
-        if DB_CSV.exists():
-            with open(DB_CSV, "r", encoding="utf-8") as f: csv_data_str = f.read()
-
-        label_hist_data = []
-        if LABEL_HISTORY_FILE.exists():
-            try:
-                with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: label_hist_data = json.load(f)
-            except: pass
-
-        label_images_b64 = {}
-        for item in label_hist_data:
-            img_name = item.get("img_filename")
-            img_p = TEMP_LABEL_DIR / img_name
-            if img_p.exists():
-                with open(img_p, "rb") as f: label_images_b64[img_name] = base64.b64encode(f.read()).decode("utf-8")
-
-        backup_data = {
-            "form": form_draft,
-            "workspace": {
-                "devices_csv": csv_data_str,
-                "label_history": label_hist_data,
-                "label_images": label_images_b64
-            }
-        }
-        
-        backup_json_str = json.dumps(backup_data, ensure_ascii=False)
-        JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
-        dl_filename = f"QR管理システムBK_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.json"
-        
-        st.download_button(
-            label="💾 現在の状態を【ワークスペース保存(.json)】としてPCに保存",
-            data=backup_json_str,
-            file_name=dl_filename,
-            mime="application/json",
-            use_container_width=True
-        )
-        
-        st.markdown("---")
-        st.subheader("📂 PCに保存したバックアップを復元")
-        uploaded_backup = st.file_uploader("保存したファイル(.json)を選択", type=["json"], key=f"backup_up_{rk}")
-        if uploaded_backup:
-            st.button("🔄 このバックアップ環境を復元する", type="primary", use_container_width=True, on_click=restore_backup_callback)
-            
-        if "backup_error_msg" in st.session_state:
-            st.error(st.session_state.backup_error_msg)
-            del st.session_state.backup_error_msg
-
-    with col_b:
-        st.subheader("🔄 登録の完了・リセット")
-        st.info("💡 **データベースと印刷用台帳はフォルダ内に自動保存されています。**\n\n※入力途中のデータはブラウザを閉じるとリセットされるため、別のPCに作業を引き継ぐ際などは、左側の「ワークスペース保存(.json)」をご活用ください。")
-        
-        st.button("🔄 次の機器を入力する (クリアして上へ戻る)", type="primary", use_container_width=True, on_click=reset_form_callback)
-
-    # --- サイドバー：Excel台帳状況 ---
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("🖨️ 印刷用Excel台帳の状況")
-    h_list = []
-    if LABEL_HISTORY_FILE.exists():
-        try:
-            with open(LABEL_HISTORY_FILE, "r", encoding="utf-8") as f: h_list = json.load(f)
-        except: pass
-    
-    c_len = len(h_list)
-    if c_len == 0: st.sidebar.info("🈳 現在、台帳は白紙です。")
+            st.info("現在のスケジュールでは、測定が連続しているためOFFにする空き時間がありません。")
     else:
-        st.sidebar.success(f"✅ 合計 {c_len} 枚のラベルを配置済み")
-        cols = ((c_len - 1) // 13) + 1
-        grid_html = "<div style='background:#f0f2f6;padding:10px;border-radius:5px;font-size:13px;line-height:1.2;text-align:left;'>"
-        for r in range(13):
-            line = ""
-            for c in range(cols):
-                idx = c * 13 + r
-                if idx < c_len:
-                    num_icon = chr(9311 + idx + 1) if idx < 20 else f"({idx+1})"
-                    line += f"<span style='display:inline-block;width:26px;text-align:center;font-weight:bold;color:#d4af37;'>{num_icon}</span>"
-                else: line += "<span style='display:inline-block;width:26px;text-align:center;color:#ccc;'>⬜</span>"
-            grid_html += line + "<br>"
-        st.sidebar.markdown(grid_html + "</div>", unsafe_allow_html=True)
-        
-        for i, obj in enumerate(h_list):
-            cb1, cb2 = st.sidebar.columns([5, 1])
-            icon = chr(9311 + i + 1) if i < 20 else f"({i+1})"
-            cb1.markdown(f"<div style='display: flex; align-items: center; height: 32px; font-size: 15px;'>{icon} {obj['name']}</div>", unsafe_allow_html=True)
-            if cb2.button("❌", key=f"d_itm_{i}"): delete_label_from_history(i); st.rerun()
-    
-    if EXCEL_LABEL_PATH.exists():
-        with open(EXCEL_LABEL_PATH, "rb") as f:
-            excel_data_labels = f.read()
-        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
-        st.sidebar.download_button(
-            label="📥 最新のExcelをダウンロード", 
-            data=excel_data_labels, 
-            # 【変更】ファイル名に日付と時刻（JST）を付与して「印刷用Excel台帳_年月日_時分.xlsx」にする
-            file_name=f"印刷用Excel台帳_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.xlsx", 
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-            use_container_width=True
-        )
-        
-        if st.sidebar.button("🗑️ 台帳をリセット", use_container_width=True):
-            clear_history()
-            st.rerun()
-
-    # --- マスター台帳ダウンロードボタンの追加 ---
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📊 機器台帳マスター")
-    if DB_CSV.exists():
-        try:
-            df_csv = pd.read_csv(DB_CSV)
-            if not df_csv.empty:
-                excel_data = create_formatted_ledger_excel(df_csv)
-                
-                JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
-                st.sidebar.download_button(
-                    label="📥 Excel形式でダウンロード",
-                    data=excel_data,
-                    file_name=f"機器台帳マスター_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-            else:
-                st.sidebar.info("登録されている機器がありません。")
-        except Exception as e:
-            st.sidebar.error(f"台帳生成エラー: {e}")
-
-if __name__ == "__main__":
-    main()
+        st.write("稼働中のジョブを登録すると、ここに削減効果金額が表示されます。")
