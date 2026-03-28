@@ -18,8 +18,9 @@
     "measurements": 3
   },
   "P02197J": {
+    "machine": "100t",
     "qty": 1008,
-    "cycle": 150.0,
+    "cycle": 70.0,
     "measurements": 3
   }
 }
