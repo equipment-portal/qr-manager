@@ -242,7 +242,6 @@ def create_label_image(data):
     scale = 4; target_w_px = 350 * scale; target_h_px = 200 * scale
     try:
         font_title = ImageFont.truetype(cloud_font_path, 19 * scale) 
-        # 【変更】デフォルトの文字サイズを「30」から「27」へ本当に少しだけ縮小
         font_main = ImageFont.truetype(cloud_font_path, 27 * scale)  
         font_sm = ImageFont.truetype(cloud_font_path, 12 * scale)    
         font_footer = ImageFont.truetype(cloud_font_path, 13 * scale) 
@@ -254,21 +253,18 @@ def create_label_image(data):
     draw = ImageDraw.Draw(label_img)
     draw.rectangle([0, 0, target_w_px - 1, target_h_px - 1], outline=(255, 255, 0), width=12 * scale)
     
-    # 【微調整】前回下げたタイトル位置はそのまま維持
     draw.text((18 * scale, 12 * scale), "■", fill="black", font=font_title)
     draw.text((42 * scale, 12 * scale), "機器情報・LOTO確認ラベル", fill="black", font=font_title)
     
-    qr_size = 96 * scale # サイズを96に拡大
+    qr_size = 96 * scale
     if 'img_qr' in data and data['img_qr'] is not None:
         try:
             qr_pil = data['img_qr'].convert('RGB').resize((qr_size, qr_size), Image.Resampling.NEAREST)
             label_img.paste(qr_pil, (target_w_px - qr_size - 14 * scale, 76 * scale))
         except: pass
     
-    # 【変更】スタートの文字サイズを27に合わせる
     current_size = 27 * scale
     temp_font = font_main
-    # 【変更】文字が長い場合でもQRコードにぶつからないよう、右側の見えない壁を「30」から「45」にして少し厚くする
     while (draw.textbbox((0, 0), device_name, font=temp_font)[2]) > (target_w_px - 45 * scale) and current_size > 12 * scale:
         current_size -= 1 * scale
         temp_font = ImageFont.truetype(cloud_font_path, current_size)
@@ -342,7 +338,7 @@ def clear_history():
         except: pass
 
 # ==========================================
-# --- ストレージ保存処理（【正解】タイムスタンプ付きで絶対にキャッシュ回避） ---
+# --- ストレージ保存処理 ---
 # ==========================================
 def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
     if not file_obj: return ""
@@ -379,7 +375,7 @@ def save_image_to_storage(file_obj, did, suffix, mode, repo, token, local_path):
 # --- マスター台帳Excelの自動生成・保存 ---
 # ==========================================
 def create_formatted_ledger_excel(df_csv):
-    import re # 【追加】自然順ソートのための正規表現ライブラリ
+    import re 
     
     df_export = df_csv.rename(columns={
         "ID": "管理番号", "Name": "機器名称", "Power": "使用電源",
@@ -388,17 +384,13 @@ def create_formatted_ledger_excel(df_csv):
     cols_to_keep = ["管理番号", "機器名称", "使用電源", "機器情報ページURL", "最終更新日時", "メモ・備考"]
     df_export = df_export[[c for c in cols_to_keep if c in df_export.columns]]
     
-    # --- 【最強進化】Pythonによる「自然順ソート（人間的ソート）」の実装 ---
     def add_natural_sort_keys(df, col_name, prefix):
         def extract_group(x):
-            # 先頭が数字ならグループ0、文字ならグループ1（数字を上に、文字を五十音で下にする）
             return 0 if re.match(r'^(\d+)', str(x) if pd.notna(x) else "") else 1
         def extract_num(x):
-            # 先頭の数字部分だけを抜き出して「数値（算数の数）」として扱う
             m = re.match(r'^(\d+)', str(x) if pd.notna(x) else "")
             return int(m.group(1)) if m else 0
         def extract_str(x):
-            # 数字の後に続く文字（HRやtなど）を抜き出す
             s = str(x) if pd.notna(x) else ""
             m = re.match(r'^(\d+)', s)
             return s[len(m.group(1)):] if m else s
@@ -408,77 +400,64 @@ def create_formatted_ledger_excel(df_csv):
         df[f'{prefix}_str'] = df[col_name].apply(extract_str)
         return df
 
-    # データが空でなければ、管理番号と機器名称を自然順で並べ替える
     if not df_export.empty:
         df_export = add_natural_sort_keys(df_export, '管理番号', 'id')
         df_export = add_natural_sort_keys(df_export, '機器名称', 'name')
-        
-        # 1. 管理番号順 -> 2. 機器名称順 の優先度で、桁数と文字を完璧に並べ替える
         df_export = df_export.sort_values(
             by=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str']
         ).drop(columns=['id_group', 'id_num', 'id_str', 'name_group', 'name_num', 'name_str'])
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # 表を3行目から書き始める（上にタイトル用のスペースを空けるため）
         df_export.to_excel(writer, index=False, sheet_name="機器台帳マスター", startrow=2)
         ws = writer.sheets["機器台帳マスター"]
         
-        # --- 書式設定の定義 ---
         fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
         border_thin = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         font_header = Font(bold=True)
-        font_link = Font(color="0000FF", underline="single") # URL用の青文字アンダーライン
-        font_title = Font(size=24, bold=True)                # タイトル用のデカ文字
+        font_link = Font(color="0000FF", underline="single") 
+        font_title = Font(size=24, bold=True)                
         
         align_center = Alignment(horizontal="center", vertical="center")
         align_right = Alignment(horizontal="right", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
         
-        # --- タイトル行の作成 (A1:F2を結合) ---
         ws.merge_cells("A1:F2")
         title_cell = ws["A1"]
         title_cell.value = "機器台帳マスター"
         title_cell.font = font_title
         title_cell.alignment = align_center
         
-        # --- 列幅の設定 ---
-        ws.column_dimensions["A"].width = 15   # 管理番号
-        ws.column_dimensions["B"].width = 30   # 機器名称
-        ws.column_dimensions["C"].width = 15   # 使用電源
-        ws.column_dimensions["D"].width = 115  # マニュアルURL
-        ws.column_dimensions["E"].width = 25   # 最終更新日時
-        ws.column_dimensions["F"].width = 35   # メモ・備考
+        ws.column_dimensions["A"].width = 15   
+        ws.column_dimensions["B"].width = 30   
+        ws.column_dimensions["C"].width = 15   
+        ws.column_dimensions["D"].width = 115  
+        ws.column_dimensions["E"].width = 25   
+        ws.column_dimensions["F"].width = 35   
         
-        # --- 行の高さの設定 ---
         ws.row_dimensions[1].height = 25
         ws.row_dimensions[2].height = 25
-        ws.row_dimensions[3].height = 25 # ヘッダー行
+        ws.row_dimensions[3].height = 25 
         
-        # --- ヘッダー(3行目)の書式適用 ---
         for cell in ws[3]:
             cell.fill = fill_yellow
             cell.font = font_header
             cell.border = border_thin
             cell.alignment = align_center
             
-        # --- データ行(4行目以降)の書式適用 ---
         for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
-            ws.row_dimensions[row[0].row].height = 20 # データ行にゆとりを持たせる
+            ws.row_dimensions[row[0].row].height = 20 
             for idx, cell in enumerate(row):
                 cell.border = border_thin
                 
-                # 配置の適用
-                if idx == 0: cell.alignment = align_right       # A: 管理番号
-                elif idx in [1, 2, 4]: cell.alignment = align_center # B, C, E
-                else: cell.alignment = align_left               # D, F
+                if idx == 0: cell.alignment = align_right       
+                elif idx in [1, 2, 4]: cell.alignment = align_center 
+                else: cell.alignment = align_left               
                 
-                # D列(idx=3)のURLを、クリック可能なハイパーリンクに変換！
                 if idx == 3 and cell.value and str(cell.value).startswith("http"):
                     cell.hyperlink = cell.value
                     cell.font = font_link
         
-        # 3行目のヘッダー（A3〜F列の最終データ行まで）にオートフィルターを設定
         ws.auto_filter.ref = f"A3:F{ws.max_row}"
                     
     return output.getvalue()
@@ -523,16 +502,14 @@ import http.server
 import socketserver
 import functools
 
-# --- 社内Wi-Fi用 ミニWebサーバー機能（バックグラウンドで画像を配信） ---
+# --- 社内Wi-Fi用 ミニWebサーバー機能 ---
 @st.cache_resource
 def start_local_image_server():
     def run_server():
-        # 【変更】絶対パス（フルパス）で指定することで、404 Not Found エラーを確実に回避する
         manual_dir_abs = str(MANUAL_DIR.resolve())
         Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=manual_dir_abs)
         socketserver.TCPServer.allow_reuse_address = True
         try:
-            # ポート8000番で画像配信用サーバーを立ち上げる
             with socketserver.TCPServer(("", 8000), Handler) as httpd:
                 httpd.serve_forever()
         except:
@@ -543,7 +520,6 @@ def start_local_image_server():
 
 start_local_image_server()
 
-# --- PCのローカルIPアドレス（192.168...等）を取得する関数 ---
 def get_local_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -558,16 +534,34 @@ def get_local_ip():
 # --- メインアプリ ---
 # ==========================================
 def main():
-    # 【変更】page_icon="icon.ico" を追加してブラウザのタブにアイコンを表示
     st.set_page_config(page_title="機器情報ページ ＆ QR管理システム", page_icon="icon.ico", layout="wide", initial_sidebar_state="expanded")
     
+    # 【追加・修正】英数字と漢字のバランスを整えるCSS ＆ ボタンはみ出し修正CSS
     st.markdown("""
     <style>
+    /* 英数字と漢字のサイズ感を統一する（Streamlitの英語用フォントを上書きし、綺麗な日本語フォントを全体に適用） */
+    html, body, [class*="st-"], * {
+        font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
+    }
+    
     .stButton button { width: 100%; border-radius: 5px; }
-    /* 【変更】天井の余白を 3.0rem に広げて、大きなアイコンの見切れを防止 */
+    
+    /* 天井の余白設定 */
     .block-container { padding-top: 3.0rem !important; }
+    
+    /* サイドバーのボタン改行はみ出し修正（高さを自動調整し、改行を許容する） */
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
-    [data-testid="stSidebar"] button { padding: 0 !important; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; justify-content: center; }
+    [data-testid="stSidebar"] button { 
+        padding: 6px 10px !important; 
+        height: auto !important; 
+        min-height: 35px !important; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        line-height: 1.4 !important;
+        white-space: normal !important; /* 文字が長ければ改行させる魔法 */
+    }
+    
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
@@ -596,14 +590,12 @@ def main():
 
     if "current_db_sel" not in st.session_state: st.session_state.current_db_sel = "✨ 新規登録 (クリア)"
 
-    # 【追加】プレビューとラベルの表示状態を記憶する変数
     if "preview_b64" not in st.session_state: st.session_state.preview_b64 = None
     if "preview_file" not in st.session_state: st.session_state.preview_file = None
     if "label_img_data" not in st.session_state: st.session_state.label_img_data = None
     if "label_msg" not in st.session_state: st.session_state.label_msg = None
     if "label_url" not in st.session_state: st.session_state.label_url = None
 
-    # 【追加】機器切り替え時などにプレビューとラベルの記憶を消去する関数
     def clear_preview_and_label():
         st.session_state.preview_b64 = None
         st.session_state.preview_file = None
@@ -679,7 +671,6 @@ def main():
                         try: st.session_state.existing_ex_imgs = json.loads(ex_str)
                         except: st.session_state.existing_ex_imgs = []
                 
-                # 機器切り替え時にプレビューとラベルを消去
                 clear_preview_and_label()
                 st.session_state.form_reset_key += 1
                 st.rerun()
@@ -687,7 +678,6 @@ def main():
             if st.session_state.current_db_sel != "✨ 新規登録 (クリア)":
                 st.sidebar.info("💡 過去の画像とデータが呼び出されました。そのまま再発行や、一部の画像の差し替えが可能です。")
                 did_val = st.session_state.current_db_sel.split(" : ")[0]
-                # 【変更】「除」の後ろに全角スペースを1つ追加して、右枠との間にスキマ（クッション）を作る
                 st.sidebar.button("🗑️ この機器データを削除　", on_click=delete_db_item_callback, args=(did_val,))
                 
             if st.session_state.get("delete_success_msg"):
@@ -696,14 +686,12 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.header("⚙️ システム詳細設定")
-    # 【変更】クラウド版の運用に合わせて、初期選択を「2. 全自動（データベース保存）」に変更（index=2 を index=1 に変更）
     save_mode = st.sidebar.radio("保存モードを選択:", ["1. 手動ダウンロードのみ", "2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"], index=1)
     
     github_repo = ""; github_token = ""; local_path = ""
     if save_mode == "2. 全自動（データベース保存）":
         github_repo = st.sidebar.text_input("データベース領域名", value="equipment-portal/qr-manager")
         
-        # ローカル環境でsecrets（鍵置き場）が無い場合のエラーを回避
         default_token = ""
         try:
             default_token = st.secrets.get("github_token", "")
@@ -725,7 +713,6 @@ def main():
     
     st.markdown("<div id='top_anchor'></div>", unsafe_allow_html=True)
     
-    # 【変更】絵文字を削除し、icon.icoを読み込んでタイトル横に下揃えで配置する
     icon_path = Path("icon.ico")
     img_base64 = ""
     if icon_path.exists():
@@ -743,7 +730,6 @@ def main():
             unsafe_allow_html=True
         )
     else:
-        # 万が一GitHub上にicon.icoが見つからない場合の予備（絵文字なしバージョン）
         st.title("機器情報ページ ＆ QR管理システム")
     
     if st.session_state.get("scroll_to_top"):
@@ -857,7 +843,6 @@ def main():
                 manual_path = MANUAL_DIR / f"preview_{rk}.jpg"
                 create_manual_image_extended(m_data, ex_imgs_data_preview, manual_path)
                 if manual_path.exists():
-                    # 生成した画像をセッション状態に保存
                     with open(manual_path, "rb") as f: 
                         st.session_state.preview_b64 = base64.b64encode(f.read()).decode("utf-8")
                     
@@ -867,7 +852,6 @@ def main():
         else:
             st.error("管理番号、機器名称、使用電源は必須です。")
 
-    # 記憶されているプレビューがあれば、ボタンが押されていなくても常に表示する
     if st.session_state.preview_b64:
         st.success("プレビュー成功！")
         st.components.v1.html(f'<div style="height:500px; overflow-y:scroll; border:2px solid #ddd;"><img src="data:image/jpeg;base64,{st.session_state.preview_b64}" width="100%"></div>', height=520)
@@ -884,7 +868,6 @@ def main():
     if save_mode == "1. 手動ダウンロードのみ":
         long_url = st.text_input("保管先等のURLを貼り付け")
         
-        # 【変更】ボタンを2つ横並びに配置
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             btn_m_print = st.button("🖨️ 手動設定でラベルを発行", type="primary", use_container_width=True)
@@ -899,19 +882,17 @@ def main():
                 
                 df = pd.read_csv(DB_CSV)
                 df = df[df["ID"].astype(str) != str(did)]
-                JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+                JST = timezone(timedelta(hours=9)) 
                 new_data = {"ID": did, "Name": name, "Power": power, "URL": long_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"), "memo": memo, "is_related_loto": is_related_loto}
                 df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 df.to_csv(DB_CSV, index=False)
                 
                 label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                 
-                # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
                 buf = io.BytesIO()
                 label_img.save(buf, format="PNG")
                 img_bytes = buf.getvalue()
                 
-                # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
                 if btn_m_print:
                     add_label_to_history(name, label_img)
                     st.session_state.label_img_data = img_bytes
@@ -923,7 +904,6 @@ def main():
                 st.session_state.label_url = None
 
     elif save_mode in ["2. 全自動（データベース保存）", "3. 社内共有フォルダへ自動保存"]:
-        # 【変更】ボタンを2つ横並びに配置
         col_a1, col_a2 = st.columns(2)
         with col_a1:
             btn_auto_print = st.button("🖨️ 画像保存＆ラベル発行（全自動）", type="primary", use_container_width=True)
@@ -967,8 +947,7 @@ def main():
                             "img_loto2": fin_lo2 if fin_lo2 else None
                         }
                         
-                        # 【変更】QRのマス目を極限まで減らすため、ファイル名を「ID_時分」まで短縮（4桁）
-                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+                        JST = timezone(timedelta(hours=9)) 
                         ts_str = datetime.now(JST).strftime("%H%M")
                         s_id = safe_filename(did)
                         file_name_manual = f"{s_id}_{ts_str}.jpg"
@@ -990,12 +969,9 @@ def main():
                             target_dir.mkdir(parents=True, exist_ok=True)
                             out_manual = target_dir / file_name_manual
                             
-                            # 保存先が同じ場所の場合はコピーをスキップしてエラーを回避
                             if manual_path.resolve() != out_manual.resolve():
                                 shutil.copy(manual_path, out_manual)
                                 
-                            # 社内Wi-Fi上のスマホからアクセスできる専用URL（IPアドレス:8000）を生成
-                            # 【変更】manualsフォルダを直接配信するため、URLから /manuals/ を削除
                             local_ip = get_local_ip()
                             final_manual_url = f"http://{local_ip}:8000/{file_name_manual}"
 
@@ -1005,18 +981,16 @@ def main():
                         
                         label_img = create_label_image({"name": name, "power": power, "img_qr": img_qr})
                         
-                        # 画像をバイトデータに変換（システムのお掃除から守り、確実に表示させるため）
                         buf = io.BytesIO()
                         label_img.save(buf, format="PNG")
                         img_bytes = buf.getvalue()
                         
-                        # 【変更】ラベル発行ボタンが押された時だけ台帳に追加する
                         if btn_auto_print:
                             add_label_to_history(name, label_img)
 
                         df = pd.read_csv(DB_CSV)
                         df = df[df["ID"].astype(str) != str(did)]
-                        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+                        JST = timezone(timedelta(hours=9)) 
                         new_row = {
                             "ID": did, "Name": name, "Power": power, "URL": final_manual_url, "Updated": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"),
                             "memo": memo, "is_related_loto": is_related_loto, "img_exterior": fin_ext, "img_outlet": fin_out, "img_label": fin_lab, "img_loto1": fin_lo1, "img_loto2": fin_lo2,
@@ -1027,7 +1001,6 @@ def main():
 
                         update_master_ledger_excel(df, save_mode, github_repo, github_token, local_path)
 
-                        # 結果をセッション状態に保存
                         if btn_auto_print:
                             st.session_state.label_img_data = img_bytes
                             st.session_state.label_msg = f"✅ 登録・ラベル発行完了！ 機器情報ページURL: {final_manual_url}"
@@ -1040,7 +1013,6 @@ def main():
                     except Exception as e:
                         st.error(f"エラーが発生しました: {str(e)}")
 
-    # 記憶されているラベル結果があれば、ボタンの外で常に表示する
     if st.session_state.label_msg:
         st.success(st.session_state.label_msg)
         if st.session_state.label_url:
@@ -1211,7 +1183,7 @@ def main():
         }
         
         backup_json_str = json.dumps(backup_data, ensure_ascii=False)
-        JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
+        JST = timezone(timedelta(hours=9)) 
         dl_filename = f"QR管理システムBK_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.json"
         
         st.download_button(
@@ -1273,11 +1245,10 @@ def main():
     if EXCEL_LABEL_PATH.exists():
         with open(EXCEL_LABEL_PATH, "rb") as f:
             excel_data_labels = f.read()
-        JST = timezone(timedelta(hours=9)) # 【追加】日本時間を設定
+        JST = timezone(timedelta(hours=9)) 
         st.sidebar.download_button(
             label="📥 最新のExcelをダウンロード", 
             data=excel_data_labels, 
-            # 【変更】ファイル名に日付と時刻（JST）を付与して「印刷用Excel台帳_年月日_時分.xlsx」にする
             file_name=f"印刷用Excel台帳_{datetime.now(JST).strftime('%Y%m%d_%H%M')}.xlsx", 
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
             use_container_width=True
@@ -1296,7 +1267,7 @@ def main():
             if not df_csv.empty:
                 excel_data = create_formatted_ledger_excel(df_csv)
                 
-                JST = timezone(timedelta(hours=9)) # 日本時間(+9時間)を設定
+                JST = timezone(timedelta(hours=9)) 
                 st.sidebar.download_button(
                     label="📥 Excel形式でダウンロード",
                     data=excel_data,
