@@ -6,6 +6,7 @@
     "measurements": 2
   },
   "P04989J-M": {
+    "machine": "450t",
     "qty": 503,
     "cycle": 120.0,
     "measurements": 3
