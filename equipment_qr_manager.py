@@ -539,12 +539,16 @@ def main():
     # 【追加・修正】英数字と漢字のバランスを整えるCSS ＆ ボタンはみ出し修正CSS
     st.markdown("""
     <style>
-    /* 英数字と漢字のサイズ感を統一しつつ、アイコンは文字化けしないよう保護する */
-    html, body, [class*="st-"] {
+    /* 英数字と漢字のサイズ感を統一する（強力すぎる上書きをやめ、大枠にだけ適用して自然に浸透させる） */
+    html, body, .stApp {
         font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
     }
-    .material-symbols-rounded, .stIcon, i, span[class*="icon"] {
+    
+    /* サイドバーの矢印（keyboard_double_arrow_right）などを絶対に文字化けさせない保護呪文 */
+    .material-symbols-rounded, [data-testid="collapsedControl"] *, [data-testid*="Icon"] {
         font-family: "Material Symbols Rounded", "Material Icons" !important;
+        font-style: normal !important;
+        font-weight: 400 !important;
     }
     
     .stButton button { width: 100%; border-radius: 5px; }
@@ -562,7 +566,7 @@ def main():
         align-items: center; 
         justify-content: center; 
         line-height: 1.4 !important;
-        white-space: normal !important; /* 文字が長ければ改行させる魔法 */
+        white-space: normal !important;
     }
     
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
