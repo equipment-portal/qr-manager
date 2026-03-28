@@ -539,14 +539,14 @@ def main():
     # 【追加・修正】英数字と漢字のバランスを整えるCSS ＆ ボタンはみ出し修正CSS
     st.markdown("""
     <style>
-    /* 英数字と漢字のサイズ感を統一する（強力すぎる上書きをやめ、大枠にだけ適用して自然に浸透させる） */
-    html, body, .stApp {
+    /* 文字サイズのアンバランスを解消する超・強力なフォント統一（全要素に強制適用） */
+    * {
         font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
     }
     
-    /* サイドバーの矢印（keyboard_double_arrow_right）などを絶対に文字化けさせない保護呪文 */
-    .material-symbols-rounded, [data-testid="collapsedControl"] *, [data-testid*="Icon"] {
-        font-family: "Material Symbols Rounded", "Material Icons" !important;
+    /* サイドバーの矢印などを絶対に文字化けさせない最強のシールド */
+    .material-symbols-rounded, .material-icons, [data-testid="collapsedControl"] *, [data-testid*="Icon"], svg, i {
+        font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
         font-style: normal !important;
         font-weight: 400 !important;
     }
