@@ -539,9 +539,12 @@ def main():
     # 【追加・修正】英数字と漢字のバランスを整えるCSS ＆ ボタンはみ出し修正CSS
     st.markdown("""
     <style>
-    /* 英数字と漢字のサイズ感を統一する（Streamlitの英語用フォントを上書きし、綺麗な日本語フォントを全体に適用） */
-    html, body, [class*="st-"], * {
+    /* 英数字と漢字のサイズ感を統一しつつ、アイコンは文字化けしないよう保護する */
+    html, body, [class*="st-"] {
         font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif !important;
+    }
+    .material-symbols-rounded, .stIcon, i, span[class*="icon"] {
+        font-family: "Material Symbols Rounded", "Material Icons" !important;
     }
     
     .stButton button { width: 100%; border-radius: 5px; }
