@@ -1,0 +1,23 @@
+{
+  "P06216J": {
+    "machine": "550t",
+    "qty": 61,
+    "cycle": 210.0,
+    "measurements": 2
+  },
+  "P04989J-M": {
+    "qty": 503,
+    "cycle": 120.0,
+    "measurements": 3
+  },
+  "P04989J-DKN": {
+    "qty": 503,
+    "cycle": 120.0,
+    "measurements": 3
+  },
+  "P02197J": {
+    "qty": 1008,
+    "cycle": 150.0,
+    "measurements": 3
+  }
+}
