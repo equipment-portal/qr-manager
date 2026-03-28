@@ -4,3 +4,4 @@ qrcode
 Pillow
 openpyxl==3.1.2
 plotly
+streamlit-autorefresh
