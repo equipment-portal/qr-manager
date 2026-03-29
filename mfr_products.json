@@ -22,5 +22,11 @@
     "qty": 1008,
     "cycle": 70.0,
     "measurements": 3
+  },
+  "P04035J-M": {
+    "machine": "450t",
+    "qty": 302,
+    "cycle": 101.0,
+    "measurements": 3
   }
 }
