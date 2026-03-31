@@ -28,5 +28,11 @@
     "qty": 302,
     "cycle": 101.0,
     "measurements": 3
+  },
+  "LMC-M-105005": {
+    "machine": "450t",
+    "qty": 504,
+    "cycle": 151.07,
+    "measurements": 3
   }
 }
