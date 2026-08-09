@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "settings": {
     "power_kw": 0.8,
     "electricity_price": 25.0,
@@ -130,5 +130,8 @@
         "maintenance_life_hours": 0.0
       }
     }
-  ]
+  ],
+  "deleted_production_ids": [],
+  "deleted_power_event_ids": [],
+  "excluded_weeks": []
 }
