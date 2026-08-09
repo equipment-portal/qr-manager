@@ -159,6 +159,45 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "100t_20260809233533",
+      "machine": "100t",
+      "product_name": "P02197J",
+      "total_qty": 1503,
+      "final_qty": 0,
+      "cycle_time": 113.0,
+      "measurement_count": 3,
+      "measurement_completed_count": 3,
+      "measurement_records": [
+        {
+          "target_qty": 1,
+          "label": "始",
+          "measured_at": "2026-08-09T23:35:41"
+        },
+        {
+          "target_qty": 751,
+          "label": "中",
+          "measured_at": "2026-08-09T23:37:12"
+        },
+        {
+          "target_qty": 1503,
+          "label": "終",
+          "measured_at": "2026-08-09T23:37:25"
+        }
+      ],
+      "started_at": "2026-08-09T23:35:33",
+      "ended_at": "2026-08-09T23:37:33",
+      "completion_type": "final_measurement_confirmed",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
