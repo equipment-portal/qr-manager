@@ -8,37 +8,13 @@
     "maintenance_cost": 0.0,
     "maintenance_life_hours": 0.0
   },
-  "production_history": [
+  "production_history": [],
+  "power_events": [
     {
-      "job_id": "100t_20260809161650",
-      "machine": "100t",
-      "product_name": "P02197J",
-      "total_qty": 1503,
-      "final_qty": 82,
-      "cycle_time": 113.0,
-      "measurement_count": 3,
-      "measurement_completed_count": 3,
-      "measurement_records": [
-        {
-          "target_qty": 1,
-          "label": "始",
-          "measured_at": "2026-08-09T16:17:13"
-        },
-        {
-          "target_qty": 751,
-          "label": "中",
-          "measured_at": "2026-08-09T18:52:54"
-        },
-        {
-          "target_qty": 1503,
-          "label": "終",
-          "measured_at": "2026-08-09T18:52:57"
-        }
-      ],
-      "started_at": "2026-08-09T16:16:50",
-      "ended_at": "2026-08-09T18:53:06",
-      "completion_type": "final_measurement_confirmed",
-      "labor_saving_yen": 383.33,
+      "event_id": "OFF_ACTUAL_20260809_1902",
+      "action": "OFF",
+      "actual_at": "2026-08-09T19:03:20",
+      "scheduled_at": "2026-08-09T19:02:57",
       "settings": {
         "power_kw": 0.8,
         "electricity_price": 25.0,
@@ -49,10 +25,10 @@
       }
     }
   ],
-  "power_events": [],
   "deleted_production_ids": [
     "100t_20260808174857",
-    "450t_20260809153142"
+    "450t_20260809153142",
+    "100t_20260809161650"
   ],
   "deleted_power_event_ids": [
     "OFF_ACTUAL_20260809_1438",
