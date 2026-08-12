@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T07:56:54.626473",
+  "saved_at": "2026-08-13T07:57:41.932206",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
@@ -10,10 +10,10 @@
         "product_name": "P04989J-M",
         "total_qty": 503,
         "cycle_time": 149.8,
-        "current_qty": 203,
+        "current_qty": 216,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-13T07:25:41.297871"
+          "value": "2026-08-13T07:57:41.931968"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
