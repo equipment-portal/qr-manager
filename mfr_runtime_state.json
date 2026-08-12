@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-12T23:45:16.558077",
+  "saved_at": "2026-08-12T23:45:21.958585",
   "app_version": "1.6.29",
   "state": {
     "jobs": {
@@ -55,45 +55,7 @@
         "measurement_records": [],
         "heat_ready_at": null
       },
-      "100t": {
-        "product_name": "P02197J",
-        "total_qty": 1008,
-        "cycle_time": 80.0,
-        "current_qty": 1008,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-12T23:45:16.557777"
-        },
-        "targets": [
-          1,
-          504,
-          1008
-        ],
-        "completed": [
-          1,
-          1008,
-          504
-        ],
-        "status": "Running",
-        "job_id": "100t_20260325132619",
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-03-25T13:26:19"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1008,
-            "label": "終",
-            "measured_at": "2026-08-12T23:45:11"
-          },
-          {
-            "target_qty": 504,
-            "label": "中",
-            "measured_at": "2026-08-12T23:45:16"
-          }
-        ],
-        "heat_ready_at": null
-      }
+      "100t": null
     },
     "last_inspection_date": {
       "__mfr_runtime_type__": "date",
@@ -114,10 +76,7 @@
       }
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "100t",
-      "job_id": "100t_20260325132619"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "mfr_power_is_on": false,
     "mfr_power_on_confirmed_at": null,
