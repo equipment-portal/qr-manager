@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T01:49:14.443369",
+  "saved_at": "2026-08-13T01:49:23.572536",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
@@ -43,7 +43,7 @@
         "completed": [
           1
         ],
-        "status": "Running"
+        "status": "Paused"
       },
       "100t": null
     },
