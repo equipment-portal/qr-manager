@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-12T23:44:48.078181",
+  "saved_at": "2026-08-12T23:45:11.875551",
   "app_version": "1.6.29",
   "state": {
     "jobs": {
@@ -59,10 +59,10 @@
         "product_name": "P02197J",
         "total_qty": 1008,
         "cycle_time": 80.0,
-        "current_qty": 163,
+        "current_qty": 1008,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-03-25T13:26:19.577709"
+          "value": "2026-08-12T23:45:11.875179"
         },
         "targets": [
           1,
@@ -70,7 +70,8 @@
           1008
         ],
         "completed": [
-          1
+          1,
+          1008
         ],
         "status": "Running",
         "job_id": "100t_20260325132619",
@@ -78,7 +79,13 @@
           "__mfr_runtime_type__": "datetime",
           "value": "2026-03-25T13:26:19"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 1008,
+            "label": "終",
+            "measured_at": "2026-08-12T23:45:11"
+          }
+        ],
         "heat_ready_at": null
       }
     },
@@ -87,8 +94,19 @@
       "value": "2026-03-25"
     },
     "acknowledged_alerts": [],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-12T23:45:11.875179"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "100t",
+      "label": "終",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-12T23:45:11.875179"
+      }
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
