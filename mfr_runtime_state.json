@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T08:12:50.300951",
+  "saved_at": "2026-08-13T08:26:10.552775",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
@@ -63,15 +63,19 @@
       "OFF_ACTUAL_20260812_231216_450t",
       "ON_INSP_20260813_0700_20260813_060000",
       "INSP_20260813",
-      "OFF_ACTUAL_20260813_072249_inspection"
+      "OFF_ACTUAL_20260813_072249_inspection",
+      "ON_450t_20260812231204_251_20260813_082303"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-13T08:26:10.552298"
+    },
     "mfr_power_state_version": 2
   }
 }
