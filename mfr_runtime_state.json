@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T01:49:10.840121",
+  "saved_at": "2026-08-13T01:49:14.443369",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
@@ -13,7 +13,7 @@
         "current_qty": 65,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-13T01:49:10.839954"
+          "value": "2026-08-13T01:49:14.443170"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -43,7 +43,7 @@
         "completed": [
           1
         ],
-        "status": "Paused"
+        "status": "Running"
       },
       "100t": null
     },
