@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-12T23:46:17.711796",
+  "saved_at": "2026-08-12T23:46:22.235836",
   "app_version": "1.6.29",
   "state": {
     "jobs": {
@@ -21,13 +21,7 @@
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
-    "pending_signboard_confirmation": {
-      "next_on_time": null,
-      "off_confirmed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-12T23:46:17.711649"
-      }
-    },
+    "pending_signboard_confirmation": null,
     "mfr_power_is_on": false,
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
