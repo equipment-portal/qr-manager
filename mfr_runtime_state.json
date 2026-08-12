@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "saved_at": "2026-08-12T23:44:37.013444",
+  "app_version": "1.6.29",
+  "state": {
+    "jobs": {
+      "550t": {
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 420.0,
+        "current_qty": 15,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T13:25:30.148891"
+        },
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running",
+        "job_id": "550t_20260325132530",
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T13:25:30"
+        },
+        "measurement_records": [],
+        "heat_ready_at": null
+      },
+      "450t": {
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 70.0,
+        "current_qty": 249,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T14:03:38.221896"
+        },
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running",
+        "job_id": "450t_20260325140338",
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T14:03:38"
+        },
+        "measurement_records": [],
+        "heat_ready_at": null
+      },
+      "100t": {
+        "product_name": "P02197J",
+        "total_qty": 1008,
+        "cycle_time": 80.0,
+        "current_qty": 163,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T13:26:19.577709"
+        },
+        "targets": [
+          1,
+          504,
+          1008
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running",
+        "job_id": "100t_20260325132619",
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-03-25T13:26:19"
+        },
+        "measurement_records": [],
+        "heat_ready_at": null
+      }
+    },
+    "last_inspection_date": {
+      "__mfr_runtime_type__": "date",
+      "value": "2026-03-25"
+    },
+    "acknowledged_alerts": [],
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
+    "pending_measurement_required_before_finish": null,
+    "pending_production_finish_confirmation": null,
+    "pending_signboard_confirmation": null,
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
+    "mfr_power_state_version": 2
+  }
+}
