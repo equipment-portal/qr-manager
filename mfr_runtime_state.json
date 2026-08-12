@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-12T23:45:49.358606",
+  "saved_at": "2026-08-12T23:45:52.343042",
   "app_version": "1.6.29",
   "state": {
     "jobs": {
@@ -52,7 +52,10 @@
         "value": "2026-08-12T23:45:41.548094"
       }
     },
-    "pending_measurement_required_before_finish": null,
+    "pending_measurement_required_before_finish": {
+      "machine": "550t",
+      "job_id": "550t_20260325132530"
+    },
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "mfr_power_is_on": true,
