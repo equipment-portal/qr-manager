@@ -726,6 +726,20 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "event_id": "ON_INSP_20260812_0700_20260812_060000",
+      "action": "ON",
+      "actual_at": "2026-08-12T23:20:02",
+      "scheduled_at": "2026-08-12T06:00:00",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "deleted_production_ids": [
