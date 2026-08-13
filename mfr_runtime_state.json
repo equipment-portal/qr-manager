@@ -1,62 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T19:55:19.442393",
+  "saved_at": "2026-08-13T19:55:28.127613",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260812231204",
-        "product_name": "P04989J-M",
-        "total_qty": 503,
-        "cycle_time": 149.75,
-        "current_qty": 503,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-13T19:55:19.442014"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-12T23:12:04.808312"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-12T23:12:16"
-          },
-          {
-            "target_qty": 251,
-            "label": "中",
-            "measured_at": "2026-08-13T09:04:37"
-          },
-          {
-            "target_qty": 503,
-            "label": "終",
-            "measured_at": "2026-08-13T19:55:19"
-          }
-        ],
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-12T23:12:10.742580"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-12T23:12:04.808312"
-        },
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1,
-          251,
-          503
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": null
     },
     "last_inspection_date": {
@@ -95,10 +44,7 @@
       }
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20260812231204"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
