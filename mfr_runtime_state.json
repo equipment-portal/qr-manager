@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-13T09:04:07.966711",
+  "saved_at": "2026-08-13T09:04:37.241789",
   "app_version": "1.6.30",
   "state": {
     "jobs": {
@@ -10,10 +10,10 @@
         "product_name": "P04989J-M",
         "total_qty": 503,
         "cycle_time": 149.75,
-        "current_qty": 221,
+        "current_qty": 243,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-13T08:08:11.316077"
+          "value": "2026-08-13T09:04:37.241409"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -24,6 +24,11 @@
             "target_qty": 1,
             "label": "始",
             "measured_at": "2026-08-12T23:12:16"
+          },
+          {
+            "target_qty": 251,
+            "label": "中",
+            "measured_at": "2026-08-13T09:04:37"
           }
         ],
         "heat_ready_at": {
@@ -41,7 +46,8 @@
           503
         ],
         "completed": [
-          1
+          1,
+          251
         ],
         "status": "Running"
       },
@@ -66,8 +72,19 @@
       "OFF_ACTUAL_20260813_072249_inspection",
       "ON_450t_20260812231204_251_20260813_082303"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-13T09:04:37.241409"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "450t",
+      "label": "中",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-13T09:04:37.241409"
+      }
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
