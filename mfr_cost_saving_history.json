@@ -933,6 +933,20 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "event_id": "OFF_ACTUAL_20260814_111044_inspection",
+      "action": "OFF",
+      "actual_at": "2026-08-14T11:11:03",
+      "scheduled_at": "2026-08-14T11:10:44",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "deleted_production_ids": [
