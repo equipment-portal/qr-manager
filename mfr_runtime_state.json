@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-14T13:20:47.058811",
+  "saved_at": "2026-08-14T13:22:02.592458",
   "app_version": "1.6.35",
   "state": {
     "jobs": {
@@ -13,7 +13,7 @@
         "current_qty": 181,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-13T23:16:39.779665"
+          "value": "2026-08-14T07:00:00"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -52,14 +52,14 @@
             },
             "end": {
               "__mfr_runtime_type__": "datetime",
-              "value": "2026-08-14T12:21:24.912705"
+              "value": "2026-08-14T07:00:00"
             },
             "end_reason": "pause"
           }
         ],
         "paused_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-14T12:21:24.912705"
+          "value": "2026-08-14T07:00:00"
         },
         "active_segment_started_at": null
       },
