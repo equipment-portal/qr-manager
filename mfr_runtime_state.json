@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-14T11:50:47.206337",
-  "app_version": "1.6.33",
+  "saved_at": "2026-08-14T12:21:24.912961",
+  "app_version": "1.6.34",
   "state": {
     "jobs": {
       "550t": null,
@@ -43,7 +43,25 @@
         "completed": [
           1
         ],
-        "status": "Paused"
+        "status": "Paused",
+        "production_segments": [
+          {
+            "start": {
+              "__mfr_runtime_type__": "datetime",
+              "value": "2026-08-13T23:16:16.976039"
+            },
+            "end": {
+              "__mfr_runtime_type__": "datetime",
+              "value": "2026-08-14T12:21:24.912705"
+            },
+            "end_reason": "pause"
+          }
+        ],
+        "paused_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-14T12:21:24.912705"
+        },
+        "active_segment_started_at": null
       },
       "100t": null
     },
