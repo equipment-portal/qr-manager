@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-14T11:11:13.868580",
-  "app_version": "1.6.30",
+  "saved_at": "2026-08-14T11:47:57.616376",
+  "app_version": "1.6.33",
   "state": {
     "jobs": {
       "550t": null,
@@ -47,10 +47,7 @@
       },
       "100t": null
     },
-    "last_inspection_date": {
-      "__mfr_runtime_type__": "date",
-      "value": "2026-08-14"
-    },
+    "last_inspection_date": null,
     "acknowledged_alerts": [
       "ON_450t_20260325140338_251_20260325_130558",
       "MEAS_REMINDER_450t_20260325140338_251",
