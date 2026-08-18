@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-18T08:38:05.982691",
+  "saved_at": "2026-08-18T17:41:01.574624",
   "app_version": "1.6.40",
   "state": {
     "jobs": {
@@ -24,11 +24,6 @@
             "target_qty": 1,
             "label": "始",
             "measured_at": "2026-08-17T23:15:54"
-          },
-          {
-            "target_qty": 252,
-            "label": "中",
-            "measured_at": "2026-08-18T08:27:12"
           }
         ],
         "production_segments": [],
@@ -49,8 +44,7 @@
           504
         ],
         "completed": [
-          1,
-          252
+          1
         ],
         "status": "Running"
       },
@@ -82,7 +76,6 @@
       "MEAS_450t_20260817231537_1",
       "OFF_CONFIRM_20260817_231554_450t",
       "ON_450t_20260817231537_252_20260818_064647",
-      "MEAS_REMINDER_450t_20260817231537_252",
       "OFF_CONFIRM_20260818_082712_450t"
     ],
     "pending_power_off_due": null,
