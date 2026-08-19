@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-19T15:55:09.496271",
+  "saved_at": "2026-08-19T15:55:20.002613",
   "app_version": "1.6.40",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260819155517",
+        "product_name": "LMC-M-105005",
+        "total_qty": 504,
+        "cycle_time": 151.0,
+        "current_qty": 0,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-19T15:55:17.474669"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-19T15:55:17.474669"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-19T15:55:17.474669"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-19T15:55:20.002181"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-19T15:55:17.474669"
+        },
+        "targets": [
+          1,
+          252,
+          504
+        ],
+        "completed": [],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -50,8 +87,11 @@
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-19T14:55:20.002181"
+    },
     "mfr_power_state_version": 2
   }
 }
