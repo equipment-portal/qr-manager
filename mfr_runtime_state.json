@@ -1,80 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-19T15:55:08.366848",
+  "saved_at": "2026-08-19T15:55:09.496271",
   "app_version": "1.6.40",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260818183827",
-        "product_name": "LMC-M-105005",
-        "total_qty": 504,
-        "cycle_time": 151.0,
-        "current_qty": 504,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-19T15:55:08.366630"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-18T18:38:27.699899"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-18T18:38:36"
-          },
-          {
-            "target_qty": 252,
-            "label": "中",
-            "measured_at": "2026-08-19T05:18:31"
-          },
-          {
-            "target_qty": 504,
-            "label": "終",
-            "measured_at": "2026-08-19T15:37:12"
-          }
-        ],
-        "production_segments": [
-          {
-            "start": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-08-18T18:38:27.699899"
-            },
-            "end": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-08-19T15:55:08.366630"
-            },
-            "end_reason": "pause"
-          }
-        ],
-        "active_segment_started_at": null,
-        "paused_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-19T15:55:08.366630"
-        },
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-18T18:38:30.218166"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-18T18:38:27.699899"
-        },
-        "targets": [
-          1,
-          252,
-          504
-        ],
-        "completed": [
-          1,
-          252,
-          504
-        ],
-        "status": "Paused"
-      },
+      "450t": null,
       "100t": null
     },
     "last_inspection_date": null,
