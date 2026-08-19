@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-19T15:55:33.133540",
+  "saved_at": "2026-08-19T15:55:42.559245",
   "app_version": "1.6.40",
   "state": {
     "jobs": {
@@ -10,10 +10,10 @@
         "product_name": "LMC-M-105005",
         "total_qty": 504,
         "cycle_time": 151.0,
-        "current_qty": 0,
+        "current_qty": 6,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-19T15:55:26.008821"
+          "value": "2026-08-19T15:55:42.559017"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
