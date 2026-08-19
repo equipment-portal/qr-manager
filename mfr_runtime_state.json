@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-19T15:37:17.344584",
+  "saved_at": "2026-08-19T15:37:21.561522",
   "app_version": "1.6.40",
   "state": {
     "jobs": {
@@ -122,10 +122,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20260818183827"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
