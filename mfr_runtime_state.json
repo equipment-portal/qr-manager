@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-19T18:50:45.199588",
-  "app_version": "1.6.40",
+  "saved_at": "2026-08-19T19:00:32.233736",
+  "app_version": "1.6.43",
   "state": {
     "jobs": {
       "550t": null,
@@ -97,6 +97,7 @@
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
+    "pending_daily_inspection": null,
     "mfr_power_is_on": false,
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
