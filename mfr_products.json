@@ -8,7 +8,7 @@
   "P04989J-M": {
     "machine": "450t",
     "qty": 503,
-    "cycle": 149.8,
+    "cycle": 150.0,
     "measurements": 3
   },
   "P04989J-DKN": {
@@ -31,7 +31,7 @@
   },
   "LMC-M-105005": {
     "machine": "450t",
-    "qty": 503,
+    "qty": 403,
     "cycle": 151.8,
     "measurements": 3
   }
