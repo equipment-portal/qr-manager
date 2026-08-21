@@ -1,69 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-22T00:11:51.387171",
+  "saved_at": "2026-08-22T00:11:58.819305",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260820142831",
-        "product_name": "P04989J-M",
-        "total_qty": 503,
-        "cycle_time": 150.0,
-        "measurement_count": 3,
-        "current_qty": 503,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-22T00:11:43.745688"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-20T14:28:31.033541"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-20T14:28:45"
-          },
-          {
-            "target_qty": 251,
-            "label": "中",
-            "measured_at": "2026-08-21T14:07:20"
-          },
-          {
-            "target_qty": 503,
-            "label": "終",
-            "measured_at": "2026-08-22T00:11:43"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-20T14:28:31.033541"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-20T14:28:38.993525"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-20T14:28:31.033541"
-        },
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1,
-          251,
-          503
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": null
     },
     "last_inspection_date": null,
@@ -131,10 +73,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20260820142831"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
