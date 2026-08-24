@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-24T19:33:01.354784",
+  "saved_at": "2026-08-24T23:09:54.011628",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20260824230952",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 29,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-24T23:09:52.030888"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-24T23:09:52.030888"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-24T23:09:52.030888"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T00:09:54.011137"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": {
         "job_id": "450t_20260824151355",
         "product_name": "P04989J-M",
@@ -35,9 +71,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-24T15:13:58.848752"
+          "value": "2026-08-25T00:09:54.011137"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -80,20 +116,15 @@
       "OFF_CONFIRM_20260819_153712_450t",
       "MEAS_450t_20260819155517_1",
       "OFF_CONFIRM_20260819_155526_450t",
-      "ON_450t_20260819231907_201_20260819_231912",
       "MEAS_REMINDER_450t_20260819231907_201",
       "OFF_CONFIRM_20260820_003620_450t",
-      "ON_450t_20260819231907_403_20260820_074206",
       "MEAS_450t_20260819231907_403",
       "OFF_CONFIRM_20260820_084447_450t",
       "MEAS_450t_20260820142831_1",
       "OFF_CONFIRM_20260820_142845_450t",
-      "ON_450t_20260820142831_251_20260820_235525",
       "OFF_CONFIRM_20260821_010153_450t",
-      "ON_450t_20260820142831_251_20260821_000153",
       "MEAS_REMINDER_450t_20260820142831_251",
       "OFF_CONFIRM_20260821_140720_450t",
-      "ON_450t_20260820142831_503_20260821_225950",
       "MEAS_REMINDER_450t_20260820142831_503",
       "OFF_CONFIRM_20260822_001143_450t",
       "MEAS_450t_20260824151355_251",
