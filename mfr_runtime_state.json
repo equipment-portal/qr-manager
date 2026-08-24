@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-24T15:13:58.849199",
+  "saved_at": "2026-08-24T15:14:52.605708",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -9,12 +9,12 @@
         "job_id": "450t_20260824151355",
         "product_name": "P04989J-M",
         "total_qty": 503,
-        "cycle_time": 150.0,
+        "cycle_time": 149.86,
         "measurement_count": 3,
         "current_qty": 157,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-24T15:13:55.871461"
+          "value": "2026-08-24T15:14:52.605431"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -103,7 +103,7 @@
       },
       "due_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-24T19:08:55.871461"
+        "value": "2026-08-24T19:09:39.445431"
       },
       "machine": "450t",
       "target_qty": 251,
