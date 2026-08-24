@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-24T23:09:54.011628",
+  "saved_at": "2026-08-25T02:13:46.150971",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -28,9 +28,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T00:09:54.011137"
+          "value": "2026-08-25T03:13:46.149839"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -71,9 +71,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T00:09:54.011137"
+          "value": "2026-08-25T03:13:46.149839"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -129,16 +129,33 @@
       "OFF_CONFIRM_20260822_001143_450t",
       "MEAS_450t_20260824151355_251",
       "MEAS_550t_20260824162142_61",
-      "OFF_CONFIRM_20260824_192241_550t"
+      "OFF_CONFIRM_20260824_192241_550t",
+      "ON_550t_20260824230952_61_20260825_015517"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ON_550t_20260824230952_61_20260825_015517_550t_20260824230952_61",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-25T02:13:46.149839"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-25T03:13:46.149839"
+      },
+      "machine": "550t",
+      "target_qty": 61,
+      "job_id": "550t_20260824230952"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-25T02:13:46.149839"
+    },
     "mfr_power_state_version": 2
   }
 }
