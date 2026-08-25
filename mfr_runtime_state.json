@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T18:24:00.576131",
+  "saved_at": "2026-08-25T18:24:02.008107",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -152,25 +152,8 @@
       "MEAS_REMINDER_550t_20260825151535_61",
       "OFF_CONFIRM_20260825_181341_550t"
     ],
-    "pending_power_off_due": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-08-25T18:13:41.633143"
-    },
-    "pending_power_off_context": {
-      "type": "measurement",
-      "machine": "550t",
-      "label": "終",
-      "completed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-25T18:13:41.633143"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-25T18:23:41.633143"
-      },
-      "confirmation_acknowledged": true,
-      "off_recorded": true
-    },
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
