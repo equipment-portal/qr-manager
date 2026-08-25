@@ -1,66 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T22:41:22.291803",
+  "saved_at": "2026-08-25T22:41:25.989144",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260825054211",
-        "product_name": "LMC-M-105005",
-        "total_qty": 403,
-        "cycle_time": 151.8,
-        "measurement_count": 3,
-        "current_qty": 403,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T22:41:08.380934"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T05:42:11.878946"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-25T05:42:19"
-          },
-          {
-            "target_qty": 201,
-            "label": "中",
-            "measured_at": "2026-08-25T14:42:59"
-          },
-          {
-            "target_qty": 403,
-            "label": "終",
-            "measured_at": "2026-08-25T22:41:08"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T05:42:11.878946"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T18:01:40.780258"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          201,
-          403
-        ],
-        "completed": [
-          1,
-          201,
-          403
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20260825151857",
         "product_name": "P02251J",
@@ -181,10 +126,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20260825054211"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
