@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T18:24:02.008107",
+  "saved_at": "2026-08-25T21:40:50.456588",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -150,16 +150,33 @@
       "OFF_CONFIRM_20260825_144259_450t",
       "ON_550t_20260825151535_61_20260825_165737",
       "MEAS_REMINDER_550t_20260825151535_61",
-      "OFF_CONFIRM_20260825_181341_550t"
+      "OFF_CONFIRM_20260825_181341_550t",
+      "ON_450t_20260825054211_403_20260825_213935"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ON_450t_20260825054211_403_20260825_213935_450t_20260825054211_403",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-25T21:40:50.455791"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-25T22:39:35.992535"
+      },
+      "machine": "450t",
+      "target_qty": 403,
+      "job_id": "450t_20260825054211"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-25T21:40:50.455791"
+    },
     "mfr_power_state_version": 2
   }
 }
