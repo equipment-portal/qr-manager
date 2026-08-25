@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T14:54:01.699849",
+  "saved_at": "2026-08-25T15:15:38.338163",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20260825151535",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 38,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:15:35.857683"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:15:35.857683"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:15:35.857683"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T16:15:38.337657"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": {
         "job_id": "450t_20260825054211",
         "product_name": "LMC-M-105005",
@@ -40,13 +76,10 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T05:42:13.853628"
+          "value": "2026-08-25T16:15:38.337657"
         },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T05:42:11.878946"
-        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
         "targets": [
           1,
           201,
@@ -102,20 +135,16 @@
       "MEAS_450t_20260824151355_251",
       "MEAS_550t_20260824162142_61",
       "OFF_CONFIRM_20260824_192241_550t",
-      "ON_550t_20260824230952_61_20260825_015517",
       "MEAS_REMINDER_550t_20260824230952_61",
       "OFF_CONFIRM_20260825_034955_550t",
       "MEAS_550t_20260825035046_1",
       "OFF_CONFIRM_20260825_035053_550t",
-      "ON_450t_20260824151355_503_20260825_044032",
       "MEAS_450t_20260824151355_503",
       "OFF_CONFIRM_20260825_054154_450t",
       "MEAS_450t_20260825054211_1",
       "OFF_CONFIRM_20260825_054219_450t",
-      "ON_550t_20260825035046_61_20260825_100035",
       "MEAS_REMINDER_550t_20260825035046_61",
       "OFF_CONFIRM_20260825_112558_550t",
-      "ON_450t_20260825054211_201_20260825_131051",
       "MEAS_REMINDER_450t_20260825054211_201",
       "OFF_CONFIRM_20260825_144259_450t"
     ],
