@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T03:25:29.792913",
+  "saved_at": "2026-08-26T03:25:38.110433",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -95,16 +95,22 @@
         "total_qty": 2000,
         "cycle_time": 54.97,
         "measurement_count": 3,
-        "current_qty": 720,
+        "current_qty": 1006,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T23:03:08.365690"
+          "value": "2026-08-26T03:25:38.110103"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-08-25T15:18:57.331709"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 1000,
+            "label": "中",
+            "measured_at": "2026-08-26T03:25:38"
+          }
+        ],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -123,7 +129,8 @@
           2000
         ],
         "completed": [
-          1
+          1,
+          1000
         ],
         "status": "Running"
       }
@@ -191,10 +198,28 @@
       "MEAS_REMINDER_550t_20260825230715_61",
       "MEAS_550t_20260826014207_1",
       "MEAS_REMINDER_450t_20260825230615_503",
-      "OFF_CONFIRM_20260826_032506_450t"
+      "OFF_CONFIRM_20260826_032506_450t",
+      "MEAS_100t_20260825151857_1000"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-26T03:25:38.110103"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "100t",
+      "label": "中",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-26T03:25:38.110103"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-26T03:35:38.110103"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
