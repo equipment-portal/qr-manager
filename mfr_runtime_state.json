@@ -1,11 +1,49 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T23:05:04.631541",
+  "saved_at": "2026-08-25T23:05:26.326140",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260825230524",
+        "product_name": "P04035J-M",
+        "total_qty": 302,
+        "cycle_time": 101.0,
+        "measurement_count": 3,
+        "current_qty": 0,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T23:05:24.366403"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T23:05:24.366403"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T23:05:24.366403"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T00:05:26.323881"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          151,
+          302
+        ],
+        "completed": [
+          1,
+          302
+        ],
+        "status": "Running"
+      },
       "100t": {
         "job_id": "100t_20260825151857",
         "product_name": "P02251J",
@@ -30,7 +68,7 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T00:03:58.495576"
+          "value": "2026-08-26T00:05:26.323881"
         },
         "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
