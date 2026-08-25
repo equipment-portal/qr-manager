@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T07:55:36.012227",
+  "saved_at": "2026-08-26T07:55:45.653922",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -70,11 +70,6 @@
             "target_qty": 1,
             "label": "始",
             "measured_at": "2026-08-26T03:25:47"
-          },
-          {
-            "target_qty": 201,
-            "label": "中",
-            "measured_at": "2026-08-26T07:55:34"
           }
         ],
         "production_segments": [],
@@ -98,8 +93,7 @@
           403
         ],
         "completed": [
-          1,
-          201
+          1
         ],
         "status": "Running"
       },
