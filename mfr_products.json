@@ -34,5 +34,11 @@
     "qty": 403,
     "cycle": 151.8,
     "measurements": 3
+  },
+  "P02251": {
+    "machine": "100t",
+    "qty": 1505,
+    "cycle": 77.65,
+    "measurements": 3
   }
 }
