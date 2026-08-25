@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-25T15:18:35.435536",
+  "saved_at": "2026-08-25T15:19:02.556192",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -28,7 +28,7 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T16:15:38.337657"
+          "value": "2026-08-25T16:19:02.555690"
         },
         "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
@@ -76,7 +76,7 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T16:15:38.337657"
+          "value": "2026-08-25T16:19:02.555690"
         },
         "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
@@ -91,7 +91,44 @@
         ],
         "status": "Running"
       },
-      "100t": null
+      "100t": {
+        "job_id": "100t_20260825151857",
+        "product_name": "P02251J",
+        "total_qty": 1505,
+        "cycle_time": 77.65,
+        "measurement_count": 3,
+        "current_qty": 220,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:18:57.331709"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:18:57.331709"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T15:18:57.331709"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-25T16:19:02.555690"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          752,
+          1505
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
