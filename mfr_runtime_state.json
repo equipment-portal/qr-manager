@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T03:25:43.044692",
+  "saved_at": "2026-08-26T03:25:47.501990",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -59,13 +59,19 @@
         "current_qty": 0,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T03:25:26.453539"
+          "value": "2026-08-26T03:25:47.501667"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-08-26T03:25:26.453539"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 1,
+            "label": "始",
+            "measured_at": "2026-08-26T03:25:47"
+          }
+        ],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -86,7 +92,9 @@
           201,
           403
         ],
-        "completed": [],
+        "completed": [
+          1
+        ],
         "status": "Running"
       },
       "100t": {
@@ -200,25 +208,26 @@
       "MEAS_REMINDER_450t_20260825230615_503",
       "OFF_CONFIRM_20260826_032506_450t",
       "MEAS_100t_20260825151857_1000",
-      "OFF_CONFIRM_20260826_032538_100t"
+      "OFF_CONFIRM_20260826_032538_100t",
+      "MEAS_450t_20260826032526_1"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
-      "value": "2026-08-26T03:25:38.110103"
+      "value": "2026-08-26T03:25:47.501667"
     },
     "pending_power_off_context": {
       "type": "measurement",
-      "machine": "100t",
-      "label": "中",
+      "machine": "450t",
+      "label": "始",
       "completed_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-26T03:25:38.110103"
+        "value": "2026-08-26T03:25:47.501667"
       },
       "effective_off_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-26T03:35:38.110103"
+        "value": "2026-08-26T03:35:47.501667"
       },
-      "confirmation_acknowledged": true,
+      "confirmation_acknowledged": false,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
