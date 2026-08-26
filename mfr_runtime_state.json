@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-27T03:55:06.572851",
+  "saved_at": "2026-08-27T03:55:11.645320",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -15,13 +15,19 @@
         "current_qty": 130,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T03:55:06.572638"
+          "value": "2026-08-27T03:55:11.644858"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-08-27T03:53:39.200864"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 1,
+            "label": "始",
+            "measured_at": "2026-08-27T03:55:11"
+          }
+        ],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -39,7 +45,9 @@
           502,
           1005
         ],
-        "completed": [],
+        "completed": [
+          1
+        ],
         "status": "Running"
       }
     },
@@ -124,8 +132,25 @@
       "MEAS_REMINDER_550t_20260826210802_61",
       "OFF_CONFIRM_20260827_035321_550t"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-27T03:55:11.644858"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "100t",
+      "label": "始",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-27T03:55:11.644858"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-27T04:05:11.644858"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
