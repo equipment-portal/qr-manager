@@ -1,63 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T15:07:54.452955",
+  "saved_at": "2026-08-26T15:08:07.827273",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260826032526",
-        "product_name": "LMC-M-105005",
-        "total_qty": 403,
-        "cycle_time": 151.8,
-        "measurement_count": 3,
-        "current_qty": 300,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T15:07:54.452767"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T03:25:26.453539"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-26T03:25:47"
-          },
-          {
-            "target_qty": 201,
-            "label": "中",
-            "measured_at": "2026-08-26T14:48:45"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T03:25:26.453539"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T03:25:28.387313"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T03:25:26.453539"
-        },
-        "targets": [
-          1,
-          201,
-          403
-        ],
-        "completed": [
-          1,
-          201
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20260825151857",
         "product_name": "P02251J",
