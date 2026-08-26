@@ -1,55 +1,10 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T07:55:45.653922",
+  "saved_at": "2026-08-26T09:25:25.985200",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": {
-        "job_id": "550t_20260826014207",
-        "product_name": "P06216J",
-        "total_qty": 61,
-        "cycle_time": 422.66,
-        "measurement_count": 2,
-        "current_qty": 0,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T01:42:20.001680"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T01:42:07.487654"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-26T01:42:20"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T01:42:07.487654"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T01:42:09.609536"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T01:42:07.487654"
-        },
-        "targets": [
-          1,
-          61
-        ],
-        "completed": [
-          1
-        ],
-        "status": "Running"
-      },
+      "550t": null,
       "450t": {
         "job_id": "450t_20260826032526",
         "product_name": "LMC-M-105005",
