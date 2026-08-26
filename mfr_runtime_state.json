@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T14:49:03.571689",
+  "saved_at": "2026-08-26T14:58:58.260434",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -194,17 +194,14 @@
         "value": "2026-08-26T14:58:45.165415"
       },
       "confirmation_acknowledged": true,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-08-26T07:54:59.364483"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
   }
 }
