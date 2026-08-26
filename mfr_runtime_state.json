@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T14:48:46.637844",
+  "saved_at": "2026-08-26T14:49:03.571689",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -174,7 +174,8 @@
       "OFF_CONFIRM_20260826_032547_450t",
       "ON_550t_20260826014207_61_20260826_075202",
       "INSPECTION_ON_550t_20260826014207_61_20260826_075202_550t_20260826014207_61",
-      "MEAS_REMINDER_450t_20260826032526_201"
+      "MEAS_REMINDER_450t_20260826032526_201",
+      "OFF_CONFIRM_20260826_144845_450t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -192,42 +193,12 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-08-26T14:58:45.165415"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
-    "pending_signboard_confirmation": {
-      "mode": "off_and_signboard",
-      "id": "OFF_CONFIRM_20260826_144845_450t",
-      "due": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-26T14:48:45.165415"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-26T14:58:45.165415"
-      },
-      "next_on_time": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-26T17:36:18.290103"
-      },
-      "off_context": {
-        "type": "measurement",
-        "machine": "450t",
-        "label": "中",
-        "completed_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T14:48:45.165415"
-        },
-        "effective_off_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T14:58:45.165415"
-        },
-        "confirmation_acknowledged": false,
-        "off_recorded": false
-      }
-    },
+    "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
