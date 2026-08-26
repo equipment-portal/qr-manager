@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T18:58:03.213606",
+  "saved_at": "2026-08-26T21:08:05.036431",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20260826210802",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 40,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T21:08:02.404700"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T21:08:02.404700"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T21:08:02.404700"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T22:08:05.035983"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": {
         "job_id": "450t_20260826150832",
         "product_name": "P04989J-M",
@@ -29,9 +65,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T15:09:45.648388"
+          "value": "2026-08-26T22:08:05.035983"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -118,7 +154,6 @@
       "OFF_CONFIRM_20260826_144845_450t",
       "MEAS_550t_20260826150942_61",
       "OFF_CONFIRM_20260826_161600_550t",
-      "ON_100t_20260825151857_2000_20260826_173618",
       "MEAS_REMINDER_100t_20260825151857_2000",
       "OFF_CONFIRM_20260826_184711_100t"
     ],
