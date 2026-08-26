@@ -983,6 +983,40 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "450t_20260826032526",
+      "machine": "450t",
+      "product_name": "LMC-M-105005",
+      "total_qty": 403,
+      "final_qty": 300,
+      "cycle_time": 151.8,
+      "measurement_count": 3,
+      "measurement_completed_count": 2,
+      "measurement_records": [
+        {
+          "target_qty": 1,
+          "label": "始",
+          "measured_at": "2026-08-26T03:25:47"
+        },
+        {
+          "target_qty": 201,
+          "label": "中",
+          "measured_at": "2026-08-26T14:48:45"
+        }
+      ],
+      "started_at": "2026-08-26T03:25:26",
+      "ended_at": "2026-08-26T15:08:07",
+      "completion_type": "manual_end",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
