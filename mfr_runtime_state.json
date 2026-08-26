@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-27T03:55:16.501281",
+  "saved_at": "2026-08-27T03:55:44.874004",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20260827035542",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 35,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-27T03:55:42.930119"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-27T03:55:42.930119"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-27T03:55:42.930119"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-27T03:55:44.873569"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": null,
       "100t": {
         "job_id": "100t_20260827035339",
