@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T15:08:34.661794",
+  "saved_at": "2026-08-26T15:09:45.648895",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20260826150942",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 52,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T15:09:42.242776"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T15:09:42.242776"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T15:09:42.242776"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-26T15:09:45.648388"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": {
         "job_id": "450t_20260826150832",
         "product_name": "P04989J-M",
@@ -29,9 +65,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T16:08:34.660757"
+          "value": "2026-08-26T15:09:45.648388"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -74,9 +110,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T16:08:34.660757"
+          "value": "2026-08-26T15:09:45.648388"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -166,9 +202,25 @@
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ACTUAL_ON_550t_20260826150942_550t_20260826150942_61",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-26T14:09:45.648388"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-08-26T16:13:06.182776"
+      },
+      "machine": "550t",
+      "target_qty": 61,
+      "job_id": "550t_20260826150942"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-08-26T14:09:45.648388"
+    },
     "mfr_power_state_version": 2
   }
 }
