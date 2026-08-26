@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-26T18:47:22.617381",
+  "saved_at": "2026-08-26T18:47:26.063105",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -44,57 +44,7 @@
         ],
         "status": "Running"
       },
-      "100t": {
-        "job_id": "100t_20260825151857",
-        "product_name": "P02251J",
-        "total_qty": 2000,
-        "cycle_time": 54.97,
-        "measurement_count": 3,
-        "current_qty": 2000,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T18:47:11.495664"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T15:18:57.331709"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1000,
-            "label": "中",
-            "measured_at": "2026-08-26T03:25:38"
-          },
-          {
-            "target_qty": 2000,
-            "label": "終",
-            "measured_at": "2026-08-26T18:47:11"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-25T15:18:57.331709"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-26T15:09:45.648388"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          1000,
-          2000
-        ],
-        "completed": [
-          1,
-          1000,
-          2000
-        ],
-        "status": "Running"
-      }
+      "100t": null
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -192,10 +142,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "100t",
-      "job_id": "100t_20260825151857"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
