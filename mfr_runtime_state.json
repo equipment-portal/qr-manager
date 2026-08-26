@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-27T03:55:04.457770",
+  "saved_at": "2026-08-27T03:55:06.572851",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -12,10 +12,10 @@
         "total_qty": 1005,
         "cycle_time": 117.0,
         "measurement_count": 3,
-        "current_qty": 0,
+        "current_qty": 130,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T03:55:04.457572"
+          "value": "2026-08-27T03:55:06.572638"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
