@@ -1046,6 +1046,40 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "100t_20260825151857",
+      "machine": "100t",
+      "product_name": "P02251J",
+      "total_qty": 2000,
+      "final_qty": 2000,
+      "cycle_time": 54.97,
+      "measurement_count": 3,
+      "measurement_completed_count": 3,
+      "measurement_records": [
+        {
+          "target_qty": 1000,
+          "label": "中",
+          "measured_at": "2026-08-26T03:25:38"
+        },
+        {
+          "target_qty": 2000,
+          "label": "終",
+          "measured_at": "2026-08-26T18:47:11"
+        }
+      ],
+      "started_at": "2026-08-25T15:18:57",
+      "ended_at": "2026-08-26T18:47:26",
+      "completion_type": "final_measurement_confirmed",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
@@ -2118,6 +2152,20 @@
       "action": "OFF",
       "actual_at": "2026-08-26T16:26:00",
       "scheduled_at": "2026-08-26T16:26:00",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
+    },
+    {
+      "event_id": "ON_100t_20260825151857_2000_20260826_173618",
+      "action": "ON",
+      "actual_at": "2026-08-26T17:51:53",
+      "scheduled_at": "2026-08-26T17:36:18",
       "settings": {
         "power_kw": 0.8,
         "electricity_price": 25.0,
