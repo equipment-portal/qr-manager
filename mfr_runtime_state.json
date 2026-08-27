@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-28T00:04:31.057273",
+  "saved_at": "2026-08-28T00:04:34.703942",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -238,7 +238,8 @@
       "OFF_CONFIRM_20260827_164204_100t",
       "MEAS_550t_20260827153029_61",
       "ON_450t_20260827054918_603_20260827_230309",
-      "MEAS_450t_20260827054918_603"
+      "MEAS_450t_20260827054918_603",
+      "OFF_CONFIRM_20260828_000429_450t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -256,7 +257,7 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-08-28T00:14:29.569044"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
@@ -264,37 +265,7 @@
       "machine": "450t",
       "job_id": "450t_20260827054918"
     },
-    "pending_signboard_confirmation": {
-      "mode": "off_and_signboard",
-      "id": "OFF_CONFIRM_20260828_000429_450t",
-      "due": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-28T00:04:29.569044"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-28T00:14:29.569044"
-      },
-      "next_on_time": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-28T04:16:28.148332"
-      },
-      "off_context": {
-        "type": "measurement",
-        "machine": "450t",
-        "label": "終",
-        "completed_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-28T00:04:29.569044"
-        },
-        "effective_off_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-28T00:14:29.569044"
-        },
-        "confirmation_acknowledged": false,
-        "off_recorded": false
-      }
-    },
+    "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
