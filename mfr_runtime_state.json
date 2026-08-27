@@ -1,61 +1,10 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-27T15:10:07.060654",
+  "saved_at": "2026-08-27T15:10:12.491907",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": {
-        "job_id": "550t_20260827072345",
-        "product_name": "P06216J",
-        "total_qty": 61,
-        "cycle_time": 422.66,
-        "measurement_count": 2,
-        "current_qty": 61,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T15:10:07.060114"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T07:23:45.027887"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-08-27T07:23:54"
-          },
-          {
-            "target_qty": 61,
-            "label": "終",
-            "measured_at": "2026-08-27T15:10:07"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T07:23:45.027887"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T07:23:48.087529"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T07:23:45.027887"
-        },
-        "targets": [
-          1,
-          61
-        ],
-        "completed": [
-          1,
-          61
-        ],
-        "status": "Running"
-      },
+      "550t": null,
       "450t": {
         "job_id": "450t_20260827054918",
         "product_name": "P04035J-M",
@@ -244,30 +193,10 @@
       "MEAS_REMINDER_450t_20260827054918_301",
       "MEAS_REMINDER_550t_20260827072345_61"
     ],
-    "pending_power_off_due": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-08-27T15:10:07.060114"
-    },
-    "pending_power_off_context": {
-      "type": "measurement",
-      "machine": "550t",
-      "label": "終",
-      "completed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-27T15:10:07.060114"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-08-27T15:20:07.060114"
-      },
-      "confirmation_acknowledged": false,
-      "off_recorded": false
-    },
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "550t",
-      "job_id": "550t_20260827072345"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
