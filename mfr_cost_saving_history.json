@@ -1230,6 +1230,45 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "450t_20260827054918",
+      "machine": "450t",
+      "product_name": "P04035J-M",
+      "total_qty": 603,
+      "final_qty": 603,
+      "cycle_time": 105.15,
+      "measurement_count": 3,
+      "measurement_completed_count": 3,
+      "measurement_records": [
+        {
+          "target_qty": 1,
+          "label": "始",
+          "measured_at": "2026-08-27T05:49:25"
+        },
+        {
+          "target_qty": 301,
+          "label": "中",
+          "measured_at": "2026-08-27T15:10:01"
+        },
+        {
+          "target_qty": 603,
+          "label": "終",
+          "measured_at": "2026-08-28T00:04:29"
+        }
+      ],
+      "started_at": "2026-08-27T05:49:18",
+      "ended_at": "2026-08-28T00:04:38",
+      "completion_type": "final_measurement_confirmed",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
