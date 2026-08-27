@@ -1,53 +1,10 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-28T06:16:39.808859",
+  "saved_at": "2026-08-28T06:16:43.430381",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
-      "550t": {
-        "job_id": "550t_20260827230307",
-        "product_name": "P06216J",
-        "total_qty": 61,
-        "cycle_time": 422.66,
-        "measurement_count": 2,
-        "current_qty": 61,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-28T06:16:35.109913"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T23:03:07.168332"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 61,
-            "label": "終",
-            "measured_at": "2026-08-28T06:16:35"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-27T23:03:07.168332"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-28T00:03:19.345733"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          61
-        ],
-        "completed": [
-          1,
-          61
-        ],
-        "status": "Running"
-      },
+      "550t": null,
       "450t": null,
       "100t": {
         "job_id": "100t_20260827035339",
@@ -216,10 +173,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "550t",
-      "job_id": "550t_20260827230307"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
