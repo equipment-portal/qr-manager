@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-08-29T15:00:41.637349",
+  "saved_at": "2026-08-31T10:58:13.078617",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260831105809",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.86,
+        "measurement_count": 3,
+        "current_qty": 55,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-31T10:58:09.374023"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-31T10:58:09.374023"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-31T10:58:09.374023"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-08-31T11:58:13.078115"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -97,15 +134,12 @@
       "MEAS_100t_20260827035339_502",
       "OFF_CONFIRM_20260827_164204_100t",
       "MEAS_550t_20260827153029_61",
-      "ON_450t_20260827054918_603_20260827_230309",
       "MEAS_450t_20260827054918_603",
       "OFF_CONFIRM_20260828_000429_450t",
-      "ON_550t_20260827230307_61_20260828_041628",
       "MEAS_REMINDER_550t_20260827230307_61",
       "OFF_CONFIRM_20260828_061635_550t",
       "MEAS_550t_20260828061649_1",
       "OFF_CONFIRM_20260828_061658_550t",
-      "ON_100t_20260827035339_1005_20260828_075704",
       "INSPECTION_ON_100t_20260827035339_1005_20260828_075704_100t_20260827035339_1005",
       "MEAS_REMINDER_550t_20260828061649_61",
       "OFF_CONFIRM_20260828_134221_550t"
