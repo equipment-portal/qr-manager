@@ -1,62 +1,12 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T05:53:05.593699",
+  "saved_at": "2026-09-01T08:39:08.560385",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
       "450t": null,
-      "100t": {
-        "job_id": "100t_20260831110103",
-        "product_name": "P02251J",
-        "total_qty": 1204,
-        "cycle_time": 54.97,
-        "measurement_count": 3,
-        "current_qty": 1204,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-01T02:02:13.154009"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T11:01:03.714249"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 602,
-            "label": "中",
-            "measured_at": "2026-08-31T16:49:10"
-          },
-          {
-            "target_qty": 1204,
-            "label": "終",
-            "measured_at": "2026-09-01T02:02:13"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T11:01:03.714249"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T16:48:13.493546"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          602,
-          1204
-        ],
-        "completed": [
-          1,
-          602,
-          1204
-        ],
-        "status": "Running"
-      }
+      "100t": null
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
