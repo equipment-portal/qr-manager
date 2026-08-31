@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T02:02:14.760941",
+  "saved_at": "2026-09-01T02:02:18.476657",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -207,7 +207,8 @@
       "MEAS_450t_20260831105809_251",
       "OFF_CONFIRM_20260831_191032_450t",
       "ON_100t_20260831110103_1204_20260901_004847",
-      "MEAS_REMINDER_100t_20260831110103_1204"
+      "MEAS_REMINDER_100t_20260831110103_1204",
+      "OFF_CONFIRM_20260901_020213_100t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -225,7 +226,7 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-09-01T02:12:13.154009"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
@@ -233,37 +234,7 @@
       "machine": "100t",
       "job_id": "100t_20260831110103"
     },
-    "pending_signboard_confirmation": {
-      "mode": "off_and_signboard",
-      "id": "OFF_CONFIRM_20260901_020213_100t",
-      "due": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-01T02:02:13.154009"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-01T02:12:13.154009"
-      },
-      "next_on_time": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-01T04:39:47.615215"
-      },
-      "off_context": {
-        "type": "measurement",
-        "machine": "100t",
-        "label": "終",
-        "completed_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-01T02:02:13.154009"
-        },
-        "effective_off_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-01T02:12:13.154009"
-        },
-        "confirmation_acknowledged": false,
-        "off_recorded": false
-      }
-    },
+    "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
