@@ -1,61 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T05:42:28.022477",
+  "saved_at": "2026-09-01T05:42:32.323471",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260831105809",
-        "product_name": "P04989J-M",
-        "total_qty": 503,
-        "cycle_time": 149.82,
-        "measurement_count": 3,
-        "current_qty": 503,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-01T05:42:18.868406"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T10:58:09.374023"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 251,
-            "label": "中",
-            "measured_at": "2026-08-31T19:10:32"
-          },
-          {
-            "target_qty": 503,
-            "label": "終",
-            "measured_at": "2026-09-01T05:42:18"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T10:58:09.374023"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-08-31T16:48:13.493546"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1,
-          251,
-          503
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20260831110103",
         "product_name": "P02251J",
@@ -239,10 +189,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20260831105809"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
