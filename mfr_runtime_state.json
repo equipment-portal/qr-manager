@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T02:02:18.476657",
+  "saved_at": "2026-09-01T02:02:22.116177",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -230,10 +230,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "100t",
-      "job_id": "100t_20260831110103"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
