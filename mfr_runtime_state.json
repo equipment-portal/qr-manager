@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-02T07:21:13.486363",
+  "saved_at": "2026-09-02T07:21:32.838156",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260902072130",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.82,
+        "measurement_count": 3,
+        "current_qty": 111,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-02T07:21:30.034718"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-02T07:21:30.034718"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-02T07:21:30.034718"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-02T08:21:32.837625"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -116,13 +153,10 @@
       "OFF_CONFIRM_20260901_054218_450t",
       "MEAS_REMINDER_450t_20260901083953_251",
       "OFF_CONFIRM_20260901_163347_450t",
-      "ON_100t_20260901163400_1_20260901_163403",
       "OFF_CONFIRM_20260901_163443_100t",
       "INSPECTION_ON_100t_20260901163400_1_20260901_163403_100t_20260901163400_1",
-      "ON_100t_20260901163400_175_20260901_211558",
       "MEAS_REMINDER_100t_20260901163400_175",
       "OFF_CONFIRM_20260901_222733_100t",
-      "ON_450t_20260901083953_503_20260902_014033",
       "MEAS_450t_20260901083953_503",
       "MEAS_100t_20260901163400_350",
       "OFF_CONFIRM_20260902_040025_100t"
