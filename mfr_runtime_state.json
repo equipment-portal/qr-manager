@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T16:45:04.611653",
+  "saved_at": "2026-09-01T16:45:05.953633",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -206,25 +206,8 @@
       "ON_100t_20260901163400_1_20260901_163403",
       "OFF_CONFIRM_20260901_163443_100t"
     ],
-    "pending_power_off_due": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-01T16:34:43.473940"
-    },
-    "pending_power_off_context": {
-      "type": "measurement",
-      "machine": "100t",
-      "label": "始",
-      "completed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-01T16:34:43.473940"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-01T16:44:43.473940"
-      },
-      "confirmation_acknowledged": true,
-      "off_recorded": true
-    },
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
