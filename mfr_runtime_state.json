@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-01T16:33:51.396114",
+  "saved_at": "2026-09-01T16:34:03.727975",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -35,9 +35,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-01T16:16:49.466876"
+          "value": "2026-09-01T17:34:03.727527"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -50,7 +50,42 @@
         ],
         "status": "Running"
       },
-      "100t": null
+      "100t": {
+        "job_id": "100t_20260901163400",
+        "product_name": "P02197J",
+        "total_qty": 1503,
+        "cycle_time": 117.0,
+        "measurement_count": 3,
+        "current_qty": 0,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-01T16:34:00.057165"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-01T16:34:00.057165"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-01T16:34:00.057165"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-01T17:34:03.727527"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          751,
+          1503
+        ],
+        "completed": [],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -158,7 +193,6 @@
       "OFF_CONFIRM_20260901_020213_100t",
       "MEAS_450t_20260831105809_503",
       "OFF_CONFIRM_20260901_054218_450t",
-      "ON_450t_20260901083953_251_20260901_150921",
       "MEAS_REMINDER_450t_20260901083953_251",
       "OFF_CONFIRM_20260901_163347_450t"
     ],
@@ -185,11 +219,8 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-01T15:16:49.466876"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
   }
 }
