@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-03T07:20:01.659981",
+  "saved_at": "2026-09-03T07:20:40.685127",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260903072037",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.82,
+        "measurement_count": 3,
+        "current_qty": 184,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T07:20:37.980409"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T07:20:37.980409"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T07:20:37.980409"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T08:20:40.684697"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -123,10 +160,8 @@
       "MEAS_450t_20260901083953_503",
       "MEAS_100t_20260901163400_350",
       "OFF_CONFIRM_20260902_040025_100t",
-      "ON_450t_20260902072130_251_20260902_121104",
       "MEAS_450t_20260902072130_251",
       "OFF_CONFIRM_20260902_131447_450t",
-      "ON_450t_20260902072130_503_20260902_224131",
       "MEAS_REMINDER_450t_20260902072130_503",
       "OFF_CONFIRM_20260903_071955_450t"
     ],
@@ -153,11 +188,8 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-03T07:19:47.084934"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
   }
 }
