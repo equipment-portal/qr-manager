@@ -3035,6 +3035,34 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "event_id": "ON_450t_20260902072130_251_20260902_121104",
+      "action": "ON",
+      "actual_at": "2026-09-02T12:13:24",
+      "scheduled_at": "2026-09-02T12:11:04",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
+    },
+    {
+      "event_id": "OFF_ACTUAL_20260902_132447_450t",
+      "action": "OFF",
+      "actual_at": "2026-09-02T13:24:47",
+      "scheduled_at": "2026-09-02T13:24:47",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "deleted_production_ids": [
