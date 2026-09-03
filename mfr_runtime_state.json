@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-03T20:49:53.380162",
+  "saved_at": "2026-09-03T20:49:56.629670",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
@@ -29,9 +29,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-03T21:49:53.379489"
+          "value": "2026-09-03T21:49:56.628995"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -164,7 +164,8 @@
       "OFF_CONFIRM_20260903_071955_450t",
       "OFF_CONFIRM_20260903_120844_450t",
       "MEAS_450t_20260903072037_251",
-      "OFF_CONFIRM_20260903_120942_450t"
+      "OFF_CONFIRM_20260903_120942_450t",
+      "ON_450t_20260903204949_1_20260903_204953"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
@@ -172,21 +173,24 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": {
-      "id": "INSPECTION_ON_450t_20260903121026_503_20260903_193719_450t_20260903121026_503",
+      "id": "INSPECTION_ON_450t_20260903204949_1_20260903_204953_450t_20260903204949_1",
       "power_on_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-03T19:55:53.258049"
+        "value": "2026-09-03T20:49:56.628995"
       },
       "due_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-03T20:55:53.258049"
+        "value": "2026-09-03T21:49:56.628995"
       },
       "machine": "450t",
-      "target_qty": 503,
-      "job_id": "450t_20260903121026"
+      "target_qty": 1,
+      "job_id": "450t_20260903204949"
     },
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-09-03T20:49:56.628995"
+    },
     "mfr_power_state_version": 2
   }
 }
