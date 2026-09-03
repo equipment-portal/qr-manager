@@ -1,11 +1,49 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-03T12:10:09.141248",
+  "saved_at": "2026-09-03T12:10:29.110329",
   "app_version": "1.6.45",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260903121026",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.82,
+        "measurement_count": 3,
+        "current_qty": 300,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T12:10:26.142208"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T12:10:26.142208"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T12:10:26.142208"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-03T13:10:29.109841"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1,
+          251
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -127,7 +165,6 @@
       "OFF_CONFIRM_20260902_131447_450t",
       "MEAS_REMINDER_450t_20260902072130_503",
       "OFF_CONFIRM_20260903_071955_450t",
-      "ON_450t_20260903072037_251_20260903_090755",
       "OFF_CONFIRM_20260903_120844_450t",
       "MEAS_450t_20260903072037_251",
       "OFF_CONFIRM_20260903_120942_450t"
@@ -155,11 +192,8 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-03T09:13:25.229687"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2
   }
 }
