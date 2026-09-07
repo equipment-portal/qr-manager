@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-07T10:40:57.243867",
+  "saved_at": "2026-09-07T10:41:26.599165",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20260907104124",
+        "product_name": "P04035J-M",
+        "total_qty": 302,
+        "cycle_time": 105.15,
+        "measurement_count": 3,
+        "current_qty": 90,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-07T10:41:24.255368"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-07T10:41:24.255368"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-07T10:41:24.255368"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-07T10:41:26.598436"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          151,
+          302
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -145,13 +182,29 @@
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ACTUAL_ON_450t_20260907104124_450t_20260907104124_151",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-07T09:41:26.598436"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-07T12:28:18.405368"
+      },
+      "machine": "450t",
+      "target_qty": 151,
+      "job_id": "450t_20260907104124"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-09-07T09:41:26.598436"
+    },
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": null,
-      "450t": "P04989J-M",
+      "450t": "P04035J-M",
       "550t": null
     }
   }
