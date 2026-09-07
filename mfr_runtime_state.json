@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-07T23:55:33.291698",
+  "saved_at": "2026-09-07T23:56:20.201914",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -9,12 +9,12 @@
         "job_id": "450t_20260907104124",
         "product_name": "P04035J-M",
         "total_qty": 603,
-        "cycle_time": 105.15,
+        "cycle_time": 105.25,
         "measurement_count": 3,
         "current_qty": 539,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-07T23:55:33.291278"
+          "value": "2026-09-07T23:56:20.201420"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -236,7 +236,7 @@
       },
       "due_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-08T01:42:30.508075"
+        "value": "2026-09-08T01:48:36.201420"
       },
       "machine": "450t",
       "target_qty": 603,
