@@ -1,12 +1,50 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-11T07:04:40.933357",
+  "saved_at": "2026-09-11T07:05:17.108961",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
       "450t": null,
-      "100t": null
+      "100t": {
+        "job_id": "100t_20260911070515",
+        "product_name": "P05024J",
+        "total_qty": 610,
+        "cycle_time": 77.39,
+        "measurement_count": 3,
+        "current_qty": 388,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-11T07:05:15.080075"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-11T07:05:15.080075"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-11T07:05:15.080075"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-11T08:05:17.108339"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          305,
+          610
+        ],
+        "completed": [
+          1,
+          305
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -149,10 +187,8 @@
       "OFF_CONFIRM_20260909_104535_450t",
       "MEAS_450t_20260910113243_1",
       "OFF_CONFIRM_20260910_113250_450t",
-      "ON_450t_20260910113243_251_20260910_165010",
       "MEAS_450t_20260910113243_251",
       "OFF_CONFIRM_20260910_175759_450t",
-      "ON_100t_20260910113347_1003_20260911_023525",
       "INSPECTION_ON_100t_20260910113347_1003_20260911_023525_100t_20260910113347_1003",
       "OFF_CONFIRM_20260911_042705_450t"
     ],
@@ -166,7 +202,7 @@
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "P02197J",
+      "100t": "P05024J",
       "450t": "P04989J-M",
       "550t": null
     }
