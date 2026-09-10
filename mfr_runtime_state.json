@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-10T17:57:59.509083",
+  "saved_at": "2026-09-10T17:58:01.029937",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -263,7 +263,37 @@
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
-    "pending_signboard_confirmation": null,
+    "pending_signboard_confirmation": {
+      "mode": "off_and_signboard",
+      "id": "OFF_CONFIRM_20260910_175759_450t",
+      "due": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-10T17:57:59.508404"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-10T18:07:59.508404"
+      },
+      "next_on_time": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-11T02:35:25.362524"
+      },
+      "off_context": {
+        "type": "measurement",
+        "machine": "450t",
+        "label": "中",
+        "completed_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-10T17:57:59.508404"
+        },
+        "effective_off_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-10T18:07:59.508404"
+        },
+        "confirmation_acknowledged": false,
+        "off_recorded": false
+      }
+    },
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
