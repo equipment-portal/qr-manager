@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-14T10:11:40.999031",
+  "saved_at": "2026-09-14T10:21:08.129996",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -231,7 +231,7 @@
         "value": "2026-09-14T10:21:07.107526"
       },
       "confirmation_acknowledged": true,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
@@ -250,11 +250,8 @@
       "target_qty": 1,
       "job_id": "450t_20260914101005"
     },
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-14T10:10:15.583517"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P05024J",
