@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-14T17:50:36.195790",
+  "saved_at": "2026-09-14T17:52:30.323099",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -221,7 +221,8 @@
       "OFF_CONFIRM_20260914_101107_450t",
       "INSPECTION_ON_450t_20260914101005_1_20260914_101010_450t_20260914101005_1",
       "ON_450t_20260914101005_251_20260914_164530",
-      "MEAS_450t_20260914101005_251"
+      "MEAS_450t_20260914101005_251",
+      "OFF_CONFIRM_20260914_175034_450t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -239,42 +240,12 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-09-14T18:00:34.542248"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
-    "pending_signboard_confirmation": {
-      "mode": "off_and_signboard",
-      "id": "OFF_CONFIRM_20260914_175034_450t",
-      "due": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-14T17:50:34.542248"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-14T18:00:34.542248"
-      },
-      "next_on_time": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-15T03:23:04.542248"
-      },
-      "off_context": {
-        "type": "measurement",
-        "machine": "450t",
-        "label": "中",
-        "completed_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T17:50:34.542248"
-        },
-        "effective_off_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T18:00:34.542248"
-        },
-        "confirmation_acknowledged": false,
-        "off_recorded": false
-      }
-    },
+    "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
     "mfr_power_is_on": true,
     "mfr_power_on_confirmed_at": {
