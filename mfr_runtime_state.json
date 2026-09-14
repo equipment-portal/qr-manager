@@ -1,46 +1,10 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-14T23:13:46.386380",
+  "saved_at": "2026-09-15T02:32:43.590977",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
-      "550t": {
-        "job_id": "550t_20260914231344",
-        "product_name": "P06216J",
-        "total_qty": 61,
-        "cycle_time": 422.66,
-        "measurement_count": 2,
-        "current_qty": 39,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T23:13:44.092082"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T23:13:44.092082"
-        },
-        "measurement_records": [],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T23:13:44.092082"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T23:13:46.385811"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          61
-        ],
-        "completed": [
-          1
-        ],
-        "status": "Running"
-      },
+      "550t": null,
       "450t": {
         "job_id": "450t_20260914101005",
         "product_name": "LMC-M-105005",
@@ -260,8 +224,25 @@
       "MEAS_450t_20260914101005_251",
       "OFF_CONFIRM_20260914_175034_450t"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-09-15T02:32:43.590217"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "550t",
+      "label": "終",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T02:32:43.590217"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T02:42:43.590217"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
