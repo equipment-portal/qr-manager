@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-15T04:34:11.798840",
+  "saved_at": "2026-09-15T04:34:12.964508",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -167,25 +167,8 @@
       "ON_450t_20260914101005_503_20260915_032304",
       "OFF_CONFIRM_20260915_042322_450t"
     ],
-    "pending_power_off_due": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-15T04:23:22.546503"
-    },
-    "pending_power_off_context": {
-      "type": "measurement",
-      "machine": "450t",
-      "label": "終",
-      "completed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-15T04:23:22.546503"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-09-15T04:33:22.546503"
-      },
-      "confirmation_acknowledged": true,
-      "off_recorded": true
-    },
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
