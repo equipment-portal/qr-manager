@@ -1,72 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-15T04:20:35.957113",
+  "saved_at": "2026-09-15T04:23:22.760441",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20260914101005",
-        "product_name": "LMC-M-105005",
-        "total_qty": 503,
-        "cycle_time": 151.8,
-        "measurement_count": 3,
-        "current_qty": 253,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T17:50:34.542248"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T10:10:05.421474"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-09-14T10:11:07"
-          },
-          {
-            "target_qty": 251,
-            "label": "中",
-            "measured_at": "2026-09-14T17:50:34"
-          }
-        ],
-        "production_segments": [
-          {
-            "start": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-09-14T10:10:05.421474"
-            },
-            "end": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-09-14T10:10:55.731852"
-            },
-            "end_reason": "pause"
-          }
-        ],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T10:11:40.998596"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-14T23:13:46.385811"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1,
-          251
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": null
     },
     "last_inspection_date": null,
@@ -227,11 +166,55 @@
       "INSPECTION_ACTUAL_ON_550t_20260914231344_550t_20260914231344_61",
       "ON_450t_20260914101005_503_20260915_032304"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-09-15T04:23:22.546503"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "450t",
+      "label": "終",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T04:23:22.546503"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T04:33:22.546503"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
-    "pending_signboard_confirmation": null,
+    "pending_signboard_confirmation": {
+      "mode": "off_and_signboard",
+      "id": "OFF_CONFIRM_20260915_042322_450t",
+      "due": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T04:23:22.546503"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-09-15T04:33:22.546503"
+      },
+      "next_on_time": null,
+      "off_context": {
+        "type": "measurement",
+        "machine": "450t",
+        "label": "終",
+        "completed_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-15T04:23:22.546503"
+        },
+        "effective_off_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-15T04:33:22.546503"
+        },
+        "confirmation_acknowledged": false,
+        "off_recorded": false
+      }
+    },
     "pending_daily_inspection": {
       "id": "INSPECTION_ON_450t_20260914101005_503_20260915_032304_450t_20260914101005_503",
       "power_on_at": {
