@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-14T10:11:12.415812",
+  "saved_at": "2026-09-14T10:11:33.036222",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -8,7 +8,7 @@
       "450t": {
         "job_id": "450t_20260914101005",
         "product_name": "LMC-M-105005",
-        "total_qty": 403,
+        "total_qty": 503,
         "cycle_time": 151.8,
         "measurement_count": 3,
         "current_qty": 70,
@@ -53,8 +53,8 @@
         "first_measure_due_at": null,
         "targets": [
           1,
-          201,
-          403
+          251,
+          503
         ],
         "completed": [
           1
