@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-17T23:12:55.732103",
+  "saved_at": "2026-09-17T23:13:17.516535",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -28,9 +28,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-17T23:09:52.578324"
+          "value": "2026-09-18T00:13:17.515913"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -65,9 +65,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-09-17T23:08:43.038936"
+          "value": "2026-09-18T00:13:17.515913"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -80,7 +80,44 @@
         ],
         "status": "Running"
       },
-      "100t": null
+      "100t": {
+        "job_id": "100t_20260917231314",
+        "product_name": "145681-MLD",
+        "total_qty": 505,
+        "cycle_time": 75.27,
+        "measurement_count": 3,
+        "current_qty": 46,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-17T23:13:14.337521"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-17T23:13:14.337521"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-17T23:13:14.337521"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-09-18T00:13:17.515913"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          252,
+          505
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -244,13 +281,10 @@
       "INSPECTION_ON_100t_20260915161425_1505_20260916_021403_100t_20260915161425_1505",
       "MEAS_450t_20260916085626_1",
       "OFF_CONFIRM_20260916_085635_450t",
-      "ON_450t_20260916085626_251_20260916_175716",
       "MEAS_450t_20260916085626_251",
       "OFF_CONFIRM_20260916_191559_450t",
-      "ON_550t_20260916160147_61_20260916_203252",
       "OFF_CONFIRM_20260916_213540_550t",
       "INSPECTION_ON_550t_20260916160147_61_20260916_203252_550t_20260916160147_61",
-      "ON_100t_20260916160130_751_20260916_231845",
       "MEAS_REMINDER_100t_20260916160130_751",
       "OFF_CONFIRM_20260917_230802_100t"
     ],
@@ -277,14 +311,11 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-09-17T23:07:58.354462"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "P02197J",
+      "100t": "145681-MLD",
       "450t": "P04989J-M",
       "550t": "P06216J"
     }
