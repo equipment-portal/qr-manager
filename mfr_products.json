@@ -46,5 +46,11 @@
     "qty": 610,
     "cycle": 77.39,
     "measurements": 3
+  },
+  "145681-MLD": {
+    "machine": "100t",
+    "qty": 505,
+    "cycle": 75.27,
+    "measurements": 3
   }
 }
