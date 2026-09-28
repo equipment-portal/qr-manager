@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-09-29T01:46:06.926528",
+  "saved_at": "2026-09-29T01:54:37.509564",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -275,7 +275,7 @@
         "value": "2026-09-29T01:54:23.931250"
       },
       "confirmation_acknowledged": true,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
