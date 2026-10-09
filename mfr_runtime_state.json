@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-09T21:33:50.752306",
+  "saved_at": "2026-10-09T21:34:04.692734",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -56,16 +56,22 @@
         "total_qty": 1505,
         "cycle_time": 54.97,
         "measurement_count": 3,
-        "current_qty": 666,
+        "current_qty": 751,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-09T20:15:25.896986"
+          "value": "2026-10-09T21:34:04.692240"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-10-09T20:15:25.896986"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 752,
+            "label": "中",
+            "measured_at": "2026-10-09T21:34:04"
+          }
+        ],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -84,7 +90,8 @@
           1505
         ],
         "completed": [
-          1
+          1,
+          752
         ],
         "status": "Running"
       }
@@ -287,8 +294,25 @@
       "ON_450t_20261009203112_151_20261009_203114",
       "INSPECTION_ON_450t_20261009203112_151_20261009_203114_450t_20261009203112_151"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-10-09T21:34:04.692240"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "100t",
+      "label": "中",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-09T21:34:04.692240"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-09T21:44:04.692240"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
