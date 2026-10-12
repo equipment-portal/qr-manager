@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-12T12:42:34.770900",
+  "saved_at": "2026-10-12T12:42:36.897237",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -228,7 +228,7 @@
         "value": "2026-10-10T11:12:36.537678"
       },
       "confirmation_acknowledged": false,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
@@ -257,7 +257,7 @@
           "value": "2026-10-10T11:12:36.537678"
         },
         "confirmation_acknowledged": false,
-        "off_recorded": false
+        "off_recorded": true
       }
     },
     "pending_daily_inspection": {
@@ -274,11 +274,8 @@
       "target_qty": 1505,
       "job_id": "100t_20261009201525"
     },
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-10-10T08:28:54.500515"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02251J",
