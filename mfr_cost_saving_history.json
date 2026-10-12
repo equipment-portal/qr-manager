@@ -2560,6 +2560,40 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "100t_20261012124415",
+      "machine": "100t",
+      "product_name": "P02197J",
+      "total_qty": 251,
+      "final_qty": 251,
+      "cycle_time": 116.05,
+      "measurement_count": 3,
+      "measurement_completed_count": 3,
+      "measurement_records": [
+        {
+          "target_qty": 125,
+          "label": "中",
+          "measured_at": "2026-10-12T12:45:34"
+        },
+        {
+          "target_qty": 251,
+          "label": "終",
+          "measured_at": "2026-10-12T18:28:55"
+        }
+      ],
+      "started_at": "2026-10-12T12:44:15",
+      "ended_at": "2026-10-12T18:28:55",
+      "completion_type": "final_measurement_auto",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
@@ -5158,6 +5192,34 @@
       "action": "OFF",
       "actual_at": "2026-10-12T12:55:34",
       "scheduled_at": "2026-10-12T12:55:34",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
+    },
+    {
+      "event_id": "ON_100t_20261012124415_251_20261012_163024",
+      "action": "ON",
+      "actual_at": "2026-10-12T18:28:43",
+      "scheduled_at": "2026-10-12T16:30:24",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
+    },
+    {
+      "event_id": "OFF_ACTUAL_20261012_183855_100t",
+      "action": "OFF",
+      "actual_at": "2026-10-12T18:38:55",
+      "scheduled_at": "2026-10-12T18:38:55",
       "settings": {
         "power_kw": 0.8,
         "electricity_price": 25.0,
