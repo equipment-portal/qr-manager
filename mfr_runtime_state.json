@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-14T14:19:47.621922",
+  "saved_at": "2026-10-14T14:19:57.892205",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -28,9 +28,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-14T09:42:19.090401"
+          "value": "2026-10-14T15:19:57.891216"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -71,9 +71,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-14T09:42:19.090401"
+          "value": "2026-10-14T15:19:57.891216"
         },
-        "waiting_for_mfr_power_on": true,
+        "waiting_for_mfr_power_on": false,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -298,16 +298,33 @@
       "MEAS_450t_20261013073024_300",
       "OFF_CONFIRM_20261013_162542_450t",
       "OFF_CONFIRM_20261014_010857_450t",
-      "INSPECTION_ON_450t_20261013073024_601_20261014_000841_450t_20261013073024_601"
+      "INSPECTION_ON_450t_20261013073024_601_20261014_000841_450t_20261013073024_601",
+      "ON_550t_20261014084217_61_20261014_140241"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ON_550t_20261014084217_61_20261014_140241_550t_20261014084217_61",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-14T14:19:57.891216"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-14T15:19:57.891216"
+      },
+      "machine": "550t",
+      "target_qty": 61,
+      "job_id": "550t_20261014084217"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-10-14T14:19:57.891216"
+    },
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02197J",
