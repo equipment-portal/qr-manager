@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-21T03:49:55.748661",
+  "saved_at": "2026-10-21T03:50:10.491014",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -53,12 +53,12 @@
         "job_id": "100t_20261021034953",
         "product_name": "P02197J",
         "total_qty": 1503,
-        "cycle_time": 116.05,
+        "cycle_time": 117.97,
         "measurement_count": 3,
         "current_qty": 503,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T03:49:53.185714"
+          "value": "2026-10-21T03:50:10.490516"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
