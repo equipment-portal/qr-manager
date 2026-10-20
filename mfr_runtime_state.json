@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-21T03:48:18.769273",
+  "saved_at": "2026-10-21T03:49:55.748661",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -35,13 +35,10 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T02:28:38.927342"
+          "value": "2026-10-21T04:49:55.746519"
         },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T02:28:37.283265"
-        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
         "targets": [
           1,
           151,
@@ -52,7 +49,44 @@
         ],
         "status": "Running"
       },
-      "100t": null
+      "100t": {
+        "job_id": "100t_20261021034953",
+        "product_name": "P02197J",
+        "total_qty": 1503,
+        "cycle_time": 116.05,
+        "measurement_count": 3,
+        "current_qty": 503,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-21T03:49:53.185714"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-21T03:49:53.185714"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-21T03:49:53.185714"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-21T04:49:55.746519"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          751,
+          1503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -282,13 +316,10 @@
       "OFF_CONFIRM_20261016_150533_450t",
       "OFF_CONFIRM_20261016_215756_450t",
       "INSPECTION_ON_450t_20261016081346_503_20261016_205733_450t_20261016081346_503",
-      "ON_100t_20261020071141_1003_20261020_073233",
       "MEAS_100t_20261020071141_1003",
       "OFF_CONFIRM_20261020_083656_100t",
-      "ON_450t_20261020070935_251_20261020_145127",
       "MEAS_REMINDER_450t_20261020070935_251",
       "OFF_CONFIRM_20261020_160645_450t",
-      "ON_450t_20261020070935_503_20261021_012101",
       "MEAS_450t_20261020070935_503",
       "OFF_CONFIRM_20261021_022746_450t",
       "MEAS_450t_20261021022837_1",
@@ -304,7 +335,7 @@
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "P02251J",
+      "100t": "P02197J",
       "450t": "P04989J-DKN",
       "550t": "P06216J"
     }
