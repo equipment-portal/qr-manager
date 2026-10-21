@@ -5929,6 +5929,20 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "event_id": "ON_450t_20261021022837_303_20261021_141241",
+      "action": "ON",
+      "actual_at": "2026-10-21T14:19:32",
+      "scheduled_at": "2026-10-21T14:12:41",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "deleted_production_ids": [
