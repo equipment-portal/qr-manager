@@ -1,56 +1,12 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-21T19:15:13.648406",
+  "saved_at": "2026-10-21T20:22:58.180120",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
       "450t": null,
-      "100t": {
-        "job_id": "100t_20261021034953",
-        "product_name": "P02197J",
-        "total_qty": 1003,
-        "cycle_time": 117.97,
-        "measurement_count": 3,
-        "current_qty": 503,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T03:51:03.880361"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T03:49:53.185714"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 501,
-            "label": "中",
-            "measured_at": "2026-10-21T03:51:03"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T03:49:53.185714"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-21T04:50:43.767748"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          501,
-          1003
-        ],
-        "completed": [
-          1,
-          501
-        ],
-        "status": "Running"
-      }
+      "100t": null
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -299,8 +255,25 @@
       "OFF_CONFIRM_20261021_151327_450t",
       "ON_100t_20261021034953_1003_20261021_191408"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-10-21T20:22:58.179312"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "100t",
+      "label": "終",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-21T20:22:58.179312"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-21T20:32:58.179312"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
