@@ -1,11 +1,49 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-26T23:17:49.162644",
+  "saved_at": "2026-10-26T23:18:11.314931",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261026231809",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.82,
+        "measurement_count": 3,
+        "current_qty": 376,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-26T23:18:09.984221"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-26T23:18:09.984221"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-26T23:18:09.984221"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-27T00:18:11.314292"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1,
+          251
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -252,10 +290,8 @@
       "OFF_CONFIRM_20261021_151327_450t",
       "OFF_CONFIRM_20261021_202258_100t",
       "INSPECTION_ON_100t_20261021034953_1003_20261021_191408_100t_20261021034953_1003",
-      "ON_450t_20261022005629_151_20261022_033656",
       "MEAS_450t_20261022005629_151",
       "OFF_CONFIRM_20261022_060049_450t",
-      "ON_450t_20261022005629_302_20261022_095921",
       "OFF_CONFIRM_20261022_110306_450t",
       "INSPECTION_ON_450t_20261022005629_302_20261022_095921_450t_20261022005629_302"
     ],
@@ -270,7 +306,7 @@
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02197J",
-      "450t": "LMC-M-105005",
+      "450t": "P04989J-M",
       "550t": "P06216J"
     }
   }
