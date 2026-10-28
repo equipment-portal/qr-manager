@@ -1,10 +1,47 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-29T02:02:55.379690",
+  "saved_at": "2026-10-29T02:03:01.732170",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20261029020300",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 0,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T02:03:00.064072"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T02:03:00.064072"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T02:03:00.064072"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T02:03:01.731509"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T02:03:00.064072"
+        },
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [],
+        "status": "Running"
+      },
       "450t": {
         "job_id": "450t_20261028232428",
         "product_name": "P04989J-M",
