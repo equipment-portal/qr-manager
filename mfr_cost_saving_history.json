@@ -3175,6 +3175,35 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "550t_20261028151234",
+      "machine": "550t",
+      "product_name": "P06216J",
+      "total_qty": 60,
+      "final_qty": 60,
+      "cycle_time": 422.66,
+      "measurement_count": 2,
+      "measurement_completed_count": 2,
+      "measurement_records": [
+        {
+          "target_qty": 60,
+          "label": "終",
+          "measured_at": "2026-10-28T19:12:07"
+        }
+      ],
+      "started_at": "2026-10-28T15:12:34",
+      "ended_at": "2026-10-28T19:12:07",
+      "completion_type": "final_measurement_auto",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
