@@ -3152,6 +3152,29 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "job_id": "100t_20261028151110",
+      "machine": "100t",
+      "product_name": "P02197J",
+      "total_qty": 1503,
+      "final_qty": 684,
+      "cycle_time": 117.97,
+      "measurement_count": 3,
+      "measurement_completed_count": 1,
+      "measurement_records": [],
+      "started_at": "2026-10-28T15:11:10",
+      "ended_at": "2026-10-28T15:11:41",
+      "completion_type": "manual_end",
+      "labor_saving_yen": 383.33,
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "power_events": [
@@ -6450,6 +6473,20 @@
       "action": "ON",
       "actual_at": "2026-10-28T14:18:17",
       "scheduled_at": "2026-10-28T14:04:35",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
+    },
+    {
+      "event_id": "OFF_ACTUAL_20261028_151956_100t",
+      "action": "OFF",
+      "actual_at": "2026-10-28T15:19:56",
+      "scheduled_at": "2026-10-28T15:19:56",
       "settings": {
         "power_kw": 0.8,
         "electricity_price": 25.0,
