@@ -6348,6 +6348,20 @@
         "maintenance_cost": 0.0,
         "maintenance_life_hours": 0.0
       }
+    },
+    {
+      "event_id": "ON_550t_20261028043447_61_20261028_104436",
+      "action": "ON",
+      "actual_at": "2026-10-28T11:45:43",
+      "scheduled_at": "2026-10-28T10:44:36",
+      "settings": {
+        "power_kw": 0.8,
+        "electricity_price": 25.0,
+        "labor_hourly_rate": 4600.0,
+        "manual_minutes_per_lot": 5.0,
+        "maintenance_cost": 0.0,
+        "maintenance_life_hours": 0.0
+      }
     }
   ],
   "deleted_production_ids": [
