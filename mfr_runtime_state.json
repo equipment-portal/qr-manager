@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-30T00:36:19.450755",
+  "saved_at": "2026-10-30T00:46:53.925821",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -381,7 +381,7 @@
         "value": "2026-10-30T00:46:12.527577"
       },
       "confirmation_acknowledged": true,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
@@ -400,11 +400,8 @@
       "target_qty": 61,
       "job_id": "550t_20261029223146"
     },
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-10-29T23:31:35.788087"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "LMC-M-105000",
