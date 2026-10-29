@@ -1,12 +1,50 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-29T22:30:42.442001",
+  "saved_at": "2026-10-29T22:31:00.190829",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
       "450t": null,
-      "100t": null
+      "100t": {
+        "job_id": "100t_20261029223057",
+        "product_name": "LMC-M-105000",
+        "total_qty": 503,
+        "cycle_time": 93.99,
+        "measurement_count": 3,
+        "current_qty": 349,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T22:30:57.461601"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T22:30:57.461601"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T22:30:57.461601"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-29T23:31:00.189976"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1,
+          251
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -274,19 +312,16 @@
       "OFF_CONFIRM_20261028_191207_550t",
       "OFF_CONFIRM_20261028_232408_450t",
       "INSPECTION_ON_550t_20261028151234_60_20261028_172254_550t_20261028151234_60",
-      "ON_550t_20261028232552_61_20261029_004645",
       "OFF_CONFIRM_20261029_020236_550t",
       "INSPECTION_ON_550t_20261028232552_61_20261029_004645_550t_20261028232552_61",
       "MEAS_100t_20261028232320_501",
       "OFF_CONFIRM_20261029_020249_100t",
       "MEAS_550t_20261029020300_1",
       "OFF_CONFIRM_20261029_020306_550t",
-      "ON_550t_20261029020300_61_20261029_081249",
       "MEAS_550t_20261029020300_61",
       "MEAS_450t_20261028232428_251",
       "MEAS_REMINDER_100t_20261028232320_1003",
       "OFF_CONFIRM_20261029_100225_100t",
-      "ON_450t_20261028232428_503_20261029_184557",
       "MEAS_450t_20261028232428_503",
       "OFF_CONFIRM_20261029_195046_450t"
     ],
@@ -300,7 +335,7 @@
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "P02251J",
+      "100t": "LMC-M-105000",
       "450t": "P04989J-M",
       "550t": "P06216J"
     }
