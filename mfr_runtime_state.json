@@ -1,55 +1,10 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-29T08:29:55.149804",
+  "saved_at": "2026-10-29T09:16:30.627699",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
-      "550t": {
-        "job_id": "550t_20261029020300",
-        "product_name": "P06216J",
-        "total_qty": 61,
-        "cycle_time": 422.66,
-        "measurement_count": 2,
-        "current_qty": 0,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-29T02:03:06.922161"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-29T02:03:00.064072"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 1,
-            "label": "始",
-            "measured_at": "2026-10-29T02:03:06"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-29T02:03:00.064072"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-29T02:03:01.731509"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-29T02:03:00.064072"
-        },
-        "targets": [
-          1,
-          61
-        ],
-        "completed": [
-          1
-        ],
-        "status": "Running"
-      },
+      "550t": null,
       "450t": {
         "job_id": "450t_20261028232428",
         "product_name": "P04989J-M",
@@ -409,8 +364,25 @@
       "OFF_CONFIRM_20261029_020306_550t",
       "ON_550t_20261029020300_61_20261029_081249"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-10-29T09:16:30.626357"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "550t",
+      "label": "終",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-29T09:16:30.626357"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-10-29T09:26:30.626357"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
