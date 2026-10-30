@@ -1,60 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-30T12:04:40.896893",
+  "saved_at": "2026-10-30T12:04:45.310024",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20261030120245",
-        "product_name": "P04989J-DKN",
-        "total_qty": 503,
-        "cycle_time": 149.7,
-        "measurement_count": 3,
-        "current_qty": 7,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:04:40.896452"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:02:45.156644"
-        },
-        "measurement_records": [],
-        "production_segments": [
-          {
-            "start": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-10-30T12:02:45.156644"
-            },
-            "end": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-10-30T12:03:01.698312"
-            },
-            "end_reason": "pause"
-          }
-        ],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:04:40.896452"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:02:47.973304"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20261030120423",
         "product_name": "LMC-M-105000",
@@ -389,7 +340,7 @@
       },
       "due_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-10-30T22:11:31.956644"
+        "value": "2026-10-30T22:13:27.696452"
       },
       "machine": "450t",
       "target_qty": 251,
