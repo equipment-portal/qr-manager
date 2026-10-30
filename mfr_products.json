@@ -58,5 +58,11 @@
     "qty": 503,
     "cycle": 90.2,
     "measurements": 3
+  },
+  "LMC-M-105003": {
+    "machine": "100t",
+    "qty": 503,
+    "cycle": 94.0,
+    "measurements": 3
   }
 }
