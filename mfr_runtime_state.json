@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-30T12:02:21.006477",
+  "saved_at": "2026-10-30T12:02:47.974084",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261030120245",
+        "product_name": "P04989J-DKN",
+        "total_qty": 503,
+        "cycle_time": 149.7,
+        "measurement_count": 3,
+        "current_qty": 7,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-30T12:02:45.156644"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-30T12:02:45.156644"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-30T12:02:45.156644"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-10-30T12:02:47.973304"
+        },
+        "waiting_for_mfr_power_on": false,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -313,21 +350,24 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": {
-      "id": "INSPECTION_ON_550t_20261029223146_61_20261029_232429_550t_20261029223146_61",
+      "id": "INSPECTION_ACTUAL_ON_450t_20261030120245_450t_20261030120245_251",
       "power_on_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-10-29T23:31:35.788087"
+        "value": "2026-10-30T11:02:47.973304"
       },
       "due_at": {
         "__mfr_runtime_type__": "datetime",
-        "value": "2026-10-30T00:31:35.788087"
+        "value": "2026-10-30T22:11:31.956644"
       },
-      "machine": "550t",
-      "target_qty": 61,
-      "job_id": "550t_20261029223146"
+      "machine": "450t",
+      "target_qty": 251,
+      "job_id": "450t_20261030120245"
     },
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-10-30T11:02:47.973304"
+    },
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "LMC-M-105000",
