@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-10-30T12:02:47.974084",
+  "saved_at": "2026-10-30T12:03:01.698637",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -14,19 +14,31 @@
         "current_qty": 7,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:02:45.156644"
+          "value": "2026-10-30T12:03:01.698312"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-10-30T12:02:45.156644"
         },
         "measurement_records": [],
-        "production_segments": [],
-        "active_segment_started_at": {
+        "production_segments": [
+          {
+            "start": {
+              "__mfr_runtime_type__": "datetime",
+              "value": "2026-10-30T12:02:45.156644"
+            },
+            "end": {
+              "__mfr_runtime_type__": "datetime",
+              "value": "2026-10-30T12:03:01.698312"
+            },
+            "end_reason": "pause"
+          }
+        ],
+        "active_segment_started_at": null,
+        "paused_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-10-30T12:02:45.156644"
+          "value": "2026-10-30T12:03:01.698312"
         },
-        "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-10-30T12:02:47.973304"
@@ -41,7 +53,7 @@
         "completed": [
           1
         ],
-        "status": "Running"
+        "status": "Paused"
       },
       "100t": null
     },
