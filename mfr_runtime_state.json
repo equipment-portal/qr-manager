@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-03T21:13:01.267885",
+  "saved_at": "2026-11-04T09:48:25.690478",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261104094823",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.87,
+        "measurement_count": 3,
+        "current_qty": 118,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-04T09:48:23.188362"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-04T09:48:23.188362"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-04T09:48:23.188362"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-04T10:48:25.689206"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -294,10 +331,8 @@
       "OFF_CONFIRM_20261102_103433_450t",
       "OFF_CONFIRM_20261102_103609_450t",
       "INSPECTION_ON_100t_20261030120423_505_20261030_194753_100t_20261030120423_505",
-      "ON_450t_20261102103602_503_20261102_213032",
       "OFF_CONFIRM_20261102_223607_450t",
       "INSPECTION_ON_450t_20261102103602_503_20261102_213032_450t_20261102103602_503",
-      "ON_100t_20261102103512_501_20261103_003858",
       "OFF_CONFIRM_20261103_083955_100t",
       "MEAS_100t_20261102103512_501",
       "OFF_CONFIRM_20261103_084034_100t",
@@ -305,10 +340,8 @@
       "OFF_CONFIRM_20261103_114850_450t",
       "MEAS_450t_20261103115039_1",
       "OFF_CONFIRM_20261103_115047_450t",
-      "ON_450t_20261103115039_151_20261103_153459",
       "MEAS_450t_20261103115039_151",
       "OFF_CONFIRM_20261103_164113_450t",
-      "ON_100t_20261102103512_1002_20261103_192510",
       "INSPECTION_ON_100t_20261102103512_1002_20261103_192510_100t_20261102103512_1002",
       "OFF_CONFIRM_20261103_210214_450t"
     ],
@@ -323,7 +356,7 @@
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02197J",
-      "450t": "P04035J-M",
+      "450t": "P04989J-M",
       "550t": "P06216J"
     }
   }
