@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-04T09:50:19.805924",
+  "saved_at": "2026-11-04T09:50:57.199531",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -46,13 +46,13 @@
       "100t": {
         "job_id": "100t_20261104095012",
         "product_name": "P02251J",
-        "total_qty": 1505,
+        "total_qty": 1003,
         "cycle_time": 54.97,
         "measurement_count": 3,
         "current_qty": 723,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-04T09:50:12.696360"
+          "value": "2026-11-04T09:50:57.199101"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -73,8 +73,8 @@
         "first_measure_due_at": null,
         "targets": [
           1,
-          752,
-          1505
+          501,
+          1003
         ],
         "completed": [
           1
@@ -399,7 +399,7 @@
         "value": "2026-11-04T10:50:19.804955"
       },
       "machine": "100t",
-      "target_qty": 752,
+      "target_qty": 501,
       "job_id": "100t_20261104095012"
     },
     "mfr_power_is_on": true,
