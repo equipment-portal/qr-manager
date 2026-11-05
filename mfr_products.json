@@ -64,5 +64,11 @@
     "qty": 503,
     "cycle": 94.0,
     "measurements": 3
+  },
+  "113313J": {
+    "machine": "100t",
+    "qty": 1012,
+    "cycle": 39.7,
+    "measurements": 2
   }
 }
