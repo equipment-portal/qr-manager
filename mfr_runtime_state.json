@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-05T14:22:42.250102",
+  "saved_at": "2026-11-05T14:22:47.485922",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -14,7 +14,7 @@
         "current_qty": 181,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T14:22:42.249701"
+          "value": "2026-11-05T14:22:47.485398"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -34,11 +34,11 @@
             "end_reason": "pause"
           }
         ],
-        "active_segment_started_at": null,
-        "paused_at": {
+        "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-04T10:59:51.239321"
+          "value": "2026-11-05T14:22:47.485398"
         },
+        "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-11-04T10:50:19.804955"
@@ -53,7 +53,7 @@
         "completed": [
           1
         ],
-        "status": "Paused"
+        "status": "Running"
       },
       "100t": null
     },
