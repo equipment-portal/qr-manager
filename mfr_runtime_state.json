@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-05T14:29:31.317932",
+  "saved_at": "2026-11-05T14:30:15.757306",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -41,9 +41,9 @@
         "paused_at": null,
         "heat_ready_at": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-04T10:50:19.804955"
+          "value": "2026-11-05T15:30:15.756479"
         },
-        "waiting_for_mfr_power_on": false,
+        "waiting_for_mfr_power_on": true,
         "first_measure_due_at": null,
         "targets": [
           1,
@@ -55,7 +55,43 @@
         ],
         "status": "Running"
       },
-      "100t": null
+      "100t": {
+        "job_id": "100t_20261105143013",
+        "product_name": "113313J",
+        "total_qty": 1012,
+        "cycle_time": 39.7,
+        "measurement_count": 2,
+        "current_qty": 351,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-05T14:30:13.346127"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-05T14:30:13.346127"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-05T14:30:13.346127"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-05T15:30:15.756479"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          1012
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -356,10 +392,8 @@
       "OFF_CONFIRM_20261103_164113_450t",
       "INSPECTION_ON_100t_20261102103512_1002_20261103_192510_100t_20261102103512_1002",
       "OFF_CONFIRM_20261103_210214_450t",
-      "ON_100t_20261104095012_752_20261104_095014",
       "OFF_CONFIRM_20261104_095100_100t",
       "INSPECTION_ON_100t_20261104095012_752_20261104_095014_100t_20261104095012_752",
-      "ON_100t_20261104095012_1003_20261104_130732",
       "OFF_CONFIRM_20261104_145440_100t",
       "INSPECTION_ON_100t_20261104095012_1003_20261104_130732_100t_20261104095012_1003"
     ],
@@ -373,7 +407,7 @@
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "P02251J",
+      "100t": "113313J",
       "450t": "P04989J-M",
       "550t": "P06216J"
     }
