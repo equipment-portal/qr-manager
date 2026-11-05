@@ -1,55 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-05T17:31:03.051486",
+  "saved_at": "2026-11-05T19:53:50.201058",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20261105143216",
-        "product_name": "P04989J-DKN",
-        "total_qty": 503,
-        "cycle_time": 149.7,
-        "measurement_count": 3,
-        "current_qty": 252,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T17:20:21.456187"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T14:32:16.006351"
-        },
-        "measurement_records": [
-          {
-            "target_qty": 251,
-            "label": "中",
-            "measured_at": "2026-11-05T17:20:21"
-          }
-        ],
-        "production_segments": [],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T14:32:16.006351"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T17:19:02.194743"
-        },
-        "waiting_for_mfr_power_on": false,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1,
-          251
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20261105143013",
         "product_name": "113313J",
