@@ -1,60 +1,11 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-05T14:30:15.757306",
+  "saved_at": "2026-11-05T14:31:55.764110",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": {
-        "job_id": "450t_20261104094823",
-        "product_name": "P04989J-M",
-        "total_qty": 503,
-        "cycle_time": 149.87,
-        "measurement_count": 3,
-        "current_qty": 181,
-        "last_update": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T14:22:47.485398"
-        },
-        "production_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-04T09:48:23.188362"
-        },
-        "measurement_records": [],
-        "production_segments": [
-          {
-            "start": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-11-04T09:48:23.188362"
-            },
-            "end": {
-              "__mfr_runtime_type__": "datetime",
-              "value": "2026-11-04T10:59:51.239321"
-            },
-            "end_reason": "pause"
-          }
-        ],
-        "active_segment_started_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T14:22:47.485398"
-        },
-        "paused_at": null,
-        "heat_ready_at": {
-          "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-05T15:30:15.756479"
-        },
-        "waiting_for_mfr_power_on": true,
-        "first_measure_due_at": null,
-        "targets": [
-          1,
-          251,
-          503
-        ],
-        "completed": [
-          1
-        ],
-        "status": "Running"
-      },
+      "450t": null,
       "100t": {
         "job_id": "100t_20261105143013",
         "product_name": "113313J",
