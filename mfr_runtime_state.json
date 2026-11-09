@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-06T07:16:30.130924",
+  "saved_at": "2026-11-10T07:17:56.240820",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261110071754",
+        "product_name": "P04989J-DKN",
+        "total_qty": 503,
+        "cycle_time": 149.7,
+        "measurement_count": 3,
+        "current_qty": 20,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-10T07:17:54.232939"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-10T07:17:54.232939"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-10T07:17:54.232939"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-10T08:17:56.239853"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -311,10 +348,8 @@
       "INSPECTION_ON_100t_20261104095012_752_20261104_095014_100t_20261104095012_752",
       "OFF_CONFIRM_20261104_145440_100t",
       "INSPECTION_ON_100t_20261104095012_1003_20261104_130732_100t_20261104095012_1003",
-      "ON_450t_20261105143216_251_20261105_161656",
       "MEAS_450t_20261105143216_251",
       "OFF_CONFIRM_20261105_172021_450t",
-      "ON_100t_20261105143013_1012_20261105_204735",
       "OFF_CONFIRM_20261105_222144_100t",
       "INSPECTION_ON_100t_20261105143013_1012_20261105_204735_100t_20261105143013_1012"
     ],
