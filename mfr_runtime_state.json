@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-11T04:35:30.119276",
+  "saved_at": "2026-11-11T04:46:00.727018",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -338,7 +338,7 @@
         "value": "2026-11-11T04:45:17.715331"
       },
       "confirmation_acknowledged": true,
-      "off_recorded": false
+      "off_recorded": true
     },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
@@ -357,11 +357,8 @@
       "target_qty": 503,
       "job_id": "450t_20261110071754"
     },
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-11-11T04:35:11.154407"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "113313J",
