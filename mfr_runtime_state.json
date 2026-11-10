@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-11T07:08:37.552779",
+  "saved_at": "2026-11-11T07:09:09.917786",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261111070907",
+        "product_name": "LMC-M-105005",
+        "total_qty": 403,
+        "cycle_time": 151.8,
+        "measurement_count": 3,
+        "current_qty": 31,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-11T07:09:07.963891"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-11T07:09:07.963891"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-11T07:09:07.963891"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-11T08:09:09.917083"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          201,
+          403
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -315,10 +352,8 @@
       "OFF_CONFIRM_20261105_172021_450t",
       "OFF_CONFIRM_20261105_222144_100t",
       "INSPECTION_ON_100t_20261105143013_1012_20261105_204735_100t_20261105143013_1012",
-      "ON_450t_20261110071754_251_20261110_155414",
       "MEAS_REMINDER_450t_20261110071754_251",
       "OFF_CONFIRM_20261110_172812_450t",
-      "ON_450t_20261110071754_503_20261111_022430",
       "OFF_CONFIRM_20261111_043517_450t",
       "INSPECTION_ON_450t_20261110071754_503_20261111_022430_450t_20261110071754_503"
     ],
@@ -333,7 +368,7 @@
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "113313J",
-      "450t": "P04989J-DKN",
+      "450t": "LMC-M-105005",
       "550t": "P06216J"
     }
   }
