@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-11T21:53:22.915363",
+  "saved_at": "2026-11-11T21:53:32.051452",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -20,13 +20,7 @@
           "__mfr_runtime_type__": "datetime",
           "value": "2026-11-11T07:09:07.963891"
         },
-        "measurement_records": [
-          {
-            "target_qty": 201,
-            "label": "中",
-            "measured_at": "2026-11-11T14:29:04"
-          }
-        ],
+        "measurement_records": [],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -45,8 +39,7 @@
           403
         ],
         "completed": [
-          1,
-          201
+          1
         ],
         "status": "Running"
       },
@@ -364,7 +357,6 @@
       "OFF_CONFIRM_20261111_043517_450t",
       "INSPECTION_ON_450t_20261110071754_503_20261111_022430_450t_20261110071754_503",
       "ON_450t_20261111070907_201_20261111_131913",
-      "MEAS_450t_20261111070907_201",
       "OFF_CONFIRM_20261111_142904_450t",
       "ON_450t_20261111070907_403_20261111_215232"
     ],
