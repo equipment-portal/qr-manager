@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-12T02:23:04.600978",
+  "saved_at": "2026-11-12T02:23:06.142173",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -372,25 +372,8 @@
       "MEAS_REMINDER_100t_20261111231115_251",
       "OFF_CONFIRM_20261112_021242_100t"
     ],
-    "pending_power_off_due": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-11-12T02:12:42.427787"
-    },
-    "pending_power_off_context": {
-      "type": "measurement",
-      "machine": "100t",
-      "label": "中",
-      "completed_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-11-12T02:12:42.427787"
-      },
-      "effective_off_at": {
-        "__mfr_runtime_type__": "datetime",
-        "value": "2026-11-12T02:22:42.427787"
-      },
-      "confirmation_acknowledged": true,
-      "off_recorded": true
-    },
+    "pending_power_off_due": null,
+    "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
