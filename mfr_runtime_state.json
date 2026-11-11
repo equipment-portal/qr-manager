@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-11T21:53:32.051452",
+  "saved_at": "2026-11-11T21:53:36.561280",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -11,16 +11,22 @@
         "total_qty": 403,
         "cycle_time": 151.8,
         "measurement_count": 3,
-        "current_qty": 204,
+        "current_qty": 379,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-11T14:29:04.192242"
+          "value": "2026-11-11T21:53:36.560692"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
           "value": "2026-11-11T07:09:07.963891"
         },
-        "measurement_records": [],
+        "measurement_records": [
+          {
+            "target_qty": 201,
+            "label": "中",
+            "measured_at": "2026-11-11T21:53:36"
+          }
+        ],
         "production_segments": [],
         "active_segment_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -39,7 +45,8 @@
           403
         ],
         "completed": [
-          1
+          1,
+          201
         ],
         "status": "Running"
       },
@@ -358,10 +365,28 @@
       "INSPECTION_ON_450t_20261110071754_503_20261111_022430_450t_20261110071754_503",
       "ON_450t_20261111070907_201_20261111_131913",
       "OFF_CONFIRM_20261111_142904_450t",
-      "ON_450t_20261111070907_403_20261111_215232"
+      "ON_450t_20261111070907_403_20261111_215232",
+      "MEAS_REMINDER_450t_20261111070907_201"
     ],
-    "pending_power_off_due": null,
-    "pending_power_off_context": null,
+    "pending_power_off_due": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-11-11T21:53:36.560692"
+    },
+    "pending_power_off_context": {
+      "type": "measurement",
+      "machine": "450t",
+      "label": "中",
+      "completed_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-11-11T21:53:36.560692"
+      },
+      "effective_off_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-11-11T22:03:36.560692"
+      },
+      "confirmation_acknowledged": false,
+      "off_recorded": false
+    },
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
