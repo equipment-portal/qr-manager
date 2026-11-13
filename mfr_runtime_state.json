@@ -1,12 +1,49 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-13T07:12:44.229503",
+  "saved_at": "2026-11-13T23:11:32.868751",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
       "450t": null,
-      "100t": null
+      "100t": {
+        "job_id": "100t_20261113231130",
+        "product_name": "P02197J",
+        "total_qty": 1503,
+        "cycle_time": 119.83,
+        "measurement_count": 3,
+        "current_qty": 14,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-13T23:11:30.668178"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-13T23:11:30.668178"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-13T23:11:30.668178"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-14T00:11:32.867661"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          751,
+          1503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      }
     },
     "last_inspection_date": null,
     "acknowledged_alerts": [
@@ -323,11 +360,9 @@
       "MEAS_REMINDER_450t_20261111070907_201",
       "OFF_CONFIRM_20261111_231048_450t",
       "INSPECTION_ON_450t_20261111070907_403_20261111_215232_450t_20261111070907_403",
-      "ON_450t_20261111231150_403_20261111_231153",
       "INSPECTION_ON_450t_20261111231150_403_20261111_231153_450t_20261111231150_403",
       "MEAS_REMINDER_100t_20261111231115_251",
       "OFF_CONFIRM_20261112_021242_100t",
-      "ON_100t_20261111231115_503_20261112_065958",
       "OFF_CONFIRM_20261112_080146_100t",
       "INSPECTION_ON_100t_20261111231115_503_20261112_065958_100t_20261111231115_503"
     ],
@@ -341,7 +376,7 @@
     "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
-      "100t": "LMC-M-105000",
+      "100t": "P02197J",
       "450t": "LMC-M-105005",
       "550t": "P06216J"
     }
