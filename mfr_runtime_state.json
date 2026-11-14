@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-14T10:14:58.235280",
+  "saved_at": "2026-11-14T10:15:05.073408",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -365,7 +365,8 @@
       "OFF_CONFIRM_20261112_021242_100t",
       "OFF_CONFIRM_20261112_080146_100t",
       "INSPECTION_ON_100t_20261111231115_503_20261112_065958_100t_20261111231115_503",
-      "ON_450t_20261113231227_606_20261114_091415"
+      "ON_450t_20261113231227_606_20261114_091415",
+      "OFF_CONFIRM_20261114_101458_450t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -383,7 +384,7 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-11-14T10:24:58.234237"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
