@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-17T15:12:10.769931",
+  "saved_at": "2026-11-17T15:12:23.940746",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -53,13 +53,13 @@
       "100t": {
         "job_id": "100t_20261117151159",
         "product_name": "LMC-M-105000",
-        "total_qty": 503,
+        "total_qty": 505,
         "cycle_time": 90.2,
         "measurement_count": 3,
         "current_qty": 220,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-17T15:11:59.609373"
+          "value": "2026-11-17T15:12:23.940081"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -80,8 +80,8 @@
         "first_measure_due_at": null,
         "targets": [
           1,
-          251,
-          503
+          252,
+          505
         ],
         "completed": [
           1
@@ -434,7 +434,7 @@
         "value": "2026-11-17T16:12:07.374628"
       },
       "machine": "100t",
-      "target_qty": 251,
+      "target_qty": 252,
       "job_id": "100t_20261117151159"
     },
     "mfr_power_is_on": true,
