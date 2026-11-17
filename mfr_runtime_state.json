@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-17T19:40:09.920539",
+  "saved_at": "2026-11-17T22:01:40.486924",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -382,16 +382,33 @@
       "ON_100t_20261117151159_251_20261117_151203",
       "MEAS_REMINDER_100t_20261117151159_252",
       "MEAS_450t_20261116230226_503",
-      "OFF_CONFIRM_20261117_192934_450t"
+      "OFF_CONFIRM_20261117_192934_450t",
+      "ON_100t_20261117151159_505_20261117_212216"
     ],
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
-    "pending_daily_inspection": null,
-    "mfr_power_is_on": false,
-    "mfr_power_on_confirmed_at": null,
+    "pending_daily_inspection": {
+      "id": "INSPECTION_ON_100t_20261117151159_505_20261117_212216_100t_20261117151159_505",
+      "power_on_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-11-17T22:01:40.485992"
+      },
+      "due_at": {
+        "__mfr_runtime_type__": "datetime",
+        "value": "2026-11-17T22:22:16.911825"
+      },
+      "machine": "100t",
+      "target_qty": 505,
+      "job_id": "100t_20261117151159"
+    },
+    "mfr_power_is_on": true,
+    "mfr_power_on_confirmed_at": {
+      "__mfr_runtime_type__": "datetime",
+      "value": "2026-11-17T22:01:40.485992"
+    },
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "LMC-M-105000",
