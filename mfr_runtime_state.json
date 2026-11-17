@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-17T22:46:16.437509",
+  "saved_at": "2026-11-17T22:46:20.892363",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -340,7 +340,8 @@
       "MEAS_450t_20261116230226_503",
       "OFF_CONFIRM_20261117_192934_450t",
       "ON_100t_20261117151159_505_20261117_212216",
-      "MEAS_REMINDER_100t_20261117151159_505"
+      "MEAS_REMINDER_100t_20261117151159_505",
+      "OFF_CONFIRM_20261117_224611_100t"
     ],
     "pending_power_off_due": {
       "__mfr_runtime_type__": "datetime",
@@ -358,7 +359,7 @@
         "__mfr_runtime_type__": "datetime",
         "value": "2026-11-17T22:56:11.801066"
       },
-      "confirmation_acknowledged": false,
+      "confirmation_acknowledged": true,
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
