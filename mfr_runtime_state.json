@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-18T15:56:09.289470",
+  "saved_at": "2026-11-18T15:56:13.836161",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -419,10 +419,7 @@
       "off_recorded": false
     },
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "450t",
-      "job_id": "450t_20261117225443"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": {
       "id": "INSPECTION_ON_450t_20261117225443_503_20261118_151945_450t_20261117225443_503",
