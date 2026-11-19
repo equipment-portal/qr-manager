@@ -1,10 +1,46 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-19T21:58:00.128971",
+  "saved_at": "2026-11-19T22:00:28.396914",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
-      "550t": null,
+      "550t": {
+        "job_id": "550t_20261119220025",
+        "product_name": "P06216J",
+        "total_qty": 61,
+        "cycle_time": 422.66,
+        "measurement_count": 2,
+        "current_qty": 2,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-19T22:00:25.413433"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-19T22:00:25.413433"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-19T22:00:25.413433"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-19T23:00:28.395687"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          61
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "450t": null,
       "100t": null
     },
@@ -346,13 +382,10 @@
       "OFF_CONFIRM_20261118_070744_450t",
       "OFF_CONFIRM_20261118_155603_450t",
       "INSPECTION_ON_450t_20261117225443_503_20261118_151945_450t_20261117225443_503",
-      "ON_100t_20261118230839_251_20261118_234115",
       "MEAS_100t_20261118230839_251",
       "OFF_CONFIRM_20261119_005331_100t",
-      "ON_100t_20261118230839_502_20261119_033134",
       "OFF_CONFIRM_20261119_043358_100t",
       "INSPECTION_ON_100t_20261118230839_502_20261119_033134_100t_20261118230839_502",
-      "ON_450t_20261118230944_251_20261119_063828",
       "MEAS_REMINDER_450t_20261118230944_251",
       "OFF_CONFIRM_20261119_215738_450t",
       "OFF_CONFIRM_20261119_215754_450t"
@@ -380,11 +413,8 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-11-19T21:57:31.227587"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02251J",
