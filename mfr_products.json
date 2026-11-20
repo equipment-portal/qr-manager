@@ -70,5 +70,11 @@
     "qty": 1012,
     "cycle": 39.7,
     "measurements": 2
+  },
+  "P06859J": {
+    "machine": "450t",
+    "qty": 465,
+    "cycle": 155.42,
+    "measurements": 3
   }
 }
