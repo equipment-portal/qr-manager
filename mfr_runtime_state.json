@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-20T18:49:38.706628",
+  "saved_at": "2026-11-20T18:49:42.149684",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -398,10 +398,7 @@
     "pending_power_off_due": null,
     "pending_power_off_context": null,
     "pending_measurement_required_before_finish": null,
-    "pending_production_finish_confirmation": {
-      "machine": "550t",
-      "job_id": "550t_20261120155357"
-    },
+    "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": {
       "id": "INSPECTION_ON_550t_20261120155357_61_20261120_181112_550t_20261120155357_61",
