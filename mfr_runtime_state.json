@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-20T20:24:22.875442",
+  "saved_at": "2026-11-20T20:24:34.736173",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": {
         "job_id": "550t_20261120184947",
         "product_name": "P06216J",
-        "total_qty": 61,
+        "total_qty": 60,
         "cycle_time": 422.66,
         "measurement_count": 2,
         "current_qty": 11,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-20T20:24:22.875002"
+          "value": "2026-11-20T20:24:34.735580"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
@@ -40,7 +40,7 @@
         "first_measure_due_at": null,
         "targets": [
           1,
-          61
+          60
         ],
         "completed": [
           1
