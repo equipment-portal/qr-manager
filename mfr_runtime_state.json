@@ -1,11 +1,48 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-24T07:18:08.897497",
+  "saved_at": "2026-11-24T07:19:01.041788",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
       "550t": null,
-      "450t": null,
+      "450t": {
+        "job_id": "450t_20261124071859",
+        "product_name": "P04989J-M",
+        "total_qty": 503,
+        "cycle_time": 149.78,
+        "measurement_count": 3,
+        "current_qty": 56,
+        "last_update": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-24T07:18:59.013173"
+        },
+        "production_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-24T07:18:59.013173"
+        },
+        "measurement_records": [],
+        "production_segments": [],
+        "active_segment_started_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-24T07:18:59.013173"
+        },
+        "paused_at": null,
+        "heat_ready_at": {
+          "__mfr_runtime_type__": "datetime",
+          "value": "2026-11-24T08:19:01.040564"
+        },
+        "waiting_for_mfr_power_on": true,
+        "first_measure_due_at": null,
+        "targets": [
+          1,
+          251,
+          503
+        ],
+        "completed": [
+          1
+        ],
+        "status": "Running"
+      },
       "100t": null
     },
     "last_inspection_date": null,
@@ -357,7 +394,6 @@
       "INSPECTION_ON_550t_20261119220025_61_20261120_035602_550t_20261119220025_61",
       "INSPECTION_ON_550t_20261120155357_61_20261120_181112_550t_20261120155357_61",
       "OFF_CONFIRM_20261121_021936_550t",
-      "ON_450t_20261123100656_251_20261123_172033",
       "INSPECTION_ON_450t_20261123100656_251_20261123_172033_450t_20261123100656_251"
     ],
     "pending_power_off_due": null,
@@ -366,11 +402,8 @@
     "pending_production_finish_confirmation": null,
     "pending_signboard_confirmation": null,
     "pending_daily_inspection": null,
-    "mfr_power_is_on": true,
-    "mfr_power_on_confirmed_at": {
-      "__mfr_runtime_type__": "datetime",
-      "value": "2026-11-23T17:32:07.689505"
-    },
+    "mfr_power_is_on": false,
+    "mfr_power_on_confirmed_at": null,
     "mfr_power_state_version": 2,
     "last_selected_products": {
       "100t": "P02251J",
