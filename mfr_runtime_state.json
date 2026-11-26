@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "saved_at": "2026-11-27T08:23:57.950201",
+  "saved_at": "2026-11-27T08:24:12.290080",
   "app_version": "1.6.50",
   "state": {
     "jobs": {
@@ -48,12 +48,12 @@
         "job_id": "100t_20261127082341",
         "product_name": "LMC-M-105003",
         "total_qty": 505,
-        "cycle_time": 94.0,
+        "cycle_time": 93.53,
         "measurement_count": 3,
         "current_qty": 477,
         "last_update": {
           "__mfr_runtime_type__": "datetime",
-          "value": "2026-11-27T08:23:57.949785"
+          "value": "2026-11-27T08:24:12.289751"
         },
         "production_started_at": {
           "__mfr_runtime_type__": "datetime",
